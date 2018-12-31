@@ -302,11 +302,13 @@ cmdIntpr cmdname args  =
          ; "map"           -> cmdMap        args
          ; "ncomp"         -> cmdNComp      args
          ; "lpe"           -> cmdLPE        args
+         ; "lpeop"         -> cmdLPEOp      args
+         ; "merge"         -> cmdMerge      args
 -- ---------------------------------------------------------------------------------- system --
          ; "systart"       -> cmdSyStart    args
          ; "systop"        -> cmdSyStop     args
 -- ---------------------------------------------------------------------------- unrecognized --
-         ; _               -> do putErr $ "unrecognized command `" ++ cmdname ++  "` (enter 'help' for help)"
+         ; _               -> do putErr $ "Unrecognized command `" ++ cmdname ++  "` (enter 'help' for help)!"
                                  (cmdhin:cmdhins) <- lift $ gets uihins
                                  if  cmdhin == stdin
                                     then    cmdsIntpr
@@ -580,6 +582,20 @@ cmdNComp args  =  do
 cmdLPE :: String -> UIO ()
 cmdLPE args  =  do
      doCmd "LPE" args
+     cmdsIntpr
+
+-- ----------------------------------------------------------------------------------------- --
+
+cmdLPEOp :: String -> UIO ()
+cmdLPEOp args  =  do
+     doCmd "LPEOP" args
+     cmdsIntpr
+
+-- ----------------------------------------------------------------------------------------- --
+
+cmdMerge :: String -> UIO ()
+cmdMerge args  =  do
+     doCmd "MERGE" args
      cmdsIntpr
 
 -- ----------------------------------------------------------------------------------------- --

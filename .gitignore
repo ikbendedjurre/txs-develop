@@ -46,3 +46,4 @@ sys/txs-sort/txs-sort.cabal
 
 # RPM package.
 *.rpm
+*.prof
