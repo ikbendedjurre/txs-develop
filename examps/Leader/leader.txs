@@ -1,0 +1,93 @@
+
+
+-- List of integers:
+TYPEDEF IntList ::=
+    Nil | Cons { value :: Int; rest :: IntList }
+ENDDEF
+
+-- Add integer to the end of the list:
+FUNCDEF enqueue ( xs :: IntList; x :: Int ) :: IntList ::=
+    IF isNil(xs)
+    THEN Cons(x, Nil)
+    ELSE Cons(value(xs), enqueue(rest(xs), x))
+    FI
+ENDDEF
+
+-- Get integer from the start of the list:
+FUNCDEF dequeue ( xs :: IntList ) :: Int ::=
+    IF isNil(xs)
+    THEN 0
+    ELSE value(xs)
+    FI
+ENDDEF
+
+-- Remove integer from the start of the list:
+FUNCDEF pop ( xs :: IntList ) :: IntList ::=
+    IF isNil(xs)
+    THEN Nil
+    ELSE rest(xs)
+    FI
+ENDDEF
+
+-- Compute the id of the next node in the ring network:
+FUNCDEF nextNodeId (id :: Int) :: Int ::=
+    (id % 5) + 1
+ENDDEF
+
+-- Channels:
+CHANDEF Chans ::=
+    leader
+ENDDEF
+
+-- Node process:
+PROCDEF node [ nodeToQueue, queueToNode :: Int # Int; leader ] ( id :: Int; lead :: Int ) ::=
+    nodeToQueue ! nextNodeId(id) ! lead >-> nodeLoop [ nodeToQueue, queueToNode, leader ] ( id, lead )
+ENDDEF
+
+PROCDEF nodeLoop [ nodeToQueue, queueToNode :: Int # Int; leader ] ( id :: Int; lead :: Int ) ::=
+    queueToNode ! id ? w >-> (
+        -- lead has gone through the entire ring without finding a higher value, so we are the leader:
+        ([[ w == lead ]] =>> leader >-> STOP)
+        -- received value is less than our lead, so do NOT pass the value:
+     ## ([[ w < lead ]] =>> nodeLoop [ nodeToQueue, queueToNode, leader ] ( id, lead ))
+        -- received value is greater than our lead, so pass it on:
+     ## ([[ w >= lead ]] =>> nodeToQueue ! nextNodeId(id) ! w >-> nodeLoop [ nodeToQueue, queueToNode, leader ] ( id, lead ))
+    )
+ENDDEF
+
+-- Queue process:
+PROCDEF queue [ nodeToQueue, queueToNode :: Int # Int ] ( id :: Int; data :: IntList ) ::=
+    nodeToQueue ! id ? w >-> queue [ nodeToQueue, queueToNode ] ( id, enqueue(data, w) )
+ ## ([[ not(isNil(data)) ]] =>> queueToNode ! id ! dequeue(data) >-> queue [ nodeToQueue, queueToNode ] ( id, pop(data) ) )
+ENDDEF
+
+-- Convenience process that creates a node and queue process pair:
+PROCDEF nodePlusQueue [ nodeToQueue, queueToNode :: Int # Int; leader ] ( id :: Int; lead :: Int ) ::=
+    node [ nodeToQueue, queueToNode, leader ] ( id, lead )
+        |[ nodeToQueue, queueToNode ]|
+    queue [ nodeToQueue, queueToNode ] ( id, Nil )
+ENDDEF
+
+-- Model:
+PROCDEF model [ leader ] ( ) ::=
+    HIDE [ nodeToQueue, queueToNode :: Int # Int ] IN
+        nodePlusQueue [ nodeToQueue, queueToNode, leader ] ( 1, 5 )
+     |[ nodeToQueue, queueToNode ]|
+        nodePlusQueue [ nodeToQueue, queueToNode, leader ] ( 2, 11 )
+     |[ nodeToQueue, queueToNode ]|
+        nodePlusQueue [ nodeToQueue, queueToNode, leader ] ( 3, 7 )
+     |[ nodeToQueue, queueToNode ]|
+        nodePlusQueue [ nodeToQueue, queueToNode, leader ] ( 4, 13 )
+     |[ nodeToQueue, queueToNode ]|
+        nodePlusQueue [ nodeToQueue, queueToNode, leader ] ( 5, 9 )
+    NI
+ENDDEF
+
+-- Model specification and initialization:
+MODELDEF Model ::=
+    CHAN IN
+    CHAN OUT leader
+    SYNC {leader}
+    BEHAVIOUR model [leader] ( )
+ENDDEF
+

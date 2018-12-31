@@ -1,0 +1,49 @@
+
+-- Channels:
+CHANDEF Chans ::=
+    request, enter, leave :: Bool; comm :: Bool # Int
+ENDDEF
+
+PROCDEF partyPhase1 [ request, enter, leave :: Bool; comm :: Bool # Int ] ( id :: Bool ) ::=
+    request ! id >-> partyPhase2 [ request, enter, leave, comm ] ( id, 0 )
+ ## comm ! id ! 0 >-> partyPhase1 [ request, enter, leave, comm ] ( id )
+ENDDEF
+
+PROCDEF partyPhase2 [ request, enter, leave :: Bool; comm :: Bool # Int ] ( id :: Bool; n :: Int ) ::=
+    comm ! not(id) ? m >-> partyPhase3 [ request, enter, leave, comm ] ( id, m + 1 )
+ ## comm ! id ! n >-> partyPhase2 [ request, enter, leave, comm ] ( id, n )
+ENDDEF
+
+PROCDEF partyPhase3 [ request, enter, leave :: Bool; comm :: Bool # Int ] ( id :: Bool; n :: Int ) ::=
+    comm ! not(id) ? m >-> (
+        ([[ (n < m) \/ (m == 0) ]] =>> customerPhase1 [ request, enter, leave, comm ] ( id, n ))
+     ## ([[ (n >= m) /\ (m <> 0) ]] =>> partyPhase3 [ request, enter, leave, comm ] ( id, n ))
+    )
+ ## comm ! id ! n >-> partyPhase3 [ request, enter, leave, comm ] ( id, n )
+ENDDEF
+
+PROCDEF customerPhase1 [ request, enter, leave :: Bool; comm :: Bool # Int ] ( id :: Bool; n :: Int ) ::=
+    enter ! id >-> customerPhase2 [ request, enter, leave, comm ] ( id, n )
+ ## comm ! id ! n >-> customerPhase1 [ request, enter, leave, comm ] ( id, n )
+ENDDEF
+
+PROCDEF customerPhase2 [ request, enter, leave :: Bool; comm :: Bool # Int ] ( id :: Bool; n :: Int ) ::=
+    leave ! id >-> partyPhase1 [ request, enter, leave, comm ] ( id )
+ ## comm ! id ! n >-> customerPhase2 [ request, enter, leave, comm ] ( id, n )
+ENDDEF
+
+-- Model:
+PROCDEF model [ request, enter, leave :: Bool; comm :: Bool # Int ] ( ) ::=
+    partyPhase1 [ request, enter, leave, comm ] ( True )
+        |[ comm ]|
+    partyPhase1 [ request, enter, leave, comm ] ( False )
+ENDDEF
+
+-- Model specification and initialization:
+MODELDEF Model ::=
+    CHAN IN
+    CHAN OUT request, enter, leave, comm
+    SYNC {request}, {enter}, {leave}, {comm}
+    BEHAVIOUR model [ request, enter, leave, comm ] ( )
+ENDDEF
+
