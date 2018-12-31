@@ -1,0 +1,5 @@
+lpe Adder
+run ../_lpeExec.txscmd
+lpe Adder3
+run ../_lpeExec.txscmd
+quit
