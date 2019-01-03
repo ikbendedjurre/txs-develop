@@ -25,9 +25,10 @@ import qualified Control.Monad       as Monad
 import qualified Data.Set            as Set
 import qualified EnvCore             as IOC
 import qualified TxsDefs
+import qualified Satisfiability as Sat
+import qualified ValExpr
 import           LPEOps
-import           Satisfiability
-import           ValExpr hiding (subst)
+import           BlindSubst
 
 getPossiblePredecessors :: LPESummands -> TxsDefs.VExpr -> LPESummand -> IOC.IOC [LPESummand]
 getPossiblePredecessors allSummands invariant (LPESummand _ _ guard _) =
@@ -36,7 +37,7 @@ getPossiblePredecessors allSummands invariant (LPESummand _ _ guard _) =
     addSummandIfPossiblePredecessor :: [LPESummand] -> LPESummand -> IOC.IOC [LPESummand]
     addSummandIfPossiblePredecessor soFar summand@(LPESummand _ _ g paramEqs) = do
         guard' <- doBlindSubst paramEqs guard
-        sat <- couldBeSatisfiable (cstrAnd (Set.fromList [g, guard'])) invariant
+        sat <- Sat.couldBeSatisfiable (ValExpr.cstrAnd (Set.fromList [g, guard'])) invariant
         return $ if sat then summand:soFar else soFar
 -- getPossibleSuccessors
 
@@ -49,7 +50,7 @@ couldHavePredecessor allSummands invariant (LPESummand _ _ guard _) =
         if soFar
         then return True
         else do guard' <- doBlindSubst paramEqs guard
-                couldBeSatisfiable (cstrAnd (Set.fromList [g, guard'])) invariant
+                Sat.couldBeSatisfiable (ValExpr.cstrAnd (Set.fromList [g, guard'])) invariant
 -- getPossibleSuccessors
 
 -- Selects all potential successors summands of a given summand from a list with all summands.
@@ -63,7 +64,7 @@ getPossibleSuccessors allSummands invariant (LPESummand _ _ guard paramEqs) =
     addSummandIfPossibleSuccessor :: [LPESummand] -> LPESummand -> IOC.IOC [LPESummand]
     addSummandIfPossibleSuccessor soFar summand@(LPESummand _ _ g _) = do
         g' <- doBlindSubst paramEqs g
-        sat <- couldBeSatisfiable (cstrAnd (Set.fromList [guard, g'])) invariant
+        sat <- Sat.couldBeSatisfiable (ValExpr.cstrAnd (Set.fromList [guard, g'])) invariant
         return $ if sat then soFar ++ [summand] else soFar
 -- getPossibleSuccessors
 
@@ -76,7 +77,7 @@ getDefiniteSuccessors allSummands invariant (LPESummand _ _ guard paramEqs) =
     isDefiniteSuccessor :: LPESummand -> IOC.IOC Bool
     isDefiniteSuccessor (LPESummand _ _ g _) = do
         g' <- doBlindSubst paramEqs g
-        isTautology (cstrAnd (Set.fromList [guard, g'])) invariant
+        Sat.isTautology (ValExpr.cstrAnd (Set.fromList [guard, g'])) invariant
 -- getDefiniteSuccessors
 
 

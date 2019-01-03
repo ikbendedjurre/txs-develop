@@ -24,8 +24,7 @@ areSatisfiable,
 areNotSatisfiable,
 getUniqueSolution,
 showSolution,
-defaultInvariant,
-module BlindSubst
+defaultInvariant
 ) where
 
 import qualified Control.Monad as Monad

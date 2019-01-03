@@ -29,9 +29,9 @@ import qualified EnvData
 import qualified TxsDefs
 import qualified ChanId
 import qualified ValExpr
+import qualified Satisfiability as Sat
 import LPEOps
 import BlindSubst
-import Satisfiability
 
 -- Checks if the given LPE is deterministic.
 -- The conclusion is printed to the console, and the input LPE is returned.
@@ -74,7 +74,7 @@ getPossibleCoActors allSummands invariant (LPESummand _ chans1 guard1 _) =
         then return False
         else do -- Both guards must be able to be true at the same time:
                 let guards = ValExpr.cstrAnd (Set.fromList [guard1, guard2])
-                notSat <- isNotSatisfiable guards invariant
+                notSat <- Sat.isNotSatisfiable guards invariant
                 if notSat
                 then return False
                 else do -- All action arguments must be able to have the same value.
@@ -84,6 +84,6 @@ getPossibleCoActors allSummands invariant (LPESummand _ chans1 guard1 _) =
                         let subst = Map.fromList (zipWith (\cv1 cv2 -> (cv2, ValExpr.cstrVar cv1)) chanVars1 chanVars2)
                         guard2' <- doBlindSubst subst guard2
                         let guardEq = ValExpr.cstrEqual guard1 guard2'
-                        isSatisfiable guardEq invariant
+                        Sat.isSatisfiable guardEq invariant
 -- getPossibleCoActors
 

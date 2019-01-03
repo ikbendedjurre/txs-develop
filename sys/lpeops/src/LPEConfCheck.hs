@@ -27,15 +27,16 @@ import qualified Data.Text           as Text
 import qualified EnvCore             as IOC
 import qualified EnvData
 import qualified VarId
-import           TxsDefs hiding (guard)
+import qualified TxsDefs
+import qualified Satisfiability as Sat
 import           LPEOps
-import           Satisfiability
 import           ValExpr
 import           Constant
 import           LPESuccessors
+import           BlindSubst
 
-chanIdConfluentIstep :: ChanId
-chanIdConfluentIstep = ChanId (Text.pack "CISTEP") 969 []
+chanIdConfluentIstep :: TxsDefs.ChanId
+chanIdConfluentIstep = TxsDefs.ChanId (Text.pack "CISTEP") 969 []
 
 getConfluentTauSummands :: LPESummands -> TxsDefs.VExpr -> IOC.IOC LPESummands
 getConfluentTauSummands summands invariant = do
@@ -56,7 +57,7 @@ confCheck (tdefs, mdef, (n, channels, paramEqs, summands)) _out invariant = do
 -- confCheck
 
 isTauSummand :: LPESummand -> Bool
-isTauSummand (LPESummand _ [(chanId, _)] _ _) = chanId == chanIdIstep
+isTauSummand (LPESummand _ [(chanId, _)] _ _) = chanId == TxsDefs.chanIdIstep
 isTauSummand _ = False
 -- isTauSummand
 
@@ -95,7 +96,7 @@ checkConfluenceCondition summand1@(LPESummand _channelVars1 _channelOffers1 guar
             let confluenceCondition = cstrITE premise conclusion (cstrConst (Cbool True))
             
             -- Is the confluence condition a tautology?
-            isTautology confluenceCondition invariant
+            Sat.isTautology confluenceCondition invariant
   where
     getChannelArgEq :: VarId.VarId -> IOC.IOC TxsDefs.VExpr
     getChannelArgEq param = do

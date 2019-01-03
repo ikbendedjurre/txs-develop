@@ -29,8 +29,8 @@ import qualified EnvCore as IOC
 import qualified EnvData
 import LPEOps
 import LPEParUsage
-import VarId
 import LPEPrettyPrint
+import VarId
 
 mapGet :: (Show a, Ord a) => Map.Map a b -> a -> b
 mapGet m k =

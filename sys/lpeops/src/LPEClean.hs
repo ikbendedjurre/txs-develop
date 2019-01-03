@@ -28,12 +28,14 @@ import qualified ChanId
 import qualified TxsDefs
 import qualified VarId
 import qualified ValExpr
+import qualified Satisfiability as Sat
 import LPEOps
 import LPESuccessors
-import Satisfiability
+import BlindSubst
 
--- Removes duplicate summands and summands that are unreachable by all other (!) summands
--- (so basically we do a partial, symbolic reachability analysis).
+-- Removes duplicate summands.
+-- Also removes summands that are unreachable from the initial state and unreachable from the states set by all other summands.
+-- (Basically, we do a partial, symbolic reachability analysis.)
 cleanLPE :: LPEOperation
 cleanLPE (tdefs, mdef, (n, channels, initParamEqs, summands)) _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<clean>>" ]
@@ -56,7 +58,7 @@ cleanLPE (tdefs, mdef, (n, channels, initParamEqs, summands)) _out invariant = d
     addSummandIfReachableFromInit soFar candidate@(LPESummand _channelVars _channelOffers guard _paramEqs) = do
         -- Check if the summand can be reached via the initial state:
         guard' <- doBlindSubst initParamEqs guard
-        sat <- couldBeSatisfiable guard' invariant
+        sat <- Sat.couldBeSatisfiable guard' invariant
         if sat
         then return (Set.insert candidate soFar)
         else return soFar
@@ -104,7 +106,7 @@ isEquivalentSummand (LPESummand _vars1 chans1 guard1 paramEqs1) (LPESummand _var
             guard2' <- doBlindSubst subst guard2
             let guardEq = ValExpr.cstrEqual guard1 guard2'
             procInstEqs <- Monad.mapM (getProcInstEq subst paramEqs2) (Map.toList paramEqs1)
-            isTautology (ValExpr.cstrAnd (Set.fromList (guardEq:procInstEqs))) invariant
+            Sat.isTautology (ValExpr.cstrAnd (Set.fromList (guardEq:procInstEqs))) invariant
   where
     getProcInstEq :: Map.Map VarId.VarId TxsDefs.VExpr -> LPEParamEqs -> (VarId.VarId, TxsDefs.VExpr) -> IOC.IOC TxsDefs.VExpr
     getProcInstEq subst eqs2 (p1, v1) = do

@@ -37,11 +37,11 @@ import qualified SolveDefs
 import qualified TxsDefs
 import           LPEOps
 import           LPEPrettyPrint
-import           Satisfiability
+import qualified Satisfiability as Sat
 import           VarId
 import           ValExpr
 import           VarFactory
-import Constant hiding (sort)
+import qualified Constant
 
 -- Just for convenience, not used anywhere else:
 type ParamsPerSummand = Map.Map LPESummand (Set.Set VarId)
@@ -103,7 +103,7 @@ getParamSourcesPerSummand summands params invariant = do
     
     getParamSource :: LPESummand -> VarId -> IOC.IOC LPEParamEqs
     getParamSource (LPESummand _ _ guard _) param = do
-        guardSolution <- getUniqueSolution guard invariant [] [param]
+        guardSolution <- Sat.getUniqueSolution guard invariant [] [param]
         case guardSolution of
           SolveDefs.Solved gdSolMap -> return (Map.singleton param (cstrConst (gdSolMap Map.! param)))
           _ -> return Map.empty
@@ -125,7 +125,7 @@ getParamDestinationsPerSummand summands params invariant = do
     getParamDestination :: LPESummand -> VarId -> IOC.IOC LPEParamEqs
     getParamDestination summand param = do
         (destVar, destSatExpr) <- constructDestSatExpr summand param
-        destSolution <- getUniqueSolution destSatExpr invariant [] [destVar]
+        destSolution <- Sat.getUniqueSolution destSatExpr invariant [] [destVar]
         case destSolution of
           SolveDefs.Solved destSolMap -> return (Map.singleton param (cstrConst (destSolMap Map.! destVar)))
           _ -> return Map.empty
@@ -165,7 +165,7 @@ getChangedParamsPerSummand summands params invariant = do
     isParamUnchanged :: LPESummand -> VarId -> IOC.IOC Bool
     isParamUnchanged summand param = do
         (destVar, destSatExpr) <- constructDestSatExpr summand param
-        isTautology (cstrITE destSatExpr (cstrEqual (cstrVar destVar) (cstrVar param)) (cstrConst (Cbool True))) invariant
+        Sat.isTautology (cstrITE destSatExpr (cstrEqual (cstrVar destVar) (cstrVar param)) (cstrConst (Constant.Cbool True))) invariant
 -- getChangedParamsPerSummand
 
 -- Finds the parameters that are 'directly used' by the specified summands.

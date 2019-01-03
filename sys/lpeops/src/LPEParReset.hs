@@ -27,12 +27,13 @@ import qualified EnvCore             as IOC
 import qualified FreeVar
 import qualified EnvData
 import qualified TxsDefs
+import qualified Satisfiability as Sat
 import           LPEOps
-import           Satisfiability
-import           LPEPrettyPrint
 import           VarId
 import           ValExpr
 import           LPESuccessors
+import           LPEPrettyPrint
+import           BlindSubst
 
 --import Debug.Trace
 
@@ -88,7 +89,7 @@ resetParamsInSummand (_, _, initParamEqs, summands) invariant successorsPerSumma
                          else do let nonSuccessors = Set.toList (summands Set.\\ Set.fromList sucs)
                                  let newParamEqs = Map.union (Map.filterWithKey (\p _ -> p `elem` uvars) paramEqs) (Map.filterWithKey (\p _ -> p `notElem` uvars) initParamEqs)
                                  constraints <- Monad.mapM (summandToConstraint newParamEqs) nonSuccessors
-                                 notSat <- areNotSatisfiable constraints invariant
+                                 notSat <- Sat.areNotSatisfiable constraints invariant
                                  if notSat
                                  then do printNewParamEqs newParamEqs
                                          return (LPESummand channelVars channelOffers guard newParamEqs)

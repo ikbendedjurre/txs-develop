@@ -25,12 +25,13 @@ import qualified Data.Set            as Set
 import qualified EnvCore             as IOC
 import qualified EnvData
 import qualified TxsDefs
+import qualified Satisfiability as Sat
 import           LPEOps
 import           LPEParRemoval
-import           Satisfiability
 import           VarId
-import           ValExpr hiding (subst)
+import qualified ValExpr
 import           Constant
+import           BlindSubst
 
 -- LPE rewrite method.
 -- Eliminates parameters that always have the same value from an LPE.
@@ -65,9 +66,9 @@ getConstParamsForSummand subst invariant constParams summand = do
 
 isConstParamForSummand :: Map.Map VarId TxsDefs.VExpr -> TxsDefs.VExpr -> LPESummand -> VarId -> IOC.IOC (Set.Set VarId)
 isConstParamForSummand subst invariant (LPESummand _ _ guard paramEqs) testParam = do
-    let expr = cstrITE guard (cstrEqual (paramEqs Map.! testParam) (cstrVar testParam)) (cstrConst (Cbool True))
+    let expr = ValExpr.cstrITE guard (ValExpr.cstrEqual (paramEqs Map.! testParam) (ValExpr.cstrVar testParam)) (ValExpr.cstrConst (Cbool True))
     expr' <- doBlindSubst subst expr
-    taut <- isTautology expr' invariant
+    taut <- Sat.isTautology expr' invariant
     if taut
     then return (Set.singleton testParam)
     else return Set.empty
