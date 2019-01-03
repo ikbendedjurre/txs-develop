@@ -47,11 +47,16 @@ import VarId
 import ValExpr
 import BlindSubst
 import LPEPrettyPrint
-import ValFactory
 
--- Frequently used method; code is modified code from TxsCore (with several safety checks removed!!).
+defaultInvariant :: TxsDefs.VExpr
+defaultInvariant = cstrConst (Constant.Cbool True)
+
+useThreeValueLogic :: Bool
+useThreeValueLogic = False
+
 -- Attempts to find a solution for the given expression.
--- If a solution is found, it consists of a map with one value for each of the specified variables.
+-- Code is modified code from TxsCore (with several safety checks removed!!).
+-- Solutions consist of a map with one value for each of the specified (!) variables.
 getSomeSolution :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
 getSomeSolution expr _invariant variables =
     if SortOf.sortOf expr /= SortId.sortIdBool
@@ -59,36 +64,42 @@ getSomeSolution expr _invariant variables =
             return SolveDefs.UnableToSolve
     else do smtEnv <- IOC.getSMT "current"
             (tdefs, expr1, undefs) <- eliminateAny expr
-            --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("expr1 = " ++ showContextFreeValExpr expr1) ]
-            let freeVars1 = Set.union (Set.fromList (FreeVar.freeVars expr1 ++ variables)) undefs
-            let assertions1 = Solve.add expr1 Solve.empty
-            (sol1, _) <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars1) assertions1) smtEnv
-            case sol1 of
-              SolveDefs.Solved solMap ->
-                if undefs == Set.empty
-                then do restoreTdefs tdefs
-                        return (buildSolution tdefs solMap)
-                else do let freeVars2 = undefs
-                        let blindSubstVars = Set.toList (freeVars1 Set.\\ freeVars2)
-                        let blindSubst = Map.fromList (map (\v -> (v, cstrConst (solMap Map.! v))) blindSubstVars)
-                        expr2 <- doBlindSubst blindSubst expr1
-                        --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("expr2 = " ++ showContextFreeValExpr expr2) ]
-                        let assertions2 = Solve.add (cstrNot expr2) Solve.empty
-                        (sol2, _) <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars2) assertions2) smtEnv
-                        case sol2 of
-                          SolveDefs.Unsolvable -> do restoreTdefs tdefs
-                                                     return (buildSolution tdefs solMap)
-                          _ -> do restoreTdefs tdefs
-                                  return SolveDefs.UnableToSolve
-              otherResult -> do restoreTdefs tdefs
-                                return otherResult
+            if undefs == Set.empty
+            then do let freeVars1 = Set.fromList (FreeVar.freeVars expr1 ++ variables)
+                    let assertions1 = Solve.add expr1 Solve.empty
+                    (sol1, _) <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars1) assertions1) smtEnv
+                    case sol1 of
+                      SolveDefs.Solved solMap -> do restoreTdefs tdefs
+                                                    return (buildSolution solMap)
+                      otherResult -> do restoreTdefs tdefs
+                                        return otherResult
+            else if useThreeValueLogic
+                 then do let freeVars1 = Set.union (Set.fromList (FreeVar.freeVars expr1 ++ variables)) undefs
+                         let assertions1 = Solve.add expr1 Solve.empty
+                         (sol1, _) <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars1) assertions1) smtEnv
+                         --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("expr1 = " ++ showContextFreeValExpr expr1) ]
+                         case sol1 of
+                           SolveDefs.Solved solMap -> do
+                             let freeVars2 = undefs
+                             let blindSubstVars = Set.toList (freeVars1 Set.\\ freeVars2)
+                             let blindSubst = Map.fromList (map (\v -> (v, cstrConst (solMap Map.! v))) blindSubstVars)
+                             expr2 <- doBlindSubst blindSubst expr1
+                             --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("expr2 = " ++ showContextFreeValExpr expr2) ]
+                             let assertions2 = Solve.add (cstrNot expr2) Solve.empty
+                             (sol2, _) <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars2) assertions2) smtEnv
+                             case sol2 of
+                               SolveDefs.Unsolvable -> do restoreTdefs tdefs
+                                                          return (buildSolution solMap)
+                               _ -> do restoreTdefs tdefs
+                                       return SolveDefs.UnableToSolve
+                           otherResult -> do restoreTdefs tdefs
+                                             return otherResult
+                 else do restoreTdefs tdefs
+                         return SolveDefs.UnableToSolve
   where
-    buildSolution :: TxsDefs.TxsDefs -> Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
-    buildSolution tdefs solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, Map.findWithDefault (sort2defaultConst tdefs (SortOf.sortOf v)) v solMap)) variables))
+    buildSolution :: Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
+    buildSolution solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
 -- getSomeSolution
-
-defaultInvariant :: TxsDefs.VExpr
-defaultInvariant = cstrConst (Constant.Cbool True)
 
 -- Checks if the specified expression cannot be false.
 isTautology :: TxsDefs.VExpr -> TxsDefs.VExpr -> IOC.IOC Bool
@@ -126,7 +137,7 @@ areSatisfiable expressions invariant = do sat <- Monad.mapM (`isSatisfiable` inv
                                           return (List.and sat)
 -- areSatisfiable
 
--- Checks if none of the specified expressions not be true.
+-- Checks if none of the specified expressions could be true.
 -- Note that each expression is considered in a vacuum, e.g. input [X == 0, false] would yield false!
 areNotSatisfiable :: [TxsDefs.VExpr] -> TxsDefs.VExpr -> IOC.IOC Bool
 areNotSatisfiable expressions invariant = do sat <- Monad.mapM (`isNotSatisfiable` invariant) expressions
@@ -134,7 +145,7 @@ areNotSatisfiable expressions invariant = do sat <- Monad.mapM (`isNotSatisfiabl
 -- areNotSatisfiable
 
 -- Attempts to find a unique solution for the given expression.
--- The solution only has to be unique with regard to the variables listed by the third parameter:
+-- The solution only has to be unique with regard to the variables listed in the third parameter:
 getUniqueSolution :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
 getUniqueSolution expr invariant variables uniqueSolVars = do
     sol <- getSomeSolution expr invariant (variables ++ uniqueSolVars)
