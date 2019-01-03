@@ -63,7 +63,7 @@ getSomeSolution expr _invariant variables =
     then do IOC.putMsgs [ EnvData.TXS_CORE_USER_ERROR ("Value expression must be of sort Bool (" ++ show expr ++ ")!") ]
             return SolveDefs.UnableToSolve
     else do smtEnv <- IOC.getSMT "current"
-            (tdefs, expr1, undefs) <- eliminateAny expr
+            (tdefs, expr1, undefs) <- any2freshVar expr
             if undefs == Set.empty
             then do let freeVars1 = Set.fromList (FreeVar.freeVars expr1 ++ variables)
                     let assertions1 = Solve.add expr1 Solve.empty

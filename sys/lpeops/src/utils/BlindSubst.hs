@@ -17,7 +17,8 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 module BlindSubst (
 restoreTdefs,
-eliminateAny,
+any2freshVar,
+any2defaultValue,
 doBlindSubst,
 doBlindParamEqSubst,
 doBlindParamEqsSubst,
@@ -55,25 +56,36 @@ restoreTdefs tdefs = do
 
 -- Eliminates occurrences of 'ANY <sort>' by substituting fresh, free variables.
 -- Also returns the previous TorXakis definitions (so that they can be restored afterwards, see above).
-eliminateAny :: TxsDefs.VExpr -> IOC.IOC (TxsDefs.TxsDefs, TxsDefs.VExpr, Set.Set VarId)
-eliminateAny expr = do
+any2freshVar :: TxsDefs.VExpr -> IOC.IOC (TxsDefs.TxsDefs, TxsDefs.VExpr, Set.Set VarId)
+any2freshVar expr = do
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
-    visitorOutput <- visitValExprM eliminateAnyVisitorM expr
+    visitorOutput <- visitValExprM any2FreshVarVisitorM expr
     return (tdefs, expression visitorOutput, customData visitorOutput)
   where
-    eliminateAnyVisitorM :: [ValExprVisitorOutput (Set.Set VarId)] -> TxsDefs.VExpr -> IOC.IOC (ValExprVisitorOutput (Set.Set VarId))
-    eliminateAnyVisitorM _ (view -> Vconst (Cany sort)) = do
+    any2FreshVarVisitorM :: [ValExprVisitorOutput (Set.Set VarId)] -> TxsDefs.VExpr -> IOC.IOC (ValExprVisitorOutput (Set.Set VarId))
+    any2FreshVarVisitorM _ (view -> Vconst (Cany sort)) = do
         varId <- createFreshVar sort
         return (ValExprVisitorOutput (cstrVar varId) 1 (Set.singleton varId))
-    eliminateAnyVisitorM xs x = do
+    any2FreshVarVisitorM xs x = do
         vo <- MonadState.liftIO $ tryDefaultValExprVisitor (Set.unions (map customData xs)) xs x
         case vo of
           Left _ -> do varId <- createFreshVar (SortOf.sortOf x)
                        return (ValExprVisitorOutput (cstrVar varId) 1 (Set.singleton varId))
           Right r -> return r
--- eliminateAny
+-- any2freshVar
 
--- Applies a substitution to the given expression, introducing 'undefined variables' (as defined above) where necessary.
+-- Eliminates occurrences of 'ANY <sort>' by substituting default data expressions of the same sort.
+any2defaultValue :: TxsDefs.VExpr -> IOC.IOC TxsDefs.VExpr
+any2defaultValue expr = do
+    tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
+    return (expression (visitValExpr (any2defaultVisitor tdefs) expr))
+  where
+    any2defaultVisitor :: TxsDefs.TxsDefs -> [ValExprVisitorOutput ()] -> TxsDefs.VExpr -> ValExprVisitorOutput ()
+    any2defaultVisitor tdefs _ (view -> Vconst (Cany sort)) = ValExprVisitorOutput (sort2defaultValue tdefs sort) 1 ()
+    any2defaultVisitor _ xs x = defaultValExprVisitor () xs x
+-- any2defaultValue
+
+-- Applies a substitution to the given expression, introducing 'ANY <sort>' for appearing undefined expressions.
 doBlindSubst :: Map.Map VarId TxsDefs.VExpr -> TxsDefs.VExpr -> IOC.IOC TxsDefs.VExpr
 doBlindSubst subst expr = do
     visitorOutput <- visitValExprM substVisitor expr
@@ -85,8 +97,8 @@ doBlindSubst subst expr = do
         case Map.lookup varId subst of
           Just v -> return (ValExprVisitorOutput v 1 ())
           Nothing -> return (ValExprVisitorOutput (cstrVar varId) 1 ())
-    -- In other cases, the parent expression inherits undefined variables from its sub-expressions.
-    -- However, reconstruction of the parent expression might fail (because something was substituted incorrectly),
+    -- In other cases, reconstruction of the parent expression might fail
+    -- (for example because something was substituted incorrectly)
     -- in which case we return 'ANY <sort>' instead:
     substVisitor subExps parentExpr = do
         vo <- MonadState.liftIO $ tryDefaultValExprVisitor () subExps parentExpr
@@ -95,20 +107,21 @@ doBlindSubst subst expr = do
           Right r -> return r
 -- doBlindSubst
 
--- Convenience method:
+-- Applies 'doBlindSubst' to the value of a key-value pair:
 doBlindParamEqSubst :: Map.Map VarId TxsDefs.VExpr -> (VarId, TxsDefs.VExpr) -> IOC.IOC (VarId, TxsDefs.VExpr)
 doBlindParamEqSubst subst (varId, expr) = do
     expr' <- doBlindSubst subst expr
     return (varId, expr')
 -- doBlindParamEqSubst
 
+-- Applies 'doBlindSubst' to each value of a key-value map:
 doBlindParamEqsSubst :: Map.Map VarId TxsDefs.VExpr -> Map.Map VarId TxsDefs.VExpr -> IOC.IOC (Map.Map VarId TxsDefs.VExpr)
 doBlindParamEqsSubst subst target = do
     paramEqs <- Monad.mapM (doBlindParamEqSubst subst) (Map.toList target)
     return (Map.fromList paramEqs)
 -- doBlindParamEqsSubst
 
--- Applies a substitution to the given expression, using default data expressions when encountering an undefined expressions.
+-- Applies a substitution to the given expression, using default data expressions for undefined expressions.
 doConfidentSubst :: LPESummand -> Map.Map VarId TxsDefs.VExpr -> TxsDefs.VExpr -> IOC.IOC TxsDefs.VExpr
 doConfidentSubst contextSummand subst expr = do
     txsdefs <- MonadState.gets (IOC.tdefs . IOC.state)
@@ -121,13 +134,14 @@ doConfidentSubst contextSummand subst expr = do
         case Map.lookup varId subst of
           Just v -> return (ValExprVisitorOutput v 1 ())
           Nothing -> return (ValExprVisitorOutput (cstrVar varId) 1 ())
-    -- In other cases, the parent expression inherits undefined variables from its sub-expressions.
-    -- However, reconstruction of the parent expression might fail (because something was substituted incorrectly),
-    -- in which case we return 'ANY <sort>' instead:
+    -- In other cases, reconstruction of the parent expression might fail
+    -- (for example because something was substituted incorrectly)
+    -- in which case we return a default data expression of the matching sort instead:
     substVisitor tdefs subExps parentExpr = do
         vo <- MonadState.liftIO $ tryDefaultValExprVisitor () subExps parentExpr
         case vo of
           Left _ -> do let defaultValue = sort2defaultValue tdefs (SortOf.sortOf parentExpr)
+                       -- Print a warning, because if this happens we should at least scratch ourselves behind our ears:
                        IOC.putMsgs [ EnvData.TXS_CORE_RUNTIME_WARNING ("WARNING: Confidently substituted " ++ showValExpr defaultValue ++ " for " ++ showValExpr parentExpr ++ showSubst subst
                                        ++ "\nExpression: " ++ showValExpr expr
                                        ++ "\nSummand: " ++ showLPESummand contextSummand) ]
@@ -135,13 +149,14 @@ doConfidentSubst contextSummand subst expr = do
           Right r -> return r
 -- doConfidentSubst
 
--- Convenience method:
+-- Applies 'doConfidentSubst' to the value of a key-value pair:
 doConfidentParamEqSubst :: LPESummand -> Map.Map VarId TxsDefs.VExpr -> (VarId, TxsDefs.VExpr) -> IOC.IOC (VarId, TxsDefs.VExpr)
 doConfidentParamEqSubst summand subst (varId, expr) = do
     expr' <- doConfidentSubst summand subst expr
     return (varId, expr')
 -- doConfidentParamEqSubst
 
+-- Applies 'doConfidentSubst' to each value of a key-value map:
 doConfidentParamEqsSubst :: LPESummand -> Map.Map VarId TxsDefs.VExpr -> Map.Map VarId TxsDefs.VExpr -> IOC.IOC (Map.Map VarId TxsDefs.VExpr)
 doConfidentParamEqsSubst summand subst target = do
     paramEqs <- Monad.mapM (doConfidentParamEqSubst summand subst) (Map.toList target)
