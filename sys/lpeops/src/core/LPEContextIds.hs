@@ -16,9 +16,8 @@ See LICENSE at root directory of this repository.
 
 {-# LANGUAGE ViewPatterns        #-}
 module LPEContextIds (
-getModelIds,
-getProcessIds,
-getSummandIds,
+getLPEIds,
+getLPESummandIds,
 getValExprIds
 ) where
 
@@ -39,67 +38,51 @@ import qualified Id
 import           Constant hiding (sort)
 import           ValExpr hiding (subst)
 import           ValExprVisitor
-import           LPETypeDefs
+import           LPETypes
+import           SetUnions
+import           UntilFixpoint
 
 stdIds :: Set.Set TxsDefs.Ident
 stdIds = Set.fromList (map fst StdTDefs.stdTDefs)
 
--- Because Set.unions does not work on sets of sets for some reason?
-setUnions :: (Foldable f, Ord a) => f (Set.Set a) -> Set.Set a
-setUnions = foldl Set.union Set.empty
-
-getModelIds :: LPEModel -> Set.Set TxsDefs.Ident
-getModelIds (tdefs, _, process) =
-    untilFixpoint (getProcessIds process)
+getLPEIds :: LPE -> Set.Set TxsDefs.Ident
+getLPEIds lpe =
+    untilFixpoint getNextIds (Set.unions [
+      getChansIds (lpeChanParams lpe),
+      getParamEqsIds (lpeInitEqs lpe),
+      setUnions (Set.map getLPESummandIds (lpeSummands lpe))
+    ])
   where
-    untilFixpoint :: Set.Set TxsDefs.Ident -> Set.Set TxsDefs.Ident
-    untilFixpoint currentIds =
-      let nextIds = getNextIds currentIds Set.\\ stdIds in
-        if nextIds == currentIds
-        then currentIds
-        else untilFixpoint nextIds
-    -- untilFixpoint
-    
     getNextIds :: Set.Set TxsDefs.Ident -> Set.Set TxsDefs.Ident
     getNextIds currentIds =
         let recursiveIds = setUnions (Set.map getRecursiveIds currentIds) in
-          Set.union currentIds recursiveIds
+          Set.union currentIds recursiveIds Set.\\ stdIds
     -- getNextIds
     
     getRecursiveIds :: TxsDefs.Ident -> Set.Set TxsDefs.Ident
     getRecursiveIds (TxsDefs.IdCstr cid) =
-        let allCidCstrs = Map.filterWithKey (\k _ -> CstrId.cstrsort k == CstrId.cstrsort cid) (TxsDefs.cstrDefs tdefs) in
+        let allCidCstrs = Map.filterWithKey (\k _ -> CstrId.cstrsort k == CstrId.cstrsort cid) (TxsDefs.cstrDefs (lpeContext lpe)) in
         let allCstrIds = Set.unions (map getCstrIds (Map.keys allCidCstrs)) in
         let allAccessorIds = Set.unions (Map.elems (Map.mapWithKey getAccessorIdsFromCstrDef allCidCstrs)) in
           Set.union allCstrIds allAccessorIds
     getRecursiveIds (TxsDefs.IdFunc fid) =
-        case TxsDefs.funcDefs tdefs Map.!? fid of
+        case TxsDefs.funcDefs (lpeContext lpe) Map.!? fid of
           Just (FuncDef.FuncDef params body) -> Set.union (getVarsIds params) (getValExprIds body)
           Nothing -> Set.empty
     getRecursiveIds _ = Set.empty
 -- getModelIds
 
--- Gathers all ids that are used in the given LPE process:
-getProcessIds :: LPEProcess -> Set.Set TxsDefs.Ident
-getProcessIds (_, channels, initParamEqs, summands) =
-    Set.unions [
-      getChansIds channels,
-      getParamEqsIds initParamEqs,
-      setUnions (Set.map getSummandIds summands)
-    ] Set.\\ stdIds
--- getProcessIds
-
 -- Gathers all ids that are used in the given summand:
-getSummandIds :: LPESummand -> Set.Set TxsDefs.Ident
-getSummandIds (LPESummand channelVars channelOffers guard paramEqs) =
+getLPESummandIds :: LPESummand -> Set.Set TxsDefs.Ident
+getLPESummandIds summand =
     Set.unions [
-      getVarsIds channelVars,
-      getChansIds (map fst channelOffers),
-      Set.unions (map (getVarsIds . snd) channelOffers),
-      getValExprIds guard,
-      getParamEqsIds paramEqs
+      getVarsIds (Set.toList (lpeSmdVars summand)),
+      getChansIds (Map.keysSet (lpeSmdOffers summand)),
+      Set.unions (map getVarsIds (Map.elems (lpeSmdOffers summand))),
+      getValExprIds (lpeSmdGuard summand),
+      getParamEqsIds (lpeSmdEqs summand)
     ] Set.\\ stdIds
--- getSummandIds
+-- getLPESummandIds
 
 getParamEqsIds :: LPEParamEqs -> Set.Set TxsDefs.Ident
 getParamEqsIds =
@@ -163,8 +146,8 @@ getAccessorIds cid n p =
       Set.fromList [TxsDefs.IdFunc (FuncId.FuncId n (Id.Id 0) [CstrId.cstrsort cid] accSort), TxsDefs.IdSort accSort]
 -- createAccessorIds
 
-getChansIds :: [ChanId.ChanId] -> Set.Set TxsDefs.Ident
-getChansIds = Set.unions . map getChanIds
+getChansIds :: Set.Set ChanId.ChanId -> Set.Set TxsDefs.Ident
+getChansIds = setUnions . Set.map getChanIds
 
 getChanIds :: ChanId.ChanId -> Set.Set TxsDefs.Ident
 getChanIds chan = Set.fromList (TxsDefs.IdChan chan : map TxsDefs.IdSort (ChanId.chansorts chan))

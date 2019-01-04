@@ -25,32 +25,33 @@ import qualified Data.Text           as Text
 import qualified EnvCore             as IOC
 import qualified EnvData
 import qualified TxsDefs
+import qualified VarId
 import           LPEOps
-import           BlindSubst
-import           VarId
+import           LPEBlindSubst
 
 -- Removes the specified parameters an LPE.
 -- Occurrences of the parameters in expressions are substituted by their initial values.
-removeParsFromLPE :: Set.Set VarId -> LPEProcess -> IOC.IOC LPEProcess
-removeParsFromLPE targetParams process@(n, channels, initParamEqs, summands)
+removeParsFromLPE :: Set.Set VarId.VarId -> LPE -> IOC.IOC LPE
+removeParsFromLPE targetParams lpe
     | targetParams == Set.empty =
-        return process
+        return lpe
     | otherwise = do
         Monad.mapM_ (\p -> IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Removed parameter " ++ Text.unpack (VarId.name p)) ]) (Set.toList targetParams)
-        let rho = Map.restrictKeys initParamEqs targetParams
-        newSummands <- Monad.mapM (removeParsFromSummand rho) (Set.toList summands)
-        return (n, channels, Map.withoutKeys initParamEqs targetParams, Set.fromList newSummands)
+        let rho = Map.restrictKeys (lpeInitEqs lpe) targetParams
+        newSummands <- Monad.mapM (removeParsFromSummand rho) (Set.toList (lpeSummands lpe))
+        return (lpe { lpeInitEqs = Map.withoutKeys (lpeInitEqs lpe) targetParams, lpeSummands = Set.fromList newSummands })
   where
     -- Eliminates parameters from a summand.
     -- Note that channel variables are always fresh, and therefore do not have to be substituted:
-    removeParsFromSummand :: Map.Map VarId TxsDefs.VExpr -> LPESummand -> IOC.IOC LPESummand
-    removeParsFromSummand rho contextSummand@(LPESummand channelVars channelOffers guard paramEqs) = do
-        guard' <- doConfidentSubst contextSummand rho guard
-        paramEqs' <- removeParsFromParamEqs contextSummand rho paramEqs
-        return (LPESummand channelVars channelOffers guard' paramEqs')
+    removeParsFromSummand :: Map.Map VarId.VarId TxsDefs.VExpr -> LPESummand -> IOC.IOC LPESummand
+    removeParsFromSummand rho contextSummand = do
+        guard' <- doConfidentSubst contextSummand rho (lpeSmdGuard contextSummand)
+        paramEqs' <- removeParsFromParamEqs contextSummand rho (lpeSmdEqs contextSummand)
+        return (contextSummand { lpeSmdGuard = guard', lpeSmdEqs = paramEqs' })
+    -- removeParsFromSummand
     
     -- Eliminates parameters from a process instantiation:
-    removeParsFromParamEqs :: LPESummand -> Map.Map VarId TxsDefs.VExpr -> LPEParamEqs -> IOC.IOC LPEParamEqs
+    removeParsFromParamEqs :: LPESummand -> Map.Map VarId.VarId TxsDefs.VExpr -> LPEParamEqs -> IOC.IOC LPEParamEqs
     removeParsFromParamEqs contextSummand rho paramEqs = do
         let withoutTargetParams = Map.toList (Map.withoutKeys paramEqs targetParams)
         newAssignments <- Monad.mapM (doConfidentSubst contextSummand rho . snd) withoutTargetParams

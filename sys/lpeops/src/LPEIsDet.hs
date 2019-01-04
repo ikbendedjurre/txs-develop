@@ -36,14 +36,14 @@ import BlindSubst
 -- Checks if the given LPE is deterministic.
 -- The conclusion is printed to the console, and the input LPE is returned.
 isDeterministicLPE :: LPEOperation
-isDeterministicLPE (tdefs, mdef, lpe@(_, _, _, summands)) _out invariant = do
+isDeterministicLPE lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<isdet>" ]
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Checking " ++ show (Set.size summands) ++ " summands for possible overlap...") ]
-    nonDetSummands <- filterNonDeterministicSummands summands invariant
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Checking " ++ show (Set.size (lpeSummands lpe)) ++ " summands for possible overlap...") ]
+    nonDetSummands <- filterNonDeterministicSummands (lpeSummands lpe) invariant
     if nonDetSummands == Set.empty
     then IOC.putMsgs [ EnvData.TXS_CORE_ANY "Model is deterministic!" ]
     else IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Model may be non-deterministic (found " ++ show (Set.size nonDetSummands) ++ " summands with possible overlap)!") ]
-    return (Right (tdefs, mdef, lpe))
+    return (Right lpe)
 -- isDeterministicLPE
 
 filterNonDeterministicSummands :: LPESummands -> TxsDefs.VExpr -> IOC.IOC LPESummands
@@ -62,18 +62,18 @@ filterNonDeterministicSummands allSummands invariant =
 -- at the same time (= in the same state) as a specified summand.
 -- The result is an overapproximation!
 getPossibleCoActors :: LPESummands -> TxsDefs.VExpr -> LPESummand -> IOC.IOC LPESummands
-getPossibleCoActors allSummands invariant (LPESummand _ chans1 guard1 _) =
+getPossibleCoActors allSummands invariant summand1 =
     Set.fromList <$> Monad.filterM isPossibleCoActor (Set.toList allSummands)
   where
     isPossibleCoActor :: LPESummand -> IOC.IOC Bool
-    isPossibleCoActor (LPESummand _ chans2 guard2 _) = do
-        let sortedChans1 = List.sortOn (ChanId.unid . fst) chans1
-        let sortedChans2 = List.sortOn (ChanId.unid . fst) chans2
+    isPossibleCoActor summand2 = do
+        let sortedChans1 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand1))
+        let sortedChans2 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand2))
         -- All action labels must be the same (order does not matter, because we sorted):
         if map fst sortedChans1 /= map fst sortedChans2
         then return False
         else do -- Both guards must be able to be true at the same time:
-                let guards = ValExpr.cstrAnd (Set.fromList [guard1, guard2])
+                let guards = ValExpr.cstrAnd (Set.fromList [lpeSmdGuard summand1, lpeSmdGuard summand2])
                 notSat <- Sat.isNotSatisfiable guards invariant
                 if notSat
                 then return False
@@ -82,8 +82,8 @@ getPossibleCoActors allSummands invariant (LPESummand _ chans1 guard1 _) =
                         let chanVars1 = concatMap snd sortedChans1
                         let chanVars2 = concatMap snd sortedChans2
                         let subst = Map.fromList (zipWith (\cv1 cv2 -> (cv2, ValExpr.cstrVar cv1)) chanVars1 chanVars2)
-                        guard2' <- doBlindSubst subst guard2
-                        let guardEq = ValExpr.cstrEqual guard1 guard2'
+                        guard2' <- doBlindSubst subst (lpeSmdGuard summand2)
+                        let guardEq = ValExpr.cstrEqual (lpeSmdGuard summand1) guard2'
                         Sat.isSatisfiable guardEq invariant
 -- getPossibleCoActors
 

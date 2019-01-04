@@ -49,19 +49,16 @@ import ValFactory
 -- import TxsShow
 
 lpe2mcrl2 :: LPEOperation
-lpe2mcrl2 (tdefs, mdef, process) out invariant = do
-    let initialEnv = emptyEnv { txsdefs = tdefs }
-    eitherNewProcess <- evalStateT (lpeProcess2mcrl2 process out invariant) initialEnv
-    case eitherNewProcess of
-      Left msgs -> return (Left msgs)
-      Right newProcess -> return (Right (tdefs, mdef, newProcess))
+lpe2mcrl2 lpe out invariant = do
+    let initialEnv = emptyEnv { txsdefs = lpeContext lpe }
+    evalStateT (lpeProcess2mcrl2 lpe out invariant) initialEnv
 -- lpe2mcrl2
 
-lpeProcess2mcrl2 :: LPEProcess -> String -> TxsDefs.VExpr -> T2MMonad (Either [String] LPEProcess)
-lpeProcess2mcrl2 (_, channels, initParamEqs, summands) out _invariant = do
+lpeProcess2mcrl2 :: LPE -> String -> TxsDefs.VExpr -> T2MMonad (Either [String] LPE)
+lpeProcess2mcrl2 lpe out _invariant = do
     lift $ IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<mcrl2>>" ]
     tdefs <- gets txsdefs
-    let orderedParams = Map.keys initParamEqs
+    let orderedParams = Map.keys (lpeInitEqs lpe)
     -- Translate sorts.
     -- (These are just identifiers; they are defined further via constructors.)
     sorts <- Monad.mapM sortDef2sortDef (Map.toList (TxsDefs.sortDefs tdefs))
@@ -75,17 +72,17 @@ lpeProcess2mcrl2 (_, channels, initParamEqs, summands) out _invariant = do
     eqGroups <- Monad.mapM function2eqGroup (Map.toList (TxsDefs.funcDefs tdefs))
     modifySpec (\spec -> spec { MCRL2Defs.equationGroups = eqGroups })
     -- Translate channels:
-    actions <- Monad.mapM createFreshAction channels
+    actions <- Monad.mapM createFreshAction (Set.toList (lpeChanParams lpe))
     modifySpec (\spec -> spec { MCRL2Defs.actions = Map.fromList actions })
     -- Translate LPE header:
     (lpeProcName, lpeProc) <- createLPEProcess orderedParams
     modifySpec (\spec -> spec { MCRL2Defs.processes = Map.fromList [(lpeProcName, lpeProc)] })
     -- Translate LPE body:
-    newSummands <- Monad.mapM (summand2summand (lpeProcName, lpeProc) orderedParams) (Set.toList summands)
+    newSummands <- Monad.mapM (summand2summand (lpeProcName, lpeProc) orderedParams) (Set.toList (lpeSummands lpe))
     let newProcess = lpeProc { MCRL2Defs.expr = MCRL2Defs.PChoice newSummands }
     modifySpec (\spec -> spec { MCRL2Defs.processes = Map.insert lpeProcName newProcess (MCRL2Defs.processes spec) })
     -- Translate LPE initialization:
-    lpeInit <- procInst2procInst (lpeProcName, lpeProc) orderedParams initParamEqs
+    lpeInit <- procInst2procInst (lpeProcName, lpeProc) orderedParams (lpeInitEqs lpe)
     modifySpec (\spec -> spec { MCRL2Defs.init = lpeInit })
     spec <- gets specification
     let filename = out ++ ".mcrl2"
@@ -181,18 +178,19 @@ createLPEProcess paramIds = do
 -- createLPEProcess
 
 summand2summand :: (MCRL2Defs.ObjectId, MCRL2Defs.Process) -> [VarId.VarId] -> LPESummand -> T2MMonad MCRL2Defs.PExpr
-summand2summand (lpeProcName, lpeProc) orderedParams (LPESummand chanVars chanOffers guard procInst) = do
+summand2summand (lpeProcName, lpeProc) orderedParams summand = do
     -- Create the channel variables (both explicit and hidden) first, so that they can be referenced:
-    actionVars <- Monad.mapM createFreshVar chanVars
+    actionVars <- Monad.mapM createFreshVar (Set.toList (lpeSmdVars summand))
     -- Create actions (with their arguments):
-    newActionExpr <- case chanOffers of
-      [] -> do lift $ IOC.putMsgs [ EnvData.TXS_CORE_ANY "WARNING: Found summand without action offers, fixed format by inserting tau" ]
-               return (MCRL2Defs.PAction MCRL2Defs.ATau)
-      _ -> do actions <- Monad.mapM channelOffer2action chanOffers
-              return (MCRL2Defs.PAction (MCRL2Defs.AExpr actions))
+    newActionExpr <- if lpeSmdOffers summand == Map.empty
+                     then do
+                             --lift $ IOC.putMsgs [ EnvData.TXS_CORE_ANY "WARNING: Found summand without action offers, fixed format by inserting tau" ]
+                             return (MCRL2Defs.PAction MCRL2Defs.ATau)
+                     else do actions <- Monad.mapM channelOffer2action (Map.toList (lpeSmdOffers summand))
+                             return (MCRL2Defs.PAction (MCRL2Defs.AExpr actions))
     -- Translate guard and recursive instantiation:
-    newGuardExpr <- valExpr2dataExpr guard
-    newProcInst <- procInst2procInst (lpeProcName, lpeProc) orderedParams procInst
+    newGuardExpr <- valExpr2dataExpr (lpeSmdGuard summand)
+    newProcInst <- procInst2procInst (lpeProcName, lpeProc) orderedParams (lpeSmdEqs summand)
     -- Combine the different parts:
     return (MCRL2Defs.PSum actionVars (MCRL2Defs.PGuard newGuardExpr (MCRL2Defs.PSeq [newActionExpr, newProcInst]) MCRL2Defs.PDeadlock))
 -- summand2summand
@@ -203,7 +201,7 @@ procInst2procInst (lpeProcName, lpeProc) orderedParams paramEqs = do
     return (MCRL2Defs.PInst lpeProcName (zip (MCRL2Defs.processParams lpeProc) paramValues))
 -- paramEqs2procInst
 
-channelOffer2action :: LPEChannelOffer -> T2MMonad MCRL2Defs.AInstance
+channelOffer2action :: LPEChanOffer -> T2MMonad MCRL2Defs.AInstance
 channelOffer2action (chanId, chanVars) = do
     -- The action should already exist:
     (actionName, _action) <- getRegisteredAction chanId

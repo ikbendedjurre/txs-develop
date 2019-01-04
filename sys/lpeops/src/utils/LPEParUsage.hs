@@ -102,8 +102,8 @@ getParamSourcesPerSummand summands params invariant = do
     -- getParamSources
     
     getParamSource :: LPESummand -> VarId -> IOC.IOC LPEParamEqs
-    getParamSource (LPESummand _ _ guard _) param = do
-        guardSolution <- Sat.getUniqueSolution guard invariant [] [param]
+    getParamSource summand param = do
+        guardSolution <- Sat.getUniqueSolution (lpeSmdGuard summand) invariant [] [param]
         case guardSolution of
           SolveDefs.Solved gdSolMap -> return (Map.singleton param (cstrConst (gdSolMap Map.! param)))
           _ -> return Map.empty
@@ -141,12 +141,12 @@ getUsedParamsPerSummand summands directlyUsedParamsPerSummand changedParamsPerSu
     Map.fromSet getUsedParams summands
   where
     getUsedParams :: LPESummand -> Set.Set VarId
-    getUsedParams summand@(LPESummand _ _ _ paramEqs) =
+    getUsedParams summand =
         let changedPars = changedParamsPerSummand Map.! summand in
-        let changedParsAssignments = Map.restrictKeys paramEqs changedPars in
+        let changedParsAssignments = Map.restrictKeys (lpeSmdEqs summand) changedPars in
         let directlyUsedPars = directlyUsedParamsPerSummand Map.! summand in
         let indirectlyUsedPars = Set.unions (map (Set.fromList . FreeVar.freeVars) (Map.elems changedParsAssignments)) in
-          Set.intersection (Map.keysSet paramEqs) (Set.union indirectlyUsedPars directlyUsedPars)
+          Set.intersection (Map.keysSet (lpeSmdEqs summand)) (Set.union indirectlyUsedPars directlyUsedPars)
 -- getUsedParamsPerSummand
 
 -- Finds the parameters that are (possibly) changed by a summand, for all specified summands.
@@ -176,7 +176,7 @@ getDirectlyUsedParamsPerSummand :: LPESummands -> Set.Set VarId -> ParamsPerSumm
 getDirectlyUsedParamsPerSummand summands params = Map.fromSet getDirectlyUsedParams summands
   where
     getDirectlyUsedParams :: LPESummand -> Set.Set VarId
-    getDirectlyUsedParams (LPESummand _ _ guard _) = Set.intersection (Set.fromList (FreeVar.freeVars guard)) params
+    getDirectlyUsedParams summand = Set.intersection (Set.fromList (FreeVar.freeVars (lpeSmdGuard summand))) params
 -- getDirectlyUsedParamsPerSummand
 
 -- The function returns a pair:
@@ -190,9 +190,9 @@ getDirectlyUsedParamsPerSummand summands params = Map.fromSet getDirectlyUsedPar
 --      p2 is the first element in the pair returned by this function, and
 --      p1 is the variable provided as the second parameter to this function.
 constructDestSatExpr :: LPESummand -> VarId -> IOC.IOC (VarId, TxsDefs.VExpr)
-constructDestSatExpr (LPESummand _channelVars _channelOffers guard paramEqs) param = do
+constructDestSatExpr summand param = do
     paramClone <- createFreshVarFromVar param
-    let eq = cstrAnd (Set.fromList [guard, cstrEqual (cstrVar paramClone) (paramEqs Map.! param)])
+    let eq = cstrAnd (Set.fromList [lpeSmdGuard summand, cstrEqual (cstrVar paramClone) ((lpeSmdEqs summand) Map.! param)])
     -- IOC.putMsgs [ EnvData.TXS_CORE_ANY ("destSatExpr for " ++ (Text.unpack (VarId.name param)) ++ "/" ++ (Text.unpack (VarId.name paramClone)) ++ " is " ++ (showValExpr eq)) ]
     return (paramClone, eq)
 -- constructDestSatExpr

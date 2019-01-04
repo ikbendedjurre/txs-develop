@@ -13,11 +13,13 @@ cabal-version:          >=1.10
 
 library
   hs-source-dirs:       src
+                      , src/core
                       , src/utils
                       , src/mcrl2
 
   exposed-modules:    BlindSubst
                     , LPEOps
+                    , LPEValidity
                     , LPEContexts
                     , LPEContextIds
                     , LPEClean
@@ -27,7 +29,10 @@ library
                     , LPEDataReset
                     , LPEParReset
                     , LPETypes
-                    , LPETypeDefs
+                    , LPEConversion
+                    , SetUnions
+                    , LPEBlindSubst
+                    , UntilFixpoint
                     , LPEConfCheck
                     , LPEIsDet
                     , LPEAngelic
@@ -69,6 +74,7 @@ library
 test-suite lpeops-test
   type:                 exitcode-stdio-1.0
   hs-source-dirs:       src
+                      , src/core
                       , src/utils
                       , src/mcrl2
                       , test
@@ -77,6 +83,7 @@ test-suite lpeops-test
 
   other-modules:        BlindSubst
                       , LPEOps
+                      , LPEValidity
                       , LPEContexts
                       , LPEContextIds
                       , LPEClean
@@ -86,7 +93,10 @@ test-suite lpeops-test
                       , LPEDataReset
                       , LPEParReset
                       , LPETypes
-                      , LPETypeDefs
+                      , LPEConversion
+                      , LPEBlindSubst
+                      , SetUnions
+                      , UntilFixpoint
                       , LPEConfCheck
                       , LPEIsDet
                       , LPEAngelic

@@ -29,35 +29,35 @@ import qualified ModelId
 import qualified TxsDefs
 
 -- Gets all models with a given name:
-getModelsByName :: String -> IOC.IOC (Map.Map ModelId.ModelId TxsDefs.ModelDef)
+getModelsByName :: Text.Text -> IOC.IOC (Map.Map ModelId.ModelId TxsDefs.ModelDef)
 getModelsByName modelName = do
     envc <- MonadState.get
     case IOC.state envc of
       IOC.Initing { IOC.tdefs = tdefs } ->
-        return (Map.filterWithKey (\(TxsDefs.ModelId n _) _ -> Text.unpack n == modelName) (TxsDefs.modelDefs tdefs))
+        return (Map.filterWithKey (\(TxsDefs.ModelId n _) _ -> n == modelName) (TxsDefs.modelDefs tdefs))
       _ -> return Map.empty
 -- getModelsByName
 
 -- Gets the id of an existing model, or creates the id for a new model:
-getModelIdFromName :: String -> IOC.IOC ModelId.ModelId
+getModelIdFromName :: Text.Text -> IOC.IOC ModelId.ModelId
 getModelIdFromName modelName = do
     matchingModels <- getModelsByName modelName
     case Map.toList matchingModels of
-      [] -> TxsDefs.ModelId (Text.pack modelName) <$> IOC.newUnid
+      [] -> TxsDefs.ModelId modelName <$> IOC.newUnid
       (mid, _):_ -> return mid
 -- getModelIdFromName
 
 -- Gets the id and definition of an existing model, or
 -- produces a message describing which model names would have been valid:
-getEitherModelFromName :: String -> IOC.IOC (Either String (ModelId.ModelId, TxsDefs.ModelDef))
+getEitherModelFromName :: Text.Text -> IOC.IOC (Either String (ModelId.ModelId, TxsDefs.ModelDef))
 getEitherModelFromName modelName = do
     envc <- MonadState.get
     case IOC.state envc of
       IOC.Initing { IOC.tdefs = tdefs } ->
         do let modelDefs = TxsDefs.modelDefs tdefs
-           let matchingModels = Map.filterWithKey (\(TxsDefs.ModelId n _) _ -> Text.unpack n == modelName) modelDefs
+           let matchingModels = Map.filterWithKey (\(TxsDefs.ModelId n _) _ -> n == modelName) modelDefs
            if matchingModels == Map.empty
-           then return (Left ("Expected " ++ List.intercalate " or " (map (Text.unpack . ModelId.name) (Map.keys modelDefs)) ++ ", found " ++ modelName ++ "!"))
+           then return (Left ("Expected " ++ List.intercalate " or " (map (Text.unpack . ModelId.name) (Map.keys modelDefs)) ++ ", found " ++ Text.unpack modelName ++ "!"))
            else return (Right (Map.toList matchingModels !! 0))
       _ -> return (Left "TorXakis core is not initialized!")
 -- getEitherModelFromName

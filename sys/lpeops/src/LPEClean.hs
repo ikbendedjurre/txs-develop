@@ -18,11 +18,11 @@ module LPEClean (
 cleanLPE
 ) where
 
-import qualified Data.List           as List
-import qualified Data.Map            as Map
-import qualified Control.Monad       as Monad
-import qualified Data.Set            as Set
-import qualified EnvCore             as IOC
+import qualified Data.List as List
+import qualified Data.Map as Map
+import qualified Control.Monad as Monad
+import qualified Data.Set as Set
+import qualified EnvCore as IOC
 import qualified EnvData
 import qualified ChanId
 import qualified TxsDefs
@@ -37,14 +37,15 @@ import BlindSubst
 -- Also removes summands that are unreachable from the initial state and unreachable from the states set by all other summands.
 -- (Basically, we do a partial, symbolic reachability analysis.)
 cleanLPE :: LPEOperation
-cleanLPE (tdefs, mdef, (n, channels, initParamEqs, summands)) _out invariant = do
+cleanLPE lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<clean>>" ]
+    let summands = lpeSummands lpe
     uniqueSummands <- Monad.foldM addSummandIfUnique Set.empty (Set.toList summands)
     Monad.when (length uniqueSummands < Set.size summands) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Removed " ++ show (Set.size summands - length uniqueSummands) ++ " duplicate summands") ])
     initReachableSummands <- Monad.foldM addSummandIfReachableFromInit Set.empty uniqueSummands
     reachableSummands <- reachableSummandsLoop initReachableSummands invariant (uniqueSummands Set.\\ initReachableSummands)
     Monad.when (length reachableSummands < length uniqueSummands) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Removed " ++ show (length uniqueSummands - length reachableSummands) ++ " unreachable summands") ])
-    return (Right (tdefs, mdef, (n, channels, initParamEqs, reachableSummands)))
+    return (Right (lpe { lpeSummands = reachableSummands }))
   where
     addSummandIfUnique :: Set.Set LPESummand -> LPESummand -> IOC.IOC (Set.Set LPESummand)
     addSummandIfUnique soFar candidate = do
@@ -55,9 +56,9 @@ cleanLPE (tdefs, mdef, (n, channels, initParamEqs, summands)) _out invariant = d
     -- addSummandIfUnique
     
     addSummandIfReachableFromInit :: Set.Set LPESummand -> LPESummand -> IOC.IOC (Set.Set LPESummand)
-    addSummandIfReachableFromInit soFar candidate@(LPESummand _channelVars _channelOffers guard _paramEqs) = do
+    addSummandIfReachableFromInit soFar candidate = do
         -- Check if the summand can be reached via the initial state:
-        guard' <- doBlindSubst initParamEqs guard
+        guard' <- doBlindSubst (lpeInitEqs lpe) (lpeSmdGuard candidate)
         sat <- Sat.couldBeSatisfiable guard' invariant
         if sat
         then return (Set.insert candidate soFar)
@@ -95,17 +96,17 @@ containsSummand (x:xs) invariant summand = do
 -- containsSummand
 
 isEquivalentSummand :: LPESummand -> LPESummand -> TxsDefs.VExpr -> IOC.IOC Bool
-isEquivalentSummand (LPESummand _vars1 chans1 guard1 paramEqs1) (LPESummand _vars2 chans2 guard2 paramEqs2) invariant = do
-    let sortedChans1 = List.sortOn (ChanId.unid . fst) chans1
-    let sortedChans2 = List.sortOn (ChanId.unid . fst) chans2
+isEquivalentSummand summand1 summand2 invariant = do
+    let sortedChans1 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand1))
+    let sortedChans2 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand2))
     if map fst sortedChans1 /= map fst sortedChans2
     then return False
     else do let chanVars1 = concatMap snd sortedChans1
             let chanVars2 = concatMap snd sortedChans2
             let subst = Map.fromList (zipWith (\cv1 cv2 -> (cv2, ValExpr.cstrVar cv1)) chanVars1 chanVars2)
-            guard2' <- doBlindSubst subst guard2
-            let guardEq = ValExpr.cstrEqual guard1 guard2'
-            procInstEqs <- Monad.mapM (getProcInstEq subst paramEqs2) (Map.toList paramEqs1)
+            guard2' <- doBlindSubst subst (lpeSmdGuard summand2)
+            let guardEq = ValExpr.cstrEqual (lpeSmdGuard summand1) guard2'
+            procInstEqs <- Monad.mapM (getProcInstEq subst (lpeSmdEqs summand2)) (Map.toList (lpeSmdEqs summand1))
             Sat.isTautology (ValExpr.cstrAnd (Set.fromList (guardEq:procInstEqs))) invariant
   where
     getProcInstEq :: Map.Map VarId.VarId TxsDefs.VExpr -> LPEParamEqs -> (VarId.VarId, TxsDefs.VExpr) -> IOC.IOC TxsDefs.VExpr

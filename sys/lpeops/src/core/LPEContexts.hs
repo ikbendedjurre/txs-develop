@@ -18,13 +18,11 @@ module LPEContexts (
 LPEContext,
 getContextFromIds,
 getAbbrevContextFromIds,
-getModelContext,
-getProcessContext,
-getSummandContext,
+getLPEContext,
+getLPESummandContext,
 getValExprContext,
-getAbbrevModelContext,
-getAbbrevProcessContext,
-getAbbrevSummandContext,
+getAbbrevLPEContext,
+getAbbrevLPESummandContext,
 getAbbrevValExprContext
 ) where
 
@@ -32,7 +30,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified TxsDefs
-import           LPETypeDefs
+import           LPETypes
 import           LPEContextIds
 
 type LPEContext = Map.Map TxsDefs.Ident String
@@ -59,26 +57,20 @@ getAbbrevContextFromIds ids =
     abbrevName (TxsDefs.IdCnect _) i  = "Cnect" ++ show i
 -- getAbbrevContextFromIds
 
-getModelContext :: LPEModel -> LPEContext
-getModelContext = getContextFromIds . getModelIds
+getLPEContext :: LPE -> LPEContext
+getLPEContext = getContextFromIds . getLPEIds
 
-getProcessContext :: LPEProcess -> LPEContext
-getProcessContext = getContextFromIds . getProcessIds
-
-getSummandContext :: LPESummand -> LPEContext
-getSummandContext = getContextFromIds . getSummandIds
+getLPESummandContext :: LPESummand -> LPEContext
+getLPESummandContext = getContextFromIds . getLPESummandIds
 
 getValExprContext :: TxsDefs.VExpr -> LPEContext
 getValExprContext = getContextFromIds . getValExprIds
 
-getAbbrevModelContext :: LPEModel -> LPEContext
-getAbbrevModelContext = getAbbrevContextFromIds . getModelIds
+getAbbrevLPEContext :: LPE -> LPEContext
+getAbbrevLPEContext = getAbbrevContextFromIds . getLPEIds
 
-getAbbrevProcessContext :: LPEProcess -> LPEContext
-getAbbrevProcessContext = getAbbrevContextFromIds . getProcessIds
-
-getAbbrevSummandContext :: LPESummand -> LPEContext
-getAbbrevSummandContext = getAbbrevContextFromIds . getSummandIds
+getAbbrevLPESummandContext :: LPESummand -> LPEContext
+getAbbrevLPESummandContext = getAbbrevContextFromIds . getLPESummandIds
 
 getAbbrevValExprContext :: TxsDefs.VExpr -> LPEContext
 getAbbrevValExprContext = getAbbrevContextFromIds . getValExprIds
