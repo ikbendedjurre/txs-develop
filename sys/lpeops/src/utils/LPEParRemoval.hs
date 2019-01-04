@@ -26,7 +26,7 @@ import qualified EnvCore             as IOC
 import qualified EnvData
 import qualified TxsDefs
 import qualified VarId
-import           LPEOps
+import           LPETypes
 import           LPEBlindSubst
 
 -- Removes the specified parameters an LPE.

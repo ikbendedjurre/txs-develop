@@ -23,6 +23,7 @@ emptyLPESummand,
 LPEChanOffer,
 LPEChanOffers,
 LPEParamEqs,
+LPEOperation,
 paramEqsLookup,
 newLPESummand,
 newLPE
@@ -32,6 +33,7 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import qualified EnvCore as IOC
 import qualified TxsDefs
 import qualified ChanId
 import qualified VarId
@@ -93,6 +95,15 @@ type LPEChanOffer = (ChanId.ChanId, [VarId.VarId])
 
 -- Relates parameters with their (initial) value:
 type LPEParamEqs = Map.Map VarId.VarId TxsDefs.VExpr
+
+-- An LPE operation takes:
+--  - An input LPE;
+--  - An output name (for a file or a new model);
+--  - An invariant (using 'True' should have no effect);
+-- An LPE operation yields either
+--  - A list of (error) messages, in case there was a problem or some other event happened; or
+--  - A new LPE.
+type LPEOperation = LPE -> String -> TxsDefs.VExpr -> IOC.IOC (Either [String] LPE)
 
 paramEqsLookup :: [VarId.VarId] -> LPEParamEqs -> [TxsDefs.VExpr]
 paramEqsLookup orderedParams paramEqs = map fromEqs orderedParams

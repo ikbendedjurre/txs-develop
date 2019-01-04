@@ -43,7 +43,7 @@ import qualified Constant
 import qualified MCRL2Defs
 import MCRL2PrettyPrint
 import MCRL2Env
-import LPEOps
+import LPETypes
 import ValFactory
 
 -- import TxsShow

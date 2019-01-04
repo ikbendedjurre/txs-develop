@@ -22,7 +22,8 @@ lpeOperations,
 discardLPE,
 printLPE,
 exportLPE,
-module LPETypes
+getLPEOperation,
+getLPEOperations
 ) where
 
 import qualified Control.Monad.State as MonadState
@@ -30,24 +31,26 @@ import qualified Data.Text as Text
 import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
+import qualified LPEClean
+import qualified LPEConstElm
+import qualified LPEParElm
+import qualified LPEIStepElm
+import qualified LPEDataReset
+import qualified LPEParReset
+import qualified LPEConfCheck
+import qualified LPEIsDet
+import qualified LPEDeterminize
+import qualified LPEAngelic
+import qualified LPE2MCRL2
 import           LPEPrettyPrint
 import           LPEConversion
 import           LPEValidity
-import           LPETypes
+import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.01.04.08"
+lpeOpsVersion = "2019.01.04.09"
 
 data LPEOp = LPEOpLoop | LPEOp LPEOperation
-
--- An LPE operation takes:
---  - An input LPE;
---  - An output name (for a file or a new model);
---  - An invariant (using 'True' should have no effect);
--- An LPE operation yields either
---  - A list of (error) messages, in case there was a problem or some other event happened; or
---  - A new LPE.
-type LPEOperation = LPE -> String -> TxsDefs.VExpr -> IOC.IOC (Either [String] LPE)
 
 -- Core method that does the following:
 --  1. Transforms a closed process expression to an LPE;
@@ -102,4 +105,43 @@ exportLPE lpe out _invariant = do
     MonadState.liftIO $ writeFile filename (showAbbrevLPE lpe)
     return (Left ["LPE exported to " ++ filename ++ "!"])
 -- exportLPE
+
+getLPEOperation :: String -> Either String LPEOps.LPEOp
+getLPEOperation opName = case opName of
+                           "stop" -> Right (LPEOps.LPEOp LPEOps.discardLPE)
+                           "show" -> Right (LPEOps.LPEOp LPEOps.printLPE)
+                           "export" -> Right (LPEOps.LPEOp LPEOps.exportLPE)
+                           "loop" -> Right (LPEOps.LPEOpLoop)
+                           "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
+                           "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)
+                           "parelm" -> Right (LPEOps.LPEOp LPEParElm.parElm)
+                           "istepelm" -> Right (LPEOps.LPEOp LPEIStepElm.iStepElm)
+                           "datareset" -> Right (LPEOps.LPEOp LPEDataReset.dataReset)
+                           "parreset" -> Right (LPEOps.LPEOp LPEParReset.parReset)
+                           "isdet" -> Right (LPEOps.LPEOp LPEIsDet.isDeterministicLPE)
+                           "det" -> Right (LPEOps.LPEOp LPEDeterminize.determinizeLPE)
+                           "angelic" -> Right (LPEOps.LPEOp LPEAngelic.makeInputEnabledLPE)
+                           "confelm" -> Right (LPEOps.LPEOp LPEConfCheck.confElm)
+                           "mcrl2" -> Right (LPEOps.LPEOp LPE2MCRL2.lpe2mcrl2)
+                           _ -> Left ("Unknown LPE operation (" ++ opName ++ ")!")
+-- getLPEOperation
+
+getLPEOperations :: String -> Either [String] [LPEOps.LPEOp]
+getLPEOperations opChain =
+    concatEither (map (listEither . getLPEOperation) (filter (\opName -> opName /= []) (splitByArrow opChain)))
+  where
+    splitByArrow :: String -> [String]
+    splitByArrow [] = [[]]
+    splitByArrow [x] = [[x]]
+    splitByArrow ('-':'>':xs) = []:splitByArrow xs
+    splitByArrow (x:xs) =
+        case splitByArrow xs of
+          [] -> [[x]] -- Should not happen.
+          (y:ys) -> (x:y):ys
+    -- splitByArrow
+    
+    listEither :: Either a b -> Either [a] [b]
+    listEither (Left x) = Left [x]
+    listEither (Right x) = Right [x]
+-- getLPEOperations
 

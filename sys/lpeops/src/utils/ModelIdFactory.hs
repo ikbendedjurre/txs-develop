@@ -17,7 +17,7 @@ See LICENSE at root directory of this repository.
 module ModelIdFactory (
 getModelsByName,
 getModelIdFromName,
-getEitherModelFromName
+getMsgOrModelFromName
 ) where
 
 import qualified Control.Monad.State as MonadState
@@ -49,8 +49,8 @@ getModelIdFromName modelName = do
 
 -- Gets the id and definition of an existing model, or
 -- produces a message describing which model names would have been valid:
-getEitherModelFromName :: Text.Text -> IOC.IOC (Either String (ModelId.ModelId, TxsDefs.ModelDef))
-getEitherModelFromName modelName = do
+getMsgOrModelFromName :: Text.Text -> IOC.IOC (Either String (ModelId.ModelId, TxsDefs.ModelDef))
+getMsgOrModelFromName modelName = do
     envc <- MonadState.get
     case IOC.state envc of
       IOC.Initing { IOC.tdefs = tdefs } ->
@@ -60,7 +60,7 @@ getEitherModelFromName modelName = do
            then return (Left ("Expected " ++ List.intercalate " or " (map (Text.unpack . ModelId.name) (Map.keys modelDefs)) ++ ", found " ++ Text.unpack modelName ++ "!"))
            else return (Right (Map.toList matchingModels !! 0))
       _ -> return (Left "TorXakis core is not initialized!")
--- getEitherModelFromName
+-- getMsgsOrModelFromName
 
 
 

@@ -28,7 +28,7 @@ import qualified TxsDefs
 import qualified EnvCore as IOC
 import qualified EnvData
 import qualified VarId
-import LPEOps
+import LPETypes
 import LPEParUsage
 import LPEPrettyPrint
 import UntilFixpoint

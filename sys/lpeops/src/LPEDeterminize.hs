@@ -29,7 +29,7 @@ determinizeLPE
 -- import qualified SortId
 -- import qualified VarId
 -- import qualified ValExpr
-import LPEOps
+import LPETypes
 -- import BlindSubst
 -- import LPESuccessors
 

@@ -29,7 +29,7 @@ import qualified EnvData
 import qualified VarId
 import qualified TxsDefs
 import qualified Satisfiability as Sat
-import           LPEOps
+import           LPETypes
 import           ValExpr
 import           Constant
 import           LPESuccessors

@@ -25,7 +25,7 @@ import qualified EnvCore as IOC
 import qualified EnvData
 import qualified FreeVar
 import qualified VarId
-import LPEOps
+import LPETypes
 import LPEParRemoval
 
 -- Eliminates inert parameters (=parameters that do not contribute to the behavior of a process) from an LPE:

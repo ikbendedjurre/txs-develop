@@ -30,7 +30,7 @@ import qualified TxsDefs
 import qualified ChanId
 import qualified ValExpr
 import qualified Satisfiability as Sat
-import LPEOps
+import LPETypes
 import BlindSubst
 
 -- Checks if the given LPE is deterministic.

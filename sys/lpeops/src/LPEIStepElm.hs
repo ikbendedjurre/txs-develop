@@ -23,7 +23,7 @@ import qualified Control.Monad       as Monad
 import qualified Data.Set            as Set
 import qualified EnvCore             as IOC
 import qualified ValExpr
-import LPEOps
+import LPETypes
 import LPEBlindSubst
 
 -- Removes duplicate summands and summands that are unreachable by all other (!) summands

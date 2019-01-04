@@ -35,7 +35,7 @@ import qualified EnvCore             as IOC
 import qualified FreeVar
 import qualified SolveDefs
 import qualified TxsDefs
-import           LPEOps
+import           LPETypes
 import           LPEPrettyPrint
 import qualified Satisfiability as Sat
 import           VarId

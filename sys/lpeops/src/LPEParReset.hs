@@ -28,7 +28,7 @@ import qualified FreeVar
 import qualified EnvData
 import qualified TxsDefs
 import qualified Satisfiability as Sat
-import           LPEOps
+import           LPETypes
 import           VarId
 import           ValExpr
 import           LPESuccessors

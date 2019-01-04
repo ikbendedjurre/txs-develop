@@ -27,7 +27,7 @@ import qualified EnvCore             as IOC
 import qualified TxsDefs
 import qualified Satisfiability as Sat
 import qualified ValExpr
-import           LPEOps
+import           LPETypes
 import           BlindSubst
 
 getPossiblePredecessors :: LPESummands -> TxsDefs.VExpr -> LPESummand -> IOC.IOC [LPESummand]

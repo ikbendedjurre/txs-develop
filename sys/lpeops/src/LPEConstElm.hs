@@ -26,7 +26,7 @@ import qualified EnvCore             as IOC
 import qualified EnvData
 import qualified TxsDefs
 import qualified Satisfiability as Sat
-import           LPEOps
+import           LPETypes
 import           LPEParRemoval
 import           VarId
 import qualified ValExpr

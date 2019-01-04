@@ -29,7 +29,7 @@ import qualified TxsDefs
 import qualified VarId
 import qualified ValExpr
 import qualified Satisfiability as Sat
-import LPEOps
+import LPETypes
 import LPESuccessors
 import BlindSubst
 

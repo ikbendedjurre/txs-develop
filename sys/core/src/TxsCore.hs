@@ -187,18 +187,6 @@ import qualified Eval
 -- import from lpe
 import qualified LPE
 import qualified LPEOps
-import qualified LPEClean
-import qualified LPEConstElm
-import qualified LPEParElm
-import qualified LPEIStepElm
-import qualified LPEDataReset
-import qualified LPEParReset
-import qualified LPEConfCheck
-import qualified LPEIsDet
-import qualified LPEDeterminize
-import qualified LPEAngelic
-import qualified LPE2MCRL2
-import ConcatEither
 import ModelIdFactory
 
 -- import from valexpr
@@ -1165,7 +1153,7 @@ txsLPE (Right modelid@(TxsDefs.ModelId modname _moduid))  =  do
                        -> do tdefs' <- gets (IOC.tdefs . IOC.state)
                              --uid'   <- IOC.newUnid
                              --let modelid' = TxsDefs.ModelId ("LPE_"<>modname) uid'
-                             modelid' <- getModelIdFromName (T.unpack ("LPE_"<>modname))
+                             modelid' <- getModelIdFromName ("LPE_"<>modname)
                              let modeldef' = TxsDefs.ModelDef insyncs outsyncs splsyncs procinst'
                              let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert modelid' modeldef' (TxsDefs.modelDefs tdefs') }
                              IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs'' }
@@ -1182,73 +1170,31 @@ txsLPE (Right modelid@(TxsDefs.ModelId modname _moduid))  =  do
 
 txsLPEOp :: String -> String -> String -> TxsDefs.VExpr -> IOC.IOC [String]
 txsLPEOp opChain inName outName invariant = do
-    envc <- get
-    case IOC.state envc of
-      IOC.Initing { IOC.tdefs = tdefs } ->
-        case getModels (TxsDefs.modelDefs tdefs) inName of
-          [modelDef@(TxsDefs.ModelDef insyncs outsyncs splsyncs _)] ->
-            case concatEither (map getLPEOperation (filter (\opName -> opName /= []) (splitByArrow opChain))) of
+    msgsOrInModel <- getMsgOrModelFromName (T.pack inName)
+    case msgsOrInModel of
+      Left msg -> return [msg]
+      Right (modelId, _modelDef) ->
+        case LPEOps.getLPEOperations opChain of
+          Left msgs -> return msgs
+          Right ops -> do
+            msgsOrOutModel <- LPEOps.lpeOperations ops modelId outName invariant
+            case msgsOrOutModel of
               Left msgs -> return msgs
-              Right ops -> do
-                manipulatedLPE <- LPEOps.lpeOperations ops modelDef outName invariant
-                case manipulatedLPE of
-                  Left msgs -> return msgs
-                  Right (newProcInst, newProcId, newProcDef) -> do
-                    newModelId <- getModelIdFromName outName
-                    let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs newProcInst
-                    tdefs' <- gets (IOC.tdefs . IOC.state)
-                    let tdefs'' = tdefs' { TxsDefs.procDefs = Map.insert newProcId newProcDef (TxsDefs.procDefs tdefs') }
-                    let tdefs''' = tdefs'' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs'') }
-                    IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs''' }
-                    return ["LPE transformation complete; result saved to model " ++ TxsShow.fshow newModelId ++ "!"]
-          _ -> do let definedModelNames = List.intercalate " or " (map (T.unpack . ModelId.name) (Map.keys (TxsDefs.modelDefs tdefs)))
-                  return ["Expected " ++ definedModelNames ++ ", found " ++ inName ++ "!"]
-      _ -> return ["TorXakis core is not initialized!"]
-  where
-    getModels :: Map.Map TxsDefs.ModelId TxsDefs.ModelDef -> String -> [TxsDefs.ModelDef]
-    getModels mdefs modelName = [ modelDef | (TxsDefs.ModelId nm _uid, modelDef) <- Map.toList mdefs, T.unpack nm == modelName ]
-    
-    splitByArrow :: String -> [String]
-    splitByArrow [] = [[]]
-    splitByArrow [x] = [[x]]
-    splitByArrow ('-':'>':xs) = []:splitByArrow xs
-    splitByArrow (x:xs) =
-        case splitByArrow xs of
-          [] -> [[x]] -- (Should not happen, but anyway.)
-          (y:ys) -> (x:y):ys
-    
-    getLPEOperation :: String -> Either [String] [LPEOps.LPEOp]
-    getLPEOperation opName = case opName of
-                               "stop" -> Right [LPEOps.LPEOp LPEOps.discardLPE]
-                               "show" -> Right [LPEOps.LPEOp LPEOps.printLPE]
-                               "export" -> Right [LPEOps.LPEOp LPEOps.exportLPE]
-                               "loop" -> Right [LPEOps.LPEOpLoop]
-                               "clean" -> Right [LPEOps.LPEOp LPEClean.cleanLPE]
-                               "cstelm" -> Right [LPEOps.LPEOp LPEConstElm.constElm]
-                               "parelm" -> Right [LPEOps.LPEOp LPEParElm.parElm]
-                               "istepelm" -> Right [LPEOps.LPEOp LPEIStepElm.iStepElm]
-                               "datareset" -> Right [LPEOps.LPEOp LPEDataReset.dataReset]
-                               "parreset" -> Right [LPEOps.LPEOp LPEParReset.parReset]
-                               "isdet" -> Right [LPEOps.LPEOp LPEIsDet.isDeterministicLPE]
-                               "det" -> Right [LPEOps.LPEOp LPEDeterminize.determinizeLPE]
-                               "angelic" -> Right [LPEOps.LPEOp LPEAngelic.makeInputEnabledLPE]
-                               "confelm" -> Right [LPEOps.LPEOp LPEConfCheck.confElm]
-                               "mcrl2" -> Right [LPEOps.LPEOp LPE2MCRL2.lpe2mcrl2]
-                               _ -> Left ["Unknown LPE operation (" ++ opName ++ ")!"]
+              Right outModelId -> return ["LPE transformation complete; result saved to model " ++ T.unpack (ModelId.name outModelId) ++ "!"]
 --txsLPEOp
 
 -- ----------------------------------------------------------------------------------------- --
 txsMerge :: String -> String -> String -> IOC.IOC [String]
 txsMerge firstName secondName outputName = do
-    eitherFirstModel <- getEitherModelFromName firstName
-    case eitherFirstModel of
+    msgsOrFirstModel <- getMsgOrModelFromName (T.pack firstName)
+    case msgsOrFirstModel of
       Left msg -> return [msg]
       Right (_, TxsDefs.ModelDef insyncs1 outsyncs1 splsyncs1 bexpr1) ->
-        do eitherSecondModel <- getEitherModelFromName secondName
-           case eitherSecondModel of
+        do msgsOrSecondModel <- getMsgOrModelFromName (T.pack secondName)
+           case msgsOrSecondModel of
              Left msg -> return [msg]
              Right (_, TxsDefs.ModelDef insyncs2 outsyncs2 splsyncs2 bexpr2) ->
-               do outputModelId <- getModelIdFromName outputName
+               do outputModelId <- getModelIdFromName (T.pack outputName)
                   let newInsyncs = Set.toList (Set.fromList (insyncs1 ++ insyncs2))
                   let newOutsyncs = Set.toList (Set.fromList (outsyncs1 ++ outsyncs2))
                   let newSplsyncs = Set.toList (Set.fromList (splsyncs1 ++ splsyncs2))
