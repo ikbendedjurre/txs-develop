@@ -28,7 +28,6 @@ import ValExpr
 
 import StdTDefs (stdSortTable)
 
-import LPEOps
 import LPEConstElm
 import TestUtils
 
@@ -49,8 +48,8 @@ testConstElmBasic = TestCase $ tryLPEOperation constElm model1 model2
         [(chanIdA, [varIdZ])]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1, cstrEqual vexprY vexprZ]))
         [(varIdX, vexpr0), (varIdY, vexprY)]
-    model1 :: LPEModel
-    model1 = newLPEModel ([chanIdA], [(varIdX, vexpr0), (varIdY, vexpr0)], [summand1_1, summand1_2])
+    model1 :: LPE
+    model1 = newLPE ([chanIdA], [(varIdX, vexpr0), (varIdY, vexpr0)], [summand1_1, summand1_2])
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? z [z==0] >-> P(1)
@@ -64,8 +63,8 @@ testConstElmBasic = TestCase $ tryLPEOperation constElm model1 model2
         [(chanIdA, [varIdZ])]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1, cstrEqual vexpr0 vexprZ]))
         [(varIdX, vexpr0)]
-    model2 :: LPEModel
-    model2 = newLPEModel ([chanIdA], [(varIdX, vexpr0)], [summand2_1, summand2_2])
+    model2 :: LPE
+    model2 = newLPE ([chanIdA], [(varIdX, vexpr0)], [summand2_1, summand2_2])
 -- testConstElmBasic
 
 testConstElmXYX :: Test
@@ -89,8 +88,8 @@ testConstElmXYX = TestCase $ tryLPEOperation constElm model1 model2
         [(chanIdA, [varIdFV3])]
         (cstrEqual vexprFV3 vexprZ)
         [(varIdX, vexpr1), (varIdY, vexprX), (varIdZ, vexpr2)]
-    model1 :: LPEModel
-    model1 = newLPEModel ([chanIdA], [(varIdX, vexpr1), (varIdY, vexpr1), (varIdZ, vexpr2)], [summand1_1, summand1_2, summand1_3])
+    model1 :: LPE
+    model1 = newLPE ([chanIdA], [(varIdX, vexpr1), (varIdY, vexpr1), (varIdZ, vexpr2)], [summand1_1, summand1_2, summand1_3])
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? __FV1 [__FV1==2] >-> P()
@@ -110,8 +109,8 @@ testConstElmXYX = TestCase $ tryLPEOperation constElm model1 model2
         [(chanIdA, [varIdFV3])]
         (cstrEqual vexprFV3 vexpr2)
         []
-    model2 :: LPEModel
-    model2 = newLPEModel ([chanIdA], [], [summand2_1, summand2_2, summand2_3])
+    model2 :: LPE
+    model2 = newLPE ([chanIdA], [], [summand2_1, summand2_2, summand2_3])
 -- testConstElmXYX
 
 ---------------------------------------------------------------------------

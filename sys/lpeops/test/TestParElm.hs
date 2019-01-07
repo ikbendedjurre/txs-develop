@@ -29,7 +29,6 @@ import ValExpr
 
 import StdTDefs (stdSortTable)
 
-import LPEOps
 import LPEParElm
 import TestUtils
 
@@ -50,8 +49,8 @@ testParElmBasic = TestCase $ tryLPEOperation parElm model1 model2
         [(chanIdA, [varIdZ])]
         vexprTrue
         [(varIdX, vexprSum vexprX vexpr1)]
-    model1 :: LPEModel
-    model1 = newLPEModel ([chanIdA], [(varIdX, vexpr0)], [summand1_1, summand1_2])
+    model1 :: LPE
+    model1 = newLPE ([chanIdA], [(varIdX, vexpr0)], [summand1_1, summand1_2])
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? y >-> P()
@@ -65,8 +64,8 @@ testParElmBasic = TestCase $ tryLPEOperation parElm model1 model2
         [(chanIdA, [varIdZ])]
         vexprTrue
         []
-    model2 :: LPEModel
-    model2 = newLPEModel ([chanIdA], [], [summand2_1, summand2_2])
+    model2 :: LPE
+    model2 = newLPE ([chanIdA], [], [summand2_1, summand2_2])
 -- testParElmBasic
 
 testParElmXUpperBound :: Test
@@ -84,8 +83,8 @@ testParElmXUpperBound = TestCase $ tryLPEOperation parElm model1 model2
         [(chanIdA, [varIdZ])]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1)]
-    model1 :: LPEModel
-    model1 = newLPEModel ([chanIdA], [(varIdX, vexpr0)], [summand1_1, summand1_2])
+    model1 :: LPE
+    model1 = newLPE ([chanIdA], [(varIdX, vexpr0)], [summand1_1, summand1_2])
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? y [x == 2] >-> P(x)
@@ -99,8 +98,8 @@ testParElmXUpperBound = TestCase $ tryLPEOperation parElm model1 model2
         [(chanIdA, [varIdZ])]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1)]
-    model2 :: LPEModel
-    model2 = newLPEModel ([chanIdA], [(varIdX, vexpr0)], [summand2_1, summand2_2])
+    model2 :: LPE
+    model2 = newLPE ([chanIdA], [(varIdX, vexpr0)], [summand2_1, summand2_2])
 -- testParElmXUpperBound
 
 ---------------------------------------------------------------------------
