@@ -80,4 +80,3 @@ getDefiniteSuccessors allSummands invariant (LPESummand _ _ guard paramEqs) =
         Sat.isTautology (ValExpr.cstrAnd (Set.fromList [guard, g'])) invariant
 -- getDefiniteSuccessors
 
-

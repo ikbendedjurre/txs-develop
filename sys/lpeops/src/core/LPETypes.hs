@@ -25,6 +25,7 @@ LPEChanOffers,
 LPEParamEqs,
 LPEOperation,
 paramEqsLookup,
+selfLoopParamEqs,
 newLPESummand,
 newLPE
 ) where
@@ -113,6 +114,9 @@ paramEqsLookup orderedParams paramEqs = map fromEqs orderedParams
                   Just e -> e
                   Nothing -> error ("Could not find parameter \"" ++ Text.unpack (VarId.name p) ++ "\" in \"{" ++ List.intercalate ", " (map (Text.unpack . VarId.name) (Map.keys paramEqs)) ++ "}\"!")
 -- paramEqsLookup
+
+selfLoopParamEqs :: Set.Set VarId.VarId -> LPEParamEqs
+selfLoopParamEqs = Map.fromSet (\v -> ValExpr.cstrVar v)
 
 newLPESummand :: [VarId.VarId] -> [(ChanId.ChanId, [VarId.VarId])] -> TxsDefs.VExpr -> [(VarId.VarId, TxsDefs.VExpr)] -> LPESummand
 newLPESummand chanVarIds chanOffers guard procInstParamEqs =
