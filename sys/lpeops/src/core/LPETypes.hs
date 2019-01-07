@@ -26,6 +26,7 @@ LPEParamEqs,
 LPEOperation,
 paramEqsLookup,
 selfLoopParamEqs,
+defaultValueParamEqs,
 newLPESummand,
 newLPE
 ) where
@@ -40,6 +41,7 @@ import qualified ChanId
 import qualified VarId
 import qualified ValExpr
 import qualified Constant
+import ValFactory
 
 data LPE = LPE { -- [optional] Definitions that surrounded the original TorXakis model:
                  lpeContext :: TxsDefs.TxsDefs
@@ -116,7 +118,10 @@ paramEqsLookup orderedParams paramEqs = map fromEqs orderedParams
 -- paramEqsLookup
 
 selfLoopParamEqs :: Set.Set VarId.VarId -> LPEParamEqs
-selfLoopParamEqs = Map.fromSet (\v -> ValExpr.cstrVar v)
+selfLoopParamEqs = Map.fromSet ValExpr.cstrVar
+
+defaultValueParamEqs :: TxsDefs.TxsDefs -> Set.Set VarId.VarId -> LPEParamEqs
+defaultValueParamEqs tdefs = Map.fromSet (sort2defaultValue tdefs . VarId.varsort)
 
 newLPESummand :: [VarId.VarId] -> [(ChanId.ChanId, [VarId.VarId])] -> TxsDefs.VExpr -> [(VarId.VarId, TxsDefs.VExpr)] -> LPESummand
 newLPESummand chanVarIds chanOffers guard procInstParamEqs =

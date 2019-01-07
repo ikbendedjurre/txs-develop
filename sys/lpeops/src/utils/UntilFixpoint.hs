@@ -15,7 +15,8 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module UntilFixpoint (
-untilFixpoint
+untilFixpoint,
+untilFixpointM
 ) where
 
 untilFixpoint :: Eq t => (t -> t) -> t -> t
@@ -24,4 +25,12 @@ untilFixpoint f value =
       if newValue /= value
       then untilFixpoint f newValue
       else value
+-- untilFixpoint
+
+untilFixpointM :: (Monad m, Eq t) => (t -> m t) -> t -> m t
+untilFixpointM f value = do
+    newValue <- f value
+    if newValue /= value
+    then untilFixpointM f newValue
+    else return value
 -- untilFixpoint
