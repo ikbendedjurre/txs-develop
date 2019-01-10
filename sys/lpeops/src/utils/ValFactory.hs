@@ -33,21 +33,26 @@ sort2defaultValue :: TxsDefs.TxsDefs -> SortId.SortId -> TxsDefs.VExpr
 sort2defaultValue tdefs sortId = ValExpr.cstrConst (sort2defaultConst tdefs sortId)
 
 sort2defaultConst :: TxsDefs.TxsDefs -> SortId.SortId -> Constant.Constant
-sort2defaultConst tdefs sortId
-    | sortId == SortId.sortIdBool =
-        Constant.Cbool False
-    | sortId == SortId.sortIdInt =
-        Constant.Cint 0
-    | sortId == SortId.sortIdString =
-        Constant.Cstring (Text.pack "")
-    | sortId == SortId.sortIdRegex =
-        Constant.Cstring (Text.pack "")
-    | otherwise =
-        -- Use any non-recursive constructor of this sort to express a value of this sort:
-        case [ cstrId | cstrId <- Map.keys (TxsDefs.cstrDefs tdefs), CstrId.cstrsort cstrId == sortId, isNonRecursiveCstr tdefs (Set.singleton cstrId) cstrId ] of
-          -- Do the same for the parameters:
-          (cstrId:_) -> Constant.Ccstr cstrId (map (sort2defaultConst tdefs) (CstrId.cstrargs cstrId))
-          [] -> error ("Failed to generate a default value for " ++ show sortId ++ " (available={" ++ List.intercalate ", " (map show (Map.keys (TxsDefs.cstrDefs tdefs))) ++ "})!")
+sort2defaultConst tdefs = buildDefaultConst Set.empty
+  where
+    buildDefaultConst :: Set.Set CstrId.CstrId -> SortId.SortId -> Constant.Constant
+    buildDefaultConst beenHere sortId
+        | sortId == SortId.sortIdBool =
+            Constant.Cbool False
+        | sortId == SortId.sortIdInt =
+            Constant.Cint 0
+        | sortId == SortId.sortIdString =
+            Constant.Cstring (Text.pack "")
+        | sortId == SortId.sortIdRegex =
+            Constant.Cstring (Text.pack "")
+        | otherwise =
+            -- Use any non-recursive constructor of this sort to express a value of this sort:
+            let nonRecSortCstrs = [ cstrId | cstrId <- Map.keys (TxsDefs.cstrDefs tdefs), CstrId.cstrsort cstrId == sortId, isNonRecursiveCstr tdefs beenHere cstrId ] in
+              case nonRecSortCstrs of
+                -- Do the same for the parameters:
+                (cstrId:_) -> Constant.Ccstr cstrId (map (buildDefaultConst (Set.insert cstrId beenHere)) (CstrId.cstrargs cstrId))
+                [] -> error ("Failed to generate a default value for " ++ show sortId ++ " (available={" ++ List.intercalate ", " (map show (Map.keys (TxsDefs.cstrDefs tdefs))) ++ "})!")
+    -- buildDefaultConst
 -- sort2defaultConst
 
 -- Determines if the specified constructor is non-recursive, meaning that
@@ -55,7 +60,7 @@ sort2defaultConst tdefs sortId
 isNonRecursiveCstr :: TxsDefs.TxsDefs -> Set.Set CstrId.CstrId -> CstrId.CstrId -> Bool
 isNonRecursiveCstr tdefs beenHere cstrId =
     if Set.member cstrId beenHere
-    then True
+    then False
     else List.all (isNonRecursiveSort tdefs (Set.insert cstrId beenHere)) (CstrId.cstrargs cstrId)
 -- isNonRecursiveCstr
 
@@ -71,7 +76,7 @@ isNonRecursiveSort tdefs beenHere sortId
     | otherwise =
         -- Obtain a list of all constructors that result in the specified sort:
         let sortCstrs = [ cstrId | cstrId <- Map.keys (TxsDefs.cstrDefs tdefs), CstrId.cstrsort cstrId == sortId ] in
-            List.any (isNonRecursiveCstr tdefs beenHere) sortCstrs
+          List.any (isNonRecursiveCstr tdefs beenHere) sortCstrs
 -- isNonRecursiveSort
 
 

@@ -23,6 +23,7 @@ import qualified Data.Map as Map
 import qualified Control.Monad as Monad
 import qualified Data.Set as Set
 import qualified EnvCore as IOC
+import qualified EnvData
 import qualified TxsDefs
 import qualified ChanId
 import qualified FreeVar
@@ -35,6 +36,7 @@ import VarFactory
 -- Makes the LPE deterministic by delaying non-deterministic choices by one step until a fixpoint is reached.
 makeInputEnabledLPE :: LPEOperation
 makeInputEnabledLPE lpe _out _invariant = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<angelic>>" ]
     let summandsByInput = partitionMap (Map.keysSet . lpeSmdOffers) (Set.toList (getInputSummands lpe))
     inputEnablingSummands <- Monad.mapM (makeInputEnablingSummand lpe) (Map.toList summandsByInput)
     return (Right (lpe { lpeSummands = Set.union (lpeSummands lpe) (Set.fromList inputEnablingSummands) }))

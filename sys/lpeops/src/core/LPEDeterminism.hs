@@ -61,7 +61,7 @@ getNonDeterministicSummandPair invariant (summand:summands) = pairSearch (summan
     pairSearch :: [LPESummand] -> [LPESummand] -> IOC.IOC (Maybe (LPESummand, LPESummand))
     pairSearch [] _ = return Nothing
     pairSearch [_] [] = return Nothing
-    pairSearch (x1:x2:xs) [] = pairSearch (x1:x2:xs) (x2:xs)
+    pairSearch (_:x2:xs) [] = pairSearch (x2:xs) xs
     pairSearch (x:xs) (y:ys) = do
         nonDet <- areSummandsNonDeterministic invariant x y
         if nonDet

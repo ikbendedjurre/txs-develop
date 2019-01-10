@@ -33,4 +33,5 @@ untilFixpointM f value = do
     if newValue /= value
     then untilFixpointM f newValue
     else return value
--- untilFixpoint
+-- untilFixpointM
+
