@@ -19,7 +19,9 @@ createFreshVar,
 createFreshVarFromVar,
 createFreshVarFromPrefix,
 createFreshIntVar,
-createFreshIntVarFromPrefix
+createFreshIntVarFromPrefix,
+createFreshBoolVar,
+createFreshBoolVarFromPrefix
 ) where
 
 import qualified EnvCore as IOC
@@ -53,6 +55,12 @@ createFreshIntVar = createFreshVar (getStdSort "Int")
 
 createFreshIntVarFromPrefix :: String -> IOC.IOC VarId.VarId
 createFreshIntVarFromPrefix prefix = createFreshVarFromPrefix prefix (getStdSort "Int")
+
+createFreshBoolVar :: IOC.IOC VarId.VarId
+createFreshBoolVar = createFreshVar (getStdSort "Bool")
+
+createFreshBoolVarFromPrefix :: String -> IOC.IOC VarId.VarId
+createFreshBoolVarFromPrefix prefix = createFreshVarFromPrefix prefix (getStdSort "Bool")
 
 getStdSort :: String -> SortId.SortId
 getStdSort sortName = Maybe.fromMaybe (error ("Could not find standard sort " ++ sortName ++ "!")) (Map.lookup (Text.pack sortName) stdSortTable)
