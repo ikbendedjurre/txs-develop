@@ -39,17 +39,18 @@ import VarFactory
 -- Makes the LPE deterministic by delaying non-deterministic choices by one step until a fixpoint is reached.
 determinizeLPE :: LPEOperation
 determinizeLPE lpe _out invariant = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<det>>" ]
     newLpe <- untilFixpointM (doDetIteration invariant) lpe
     return (Right newLpe)
 -- determinizeLPE
 
 doDetIteration :: TxsDefs.VExpr -> LPE -> IOC.IOC LPE
 doDetIteration invariant lpe = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Looking for non-deterministic summand pair in " ++ show (Set.size (lpeSummands lpe)) ++ " summands...") ]
     -- Find a pair of non-deterministic summands:
     nothingOrNonDetPair <- getNonDeterministicSummandPair invariant (Set.toList (lpeSummands lpe))
     case nothingOrNonDetPair of
       Just (summand1, summand2) -> do
-        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Now up to " ++ show (Set.size (lpeSummands lpe)) ++ " summands...") ]
         let sortedChans1 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand1))
         let sortedChans2 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand2))
         let chanVars1 = concatMap snd sortedChans1
@@ -129,9 +130,14 @@ doDetIteration invariant lpe = do
         enabledSummands1 <- Monad.mapM getEnabledSmd possibleSuccessors1
         enabledSummands2 <- Monad.mapM getEnabledSmd possibleSuccessors2
         
+        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Added " ++ show (length enabledSummands1 + length enabledSummands2 + 1) ++ " summands to LPE") ]
+        
         -- Combine everything:
-        return lpe { -- Newly created parameters are initialized with a default value, except for the flag variable, which is set to False:
-                     lpeInitEqs = Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (defaultValueParamEqs (lpeContext lpe) (Map.keysSet chanVar3PerParam))
+        return lpe { lpeInitEqs = Map.union
+                                    -- Set the non-determinism flag to true, and add it to the original parameters:
+                                    (Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (lpeInitEqs lpe))
+                                    -- Set newly created parameters to a default value:
+                                    (defaultValueParamEqs (lpeContext lpe) (Map.keysSet chanVar3PerParam))
                    , lpeSummands = Set.fromList (disabledSummands ++ [newSummand1, newSummand2, newSummand3] ++ enabledSummands1 ++ enabledSummands2) }
       Nothing -> return lpe
   where

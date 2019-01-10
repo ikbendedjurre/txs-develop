@@ -55,7 +55,7 @@ validateLPESummand location scope summand =
     getProcInstProblems :: Set.Set VarId.VarId -> [String]
     getProcInstProblems s =
         let nonExistentParameters = Map.keysSet (lpeSmdEqs summand) Set.\\ scope in
-          map (\p -> "Assigned parameter " ++ Text.unpack (VarId.name p) ++ " does not exist in process instantiation!") (Set.toList nonExistentParameters)
+          map (\p -> "Parameter " ++ Text.unpack (VarId.name p) ++ " is not assigned in process instantiation!") (Set.toList nonExistentParameters)
           ++
           concatMap (validateValExpr ("process instantiation of " ++ location) s . snd) (Map.toList (lpeSmdEqs summand))
 -- validateLPESummand

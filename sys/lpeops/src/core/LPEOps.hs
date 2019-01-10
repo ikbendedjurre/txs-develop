@@ -86,7 +86,8 @@ lpeOperation ops (LPEOp op:xs) (lpe:ys) out invariant = do
       Right newLpe -> let problems = validateLPE newLpe in
                         if null problems
                         then lpeOperation ops xs (newLpe:ys) out invariant
-                        else return (Left problems)
+                        else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("lpe = " ++ showLPE newLpe) ]
+                                return (Left problems)
 -- lpeOperation
 
 discardLPE :: LPEOperation
