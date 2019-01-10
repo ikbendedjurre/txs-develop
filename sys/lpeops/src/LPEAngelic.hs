@@ -56,18 +56,17 @@ partitionMap f xs = foldl (Map.unionWith (++)) Map.empty (map (\x -> Map.singlet
 -- Parameter summands must contain all summands of the original LPE that use a specific input channel.
 makeInputEnablingSummand :: LPE -> (Set.Set ChanId.ChanId, [LPESummand]) -> IOC.IOC LPESummand
 makeInputEnablingSummand lpe (inChan, summands) = do
-    let lpeParams = Map.keysSet (lpeInitEqs lpe)
     sortedSmdOffers <- List.sortOn (ChanId.unid . fst) <$> Monad.mapM chanToOffer (Set.toList inChan)
     let sortedSmdVars = concatMap snd sortedSmdOffers
     guards <- Monad.mapM (summandToGuard sortedSmdVars) summands
     let smdGuard = ValExpr.cstrAnd (Set.fromList (map ValExpr.cstrNot guards))
     return (LPESummand { -- List all variables that occur in the guard, except LPE parameters:
-                         lpeSmdVars = Set.fromList (FreeVar.freeVars smdGuard) Set.\\ lpeParams
+                         lpeSmdVars = Set.fromList (FreeVar.freeVars smdGuard) Set.\\ lpeParams lpe
                        , lpeSmdOffers = Map.fromList sortedSmdOffers
                          -- The new guard ensures that the new summand is enabled iff none of the old summands is enabled:
                        , lpeSmdGuard = smdGuard
                          -- The new summand does a self-loop:
-                       , lpeSmdEqs = selfLoopParamEqs lpeParams
+                       , lpeSmdEqs = selfLoopParamEqs (lpeParams lpe)
                        })
   where
     -- Creates fresh channel variables based on a channel signature.

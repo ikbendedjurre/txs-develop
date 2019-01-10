@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 module LPETypes (
 LPE(..),
 emptyLPE,
+lpeParams,
 LPESummands,
 LPESummand(..),
 emptyLPESummand,
@@ -70,6 +71,9 @@ emptyLPE = LPE { lpeContext = TxsDefs.empty
                , lpeSummands = Set.empty
                }
 -- emptyLPE
+
+lpeParams :: LPE -> Set.Set VarId.VarId
+lpeParams = Map.keysSet . lpeInitEqs
 
 type LPESummands = Set.Set LPESummand
 
