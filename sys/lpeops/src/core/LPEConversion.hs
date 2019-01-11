@@ -95,7 +95,7 @@ getLPESummands tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds 
                 | chanIds /= defChanIds -> Left ["Signature mismatch in channels, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"]
                 | otherwise ->
                     let (paramEqs, paramEqsProblems) = getParamEqs "process instantiation" paramValues in
-                      case concatEither (map (getChannelOffer params) (Set.toList offers)) of
+                      case concatEither (map getChannelOffer (Set.toList offers)) of
                         Left msgs -> Left (("Process instantiation " ++ TxsShow.fshow procInst ++ " is invalid because"):msgs)
                         Right channelOffers -> let channelVars = concatMap snd channelOffers ++ Set.toList hiddenvars in
                                                let lpeSummand = LPESummand { lpeSmdVars = Set.fromList channelVars
@@ -120,17 +120,14 @@ getLPESummands tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds 
 
 -- Helper method.
 -- Extracts an LPEChannelOffer for each channel offer (unless there are problems).
-getChannelOffer :: [VarId.VarId] -> TxsDefs.Offer -> Either [String] [LPEChanOffer]
-getChannelOffer params TxsDefs.Offer { TxsDefs.chanid = chanid, TxsDefs.chanoffers = chanoffers } =
+getChannelOffer :: TxsDefs.Offer -> Either [String] [LPEChanOffer]
+getChannelOffer TxsDefs.Offer { TxsDefs.chanid = chanid, TxsDefs.chanoffers = chanoffers } =
     case concatEither (map offerToVar chanoffers) of
       Left msgs -> Left msgs
       Right offerVars -> Right [(chanid, offerVars)]
   where
     offerToVar :: TxsDefs.ChanOffer -> Either [String] [VarId.VarId]
-    offerToVar (TxsDefs.Quest varId) =
-        if varId `elem` params -- The channel variable should be fresh!
-        then Left ["Channel variable should be fresh, found " ++ TxsShow.fshow varId ++ "!" ]
-        else Right [varId]
+    offerToVar (TxsDefs.Quest varId) = Right [varId]
     offerToVar chanOffer = Left ["Invalid channel format, found " ++ TxsShow.fshow chanOffer ++ "!"]
 -- getChannelOffers
 

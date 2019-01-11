@@ -46,27 +46,46 @@ validateLPE lpe _out _invariant = do
     let problems = validateLPEModel lpe
     if problems /= []
     then return (Left problems)
-    else return (Right lpe)
+    else do IOC.putMsgs [ EnvData.TXS_CORE_ANY "No problems detected in LPE!" ]
+            return (Right lpe)
 -- validateLPE
 
 -- This method can detect certain problems with an LPE, making finding bugs in LPE operations easier:
 validateLPEModel :: LPE -> [String]
 validateLPEModel lpe =
-    concatMap getSmdProblems (zip [1..] (Set.toList (lpeSummands lpe)))
+    let summands = Set.toList (lpeSummands lpe) in
+      concatMap getSmdProblems (zip [1..] summands)
   where
     getSmdProblems :: (Int, LPESummand) -> [String]
     getSmdProblems (i, smd) = validateLPESummand ("summand " ++ show i) (lpeParams lpe) smd
+    
+    -- Usage: getDisjointScopeProblems summands (tail summands)
+    -- getDisjointScopeProblems :: [LPESummand] -> [LPESummand] -> [String]
+    -- getDisjointScopeProblems [] _ = []
+    -- getDisjointScopeProblems [_] _ = []
+    -- getDisjointScopeProblems (_:x2:xs) [] = getDisjointScopeProblems (x2:xs) xs
+    -- getDisjointScopeProblems (x:xs) (y:ys) =
+        -- let index1 = Set.size (lpeSummands lpe) - length xs in
+        -- let index2 = Set.size (lpeSummands lpe) - length ys in
+        -- let sharedVars = Set.toList (Set.intersection (lpeSmdVars x) (lpeSmdVars y)) in
+          -- map (\v -> "Variable " ++ Text.unpack (VarId.name v) ++ " is used in summands " ++ show index1 ++ " and " ++ show index2 ++ "!") sharedVars ++ getDisjointScopeProblems (x:xs) ys
 -- validateLPEModel
 
 validateLPESummand :: String -> Set.Set VarId.VarId -> LPESummand -> [String]
 validateLPESummand location scope summand =
     let newScope = Set.union scope (lpeSmdVars summand) in
-      validateValExpr ("guard of " ++ location) newScope (lpeSmdGuard summand) ++ getProcInstProblems newScope
+      getDisjointScopeProblems ++ validateValExpr ("guard of " ++ location) newScope (lpeSmdGuard summand) ++ getProcInstProblems newScope
   where
+    getDisjointScopeProblems :: [String]
+    getDisjointScopeProblems =
+        let sharedVars = Set.toList (Set.intersection scope (lpeSmdVars summand)) in
+          map (\v -> "Variable " ++ Text.unpack (VarId.name v) ++ " is redeclared in " ++ location ++ "!") sharedVars
+    -- getDisjointScopeProblems
+    
     getProcInstProblems :: Set.Set VarId.VarId -> [String]
     getProcInstProblems s =
         let nonExistentParameters = Map.keysSet (lpeSmdEqs summand) Set.\\ scope in
-          map (\p -> "Parameter " ++ Text.unpack (VarId.name p) ++ " is not assigned in process instantiation!") (Set.toList nonExistentParameters)
+          map (\p -> "Parameter " ++ Text.unpack (VarId.name p) ++ " is not assigned in process instantiation of " ++ location ++ "!") (Set.toList nonExistentParameters)
           ++
           concatMap (validateValExpr ("process instantiation of " ++ location) s . snd) (Map.toList (lpeSmdEqs summand))
 -- validateLPESummand
