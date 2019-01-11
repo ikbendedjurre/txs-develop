@@ -55,7 +55,7 @@ model2lpe modelId = do
             case pdefs Map.!? procId of
               Just procDef@(TxsDefs.ProcDef chans params body) ->
                 let (initEqs, initEqsProblems) = getParamEqs tdefs "model initiation" params paramValues in
-                  case getLPESummands procId procDef body of
+                  case getLPESummands tdefs procId procDef body of
                     Left msgs -> return (Left msgs)
                     Right summands -> do let lpe = LPE { lpeContext = tdefs
                                                        , lpeInChans = Set.fromList inChans
@@ -84,10 +84,10 @@ model2lpe modelId = do
 
 -- Helper function.
 -- Constructs one or more summands from a TXS process expression (unless there are problems).
-getLPESummands :: TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [LPESummand]
-getLPESummands expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
+getLPESummands :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [LPESummand]
+getLPESummands tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
     case TxsDefs.view expr of
-      TxsDefs.Choice choices -> concatEither (map (getLPESummands expectedProcId expectedProcDef) (Set.toList choices))
+      TxsDefs.Choice choices -> concatEither (map (getLPESummands tdefs expectedProcId expectedProcDef) (Set.toList choices))
       TxsDefs.ActionPref TxsDefs.ActOffer { TxsDefs.offers = offers, TxsDefs.hiddenvars = hiddenvars, TxsDefs.constraint = constraint } procInst ->
           case TxsDefs.view procInst of
             TxsDefs.ProcInst procId chanIds paramValues
@@ -112,7 +112,8 @@ getLPESummands expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params
   where
     getParamEqs :: String -> [TxsDefs.VExpr] -> (LPEParamEqs, [String])
     getParamEqs location paramValues =
-        let paramEqs = Map.fromList (zip params paramValues) in
+        let newParamValues = map (any2defaultValue tdefs) paramValues in
+        let paramEqs = Map.fromList (zip params newParamValues) in
         let problems = validateSortList location (map SortOf.sortOf params) (map SortOf.sortOf paramValues) in
           (paramEqs, problems)
 -- getLPESummands
