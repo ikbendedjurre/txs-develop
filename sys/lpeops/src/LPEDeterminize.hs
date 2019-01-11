@@ -24,6 +24,7 @@ import qualified Control.Monad as Monad
 import qualified Data.Set as Set
 import qualified EnvCore as IOC
 import qualified EnvData
+import qualified FreeVar
 import qualified TxsDefs
 import qualified ChanId
 import qualified VarId
@@ -56,17 +57,23 @@ doDetIteration invariant lpe = do
         let chanVars1 = concatMap snd sortedChans1
         let chanVars2 = concatMap snd sortedChans2
         
-        chanVar3PerChanVar <- Map.fromList <$> Monad.mapM createVarMapping (chanVars1 ++ chanVars2)
-        let chanVars3 = Map.elems chanVar3PerChanVar
+        doubleVarMappings <- Monad.mapM createDoubleVarMapping (zip chanVars1 chanVars2)
+        let chanVar3PerChanVar1 = Map.fromList (map fst doubleVarMappings)
+        let chanVar3PerChanVar2 = Map.fromList (map snd doubleVarMappings)
+        let chanVars3 = Map.elems chanVar3PerChanVar1
         
-        chanVar3PerParam <- Map.fromList <$> Monad.mapM createParMapping chanVars3
+        doubleParMappings <- Monad.mapM createDoubleParMapping chanVars3
+        let paramPerChanVar3 = Map.fromList (map fst doubleParMappings)
+        let chanVar3PerParam = Map.fromList (map snd doubleParMappings)
+        let params = Map.keysSet chanVar3PerParam
+        
         nonDetFlagVar <- createFreshBoolVarFromPrefix "__NDF"
         
         -- All summands other than summand1 and summand2 are disabled after summand3, because
         -- they do not compensate for the fact that summand3 did not do a state update according to summand1 or summand2.
         -- First initialize some preparatory variables:
         let disableGuard = ValExpr.cstrEqual (ValExpr.cstrVar nonDetFlagVar) (ValExpr.cstrConst (Constant.Cbool False))
-        let extraSmdEqs = Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (selfLoopParamEqs (Map.keysSet chanVar3PerParam))
+        let extraSmdEqs = Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (selfLoopParamEqs params)
         let disableSmd = getDisabledSummand disableGuard extraSmdEqs
         
         -- Build 'the disabled summands' here:
@@ -103,12 +110,13 @@ doDetIteration invariant lpe = do
         -- Finally, summand 3 sets a freshly created flag variable to true.
         -- This flag enables the modified potential-successor summands that we create below, and
         -- disables all other summands (as described above).
-        let useChanVars3 = Map.map ValExpr.cstrVar chanVar3PerChanVar
-        guard1'' <- doConfidentSubst summand1 useChanVars3 (lpeSmdGuard summand1)
-        guard2'' <- doConfidentSubst summand2 useChanVars3 (lpeSmdGuard summand2)
-        let newSummand3 = LPESummand { lpeSmdVars = Set.fromList chanVars3
-                                     , lpeSmdOffers = Map.map (map (\v -> chanVar3PerChanVar Map.! v)) (lpeSmdOffers summand1)
-                                     , lpeSmdGuard = ValExpr.cstrAnd (Set.fromList [disableGuard, guard1'', guard2''])
+        guard1'' <- doConfidentSubst summand1 (Map.map ValExpr.cstrVar chanVar3PerChanVar1) (lpeSmdGuard summand1)
+        guard2'' <- doConfidentSubst summand2 (Map.map ValExpr.cstrVar chanVar3PerChanVar2) (lpeSmdGuard summand2)
+        let guard3 = ValExpr.cstrAnd (Set.fromList [disableGuard, guard1'', guard2''])
+        let vars3 = Set.fromList (FreeVar.freeVars guard3) Set.\\ (Set.insert nonDetFlagVar params)
+        let newSummand3 = LPESummand { lpeSmdVars = vars3 Set.\\ lpeParams lpe
+                                     , lpeSmdOffers = Map.map (map (\v -> chanVar3PerChanVar1 Map.! v)) (lpeSmdOffers summand1)
+                                     , lpeSmdGuard = guard3
                                      , lpeSmdEqs =
                                          Map.union
                                            -- Set the non-determinism flag to true, and do not change the original parameters:
@@ -121,14 +129,16 @@ doDetIteration invariant lpe = do
         -- They must therefore be enabled immediately after summand 3.
         -- They must also apply the parameter assignments of summand1 or summand2 in their guard, since summand 3 did not do this.
         let enableGuard = ValExpr.cstrEqual (ValExpr.cstrVar nonDetFlagVar) (ValExpr.cstrConst (Constant.Cbool True))
-        let useParams = Map.fromList (map (\p -> (chanVar3PerParam Map.! p, ValExpr.cstrVar p)) (Map.keys chanVar3PerParam))
-        let getEnabledSmd = getEnabledSummand enableGuard useParams extraSmdEqs
+        let useParams1 = Map.map (\v -> ValExpr.cstrVar (paramPerChanVar3 Map.! v)) chanVar3PerChanVar1
+        let useParams2 = Map.map (\v -> ValExpr.cstrVar (paramPerChanVar3 Map.! v)) chanVar3PerChanVar2
+        let getEnabledSmd1 = getEnabledSummand enableGuard summand1 useParams1 extraSmdEqs
+        let getEnabledSmd2 = getEnabledSummand enableGuard summand2 useParams2 extraSmdEqs
         
         -- Build the enabled summands (for both summand1 and summand2):
         possibleSuccessors1 <- getPossibleSuccessors (lpeSummands lpe) invariant summand1
         possibleSuccessors2 <- getPossibleSuccessors (lpeSummands lpe) invariant summand2
-        enabledSummands1 <- Monad.mapM getEnabledSmd possibleSuccessors1
-        enabledSummands2 <- Monad.mapM getEnabledSmd possibleSuccessors2
+        enabledSummands1 <- Monad.mapM getEnabledSmd1 possibleSuccessors1
+        enabledSummands2 <- Monad.mapM getEnabledSmd2 possibleSuccessors2
         
         IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Added " ++ show (length enabledSummands1 + length enabledSummands2 + 1) ++ " summands to LPE") ]
         
@@ -137,22 +147,22 @@ doDetIteration invariant lpe = do
                                     -- Set the non-determinism flag to true, and add it to the original parameters:
                                     (Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (lpeInitEqs lpe))
                                     -- Set newly created parameters to a default value:
-                                    (defaultValueParamEqs (lpeContext lpe) (Map.keysSet chanVar3PerParam))
+                                    (defaultValueParamEqs (lpeContext lpe) params)
                    , lpeSummands = Set.fromList (disabledSummands ++ [newSummand1, newSummand2, newSummand3] ++ enabledSummands1 ++ enabledSummands2) }
       Nothing -> do IOC.putMsgs [ EnvData.TXS_CORE_ANY "No non-deterministic summand pair found!" ]
                     return lpe
   where
-    createVarMapping :: VarId.VarId -> IOC.IOC (VarId.VarId, VarId.VarId)
-    createVarMapping varId = do
-        freshVar <- createFreshVarFromVar varId
-        return (varId, freshVar)
-    -- createVarMapping
+    createDoubleVarMapping :: (VarId.VarId, VarId.VarId) -> IOC.IOC ((VarId.VarId, VarId.VarId), (VarId.VarId, VarId.VarId))
+    createDoubleVarMapping (varId1, varId2) = do
+        freshVar <- createFreshVarFromVar varId1
+        return ((varId1, freshVar), (varId2, freshVar))
+    -- createDoubleVarMapping
     
-    createParMapping :: VarId.VarId -> IOC.IOC (VarId.VarId, VarId.VarId)
-    createParMapping varId = do
+    createDoubleParMapping :: VarId.VarId -> IOC.IOC ((VarId.VarId, VarId.VarId), (VarId.VarId, VarId.VarId))
+    createDoubleParMapping varId = do
         freshPar <- createFreshVarFromVar varId
-        return (freshPar, varId)
-    -- createParMapping
+        return ((varId, freshPar), (freshPar, varId))
+    -- createDoubleParMapping
     
     getDisabledSummand :: TxsDefs.VExpr -> LPEParamEqs -> LPESummand -> LPESummand
     getDisabledSummand disableGuard extraSmdEqs summand =
@@ -161,9 +171,10 @@ doDetIteration invariant lpe = do
                 }
     -- getDisabledSummand
     
-    getEnabledSummand :: TxsDefs.VExpr -> LPEParamEqs -> LPEParamEqs -> LPESummand -> IOC.IOC LPESummand
-    getEnabledSummand enableGuard useParams extraSmdEqs summand = do
-        g <- doConfidentSubst summand useParams (lpeSmdGuard summand)
+    getEnabledSummand :: TxsDefs.VExpr -> LPESummand -> LPEParamEqs -> LPEParamEqs -> LPESummand -> IOC.IOC LPESummand
+    getEnabledSummand enableGuard eqsSummand useParams extraSmdEqs summand = do
+        useEqs <- doConfidentParamEqsSubst eqsSummand useParams (lpeSmdEqs eqsSummand)
+        g <- doConfidentSubst summand useEqs (lpeSmdGuard summand)
         return (summand { lpeSmdGuard = ValExpr.cstrAnd (Set.fromList [enableGuard, g])
                         , lpeSmdEqs = Map.union (lpeSmdEqs summand) extraSmdEqs
                         })
