@@ -40,7 +40,7 @@ import VarFactory
 determinizeLPE :: LPEOperation
 determinizeLPE lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<det>>" ]
-    newLpe <- untilFixpointM (doDetIteration invariant) lpe
+    newLpe <- untilCounterOrFixpointM 1 (doDetIteration invariant) lpe
     return (Right newLpe)
 -- determinizeLPE
 
