@@ -65,6 +65,9 @@ type VExprFromSortIdFunc = SortId.SortId -> Maybe TxsDefs.VExpr
 showSubst :: Map.Map VarId.VarId TxsDefs.VExpr -> String
 showSubst subst = "[" ++ List.intercalate ", " (map (\(p, v) -> Text.unpack (VarId.name p) ++ " := " ++ showValExpr v) (Map.toList subst)) ++ "]"
 
+orderListByList :: Ord t => [t] -> [t] -> [t]
+orderListByList orderedList unorderedList = List.intersect orderedList unorderedList ++ (unorderedList List.\\ orderedList)
+
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Showing LPEs:
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -100,7 +103,7 @@ showLPEInContext f lpe =
         let orderedChansDefault = Set.toList (lpeChanParams lpe) in
         let orderedParamsDefault = Map.keys (lpeInitEqs lpe) in
           case [def | (pid, def) <- Map.toList (TxsDefs.procDefs tdefs), ProcId.name pid == lpeName lpe] of
-            (ProcDef.ProcDef chans params _):_ -> (List.intersect chans orderedChansDefault, List.intersect params orderedParamsDefault)
+            (ProcDef.ProcDef chans params _):_ -> (orderListByList chans orderedChansDefault, orderListByList params orderedParamsDefault)
             _ -> (orderedChansDefault, orderedParamsDefault)
     -- getOrderedChansAndParams
     
@@ -257,7 +260,16 @@ showValExprInContext f g = customData . visitValExpr showVisitor
                     (view -> Vcstr cid _)             -> mapGet f (TxsDefs.IdCstr cid) ++ "(" ++ List.intercalate ", " pars ++ ")"
                     (view -> Viscstr cid _)           -> "is" ++ mapGet f (TxsDefs.IdCstr cid) ++ "(" ++ head pars ++ ")"
                     (view -> Vaccess cid n _ _)       -> showAccessorId f cid n ++ "(" ++ head pars ++ ")"
-                    (view -> Vite{})                  -> "IF " ++ head pars ++ " THEN " ++ pars !! 1 ++ " ELSE " ++ pars !! 2 ++ " FI"
+                    (view -> Vite _ t e)              ->
+                      case (t, e) of
+                        ((view -> Vconst (Cbool True)), (view -> Vconst (Cbool False))) -> head pars
+                        ((view -> Vconst (Cbool False)), (view -> Vconst (Cbool True))) -> "not(" ++ head pars ++ ")"
+                        ((view -> Vconst (Cbool True)), _) -> "(" ++ head pars ++ " \\/ " ++ pars !! 2 ++ ")"
+                        ((view -> Vconst (Cbool False)), _) -> "(not(" ++ head pars ++ ") /\\ " ++ pars !! 2 ++ ")"
+                        (_, (view -> Vconst (Cbool True))) -> "(not(" ++ head pars ++ ") \\/ " ++ pars !! 1 ++ ")"
+                        (_, (view -> Vconst (Cbool False))) -> "(" ++ head pars ++ " /\\ " ++ pars !! 1 ++ ")"
+                        (_, _) ->
+                          "IF " ++ head pars ++ " THEN " ++ pars !! 1 ++ " ELSE " ++ pars !! 2 ++ " FI"
                     (view -> Vdivide _ _)             -> "(" ++ head pars ++ "/" ++ pars !! 1 ++ ")"
                     (view -> Vmodulo _ _)             -> "(" ++ head pars ++ "%" ++ pars !! 1 ++ ")"
                     (view -> Vgez _)                  -> "(" ++ head pars ++ ">=0)"
