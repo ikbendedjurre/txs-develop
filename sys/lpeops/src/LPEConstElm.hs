@@ -37,7 +37,7 @@ import           BlindSubst
 -- Eliminates parameters that always have the same value from an LPE.
 constElm :: LPEOperation
 constElm lpe _out invariant = do
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<constElm>>" ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<constelm>>" ]
     constParams <- getConstParams lpe invariant (Map.keysSet (lpeInitEqs lpe))
     newLpe <- removeParsFromLPE constParams lpe
     return (Right newLpe)

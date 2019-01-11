@@ -21,7 +21,9 @@ LPEOperation,
 lpeOperations,
 discardLPE,
 printLPE,
+printAbbrevLPE,
 exportLPE,
+exportAbbrevLPE,
 getLPEOperation,
 getLPEOperations
 ) where
@@ -83,7 +85,7 @@ lpeOperation ops (LPEOp op:xs) (lpe:ys) out invariant = do
     msgsOrNewLpe <- op lpe out invariant
     case msgsOrNewLpe of
       Left msgs -> return (Left msgs)
-      Right newLpe -> let problems = validateLPE newLpe in
+      Right newLpe -> let problems = validateLPEModel newLpe in
                         if null problems
                         then lpeOperation ops xs (newLpe:ys) out invariant
                         else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("lpe = " ++ showLPE newLpe) ]
@@ -95,23 +97,44 @@ discardLPE _ _ _ = return (Left ["LPE discarded!"])
 
 printLPE :: LPEOperation
 printLPE lpe _out _invariant = do
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY (showAbbrevLPE lpe) ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<show>>" ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY (showLPE lpe) ]
     return (Right lpe)
 -- printLPE
+
+printAbbrevLPE :: LPEOperation
+printAbbrevLPE lpe _out _invariant = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<show*>>" ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY (showAbbrevLPE lpe) ]
+    return (Right lpe)
+-- printAbbrevLPE
 
 exportLPE :: LPEOperation
 exportLPE lpe out _invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<export>>" ]
     let filename = out ++ ".txs"
-    MonadState.liftIO $ writeFile filename (showAbbrevLPE lpe)
-    return (Left ["LPE exported to " ++ filename ++ "!"])
+    MonadState.liftIO $ writeFile filename (showLPE lpe)
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("LPE exported to " ++ filename ++ "!") ]
+    return (Right lpe)
 -- exportLPE
+
+exportAbbrevLPE :: LPEOperation
+exportAbbrevLPE lpe out _invariant = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<export*>>" ]
+    let filename = out ++ ".txs"
+    MonadState.liftIO $ writeFile filename (showAbbrevLPE lpe)
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("LPE exported to " ++ filename ++ "!") ]
+    return (Right lpe)
+-- exportAbbrevLPE
 
 getLPEOperation :: String -> Either String LPEOps.LPEOp
 getLPEOperation opName = case opName of
                            "stop" -> Right (LPEOps.LPEOp LPEOps.discardLPE)
+                           "valid" -> Right (LPEOps.LPEOp validateLPE)
                            "show" -> Right (LPEOps.LPEOp LPEOps.printLPE)
+                           "show*" -> Right (LPEOps.LPEOp LPEOps.printAbbrevLPE)
                            "export" -> Right (LPEOps.LPEOp LPEOps.exportLPE)
+                           "export*" -> Right (LPEOps.LPEOp LPEOps.exportAbbrevLPE)
                            "loop" -> Right (LPEOps.LPEOpLoop)
                            "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
                            "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)

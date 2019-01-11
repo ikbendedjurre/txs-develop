@@ -22,6 +22,7 @@ import qualified Data.List           as List
 import qualified Control.Monad       as Monad
 import qualified Data.Set            as Set
 import qualified EnvCore             as IOC
+import qualified EnvData
 import qualified ValExpr
 import LPETypes
 import LPEBlindSubst
@@ -30,6 +31,7 @@ import LPEBlindSubst
 -- (so basically we do a partial, symbolic reachability analysis).
 iStepElm :: LPEOperation
 iStepElm lpe _out _invariant = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<istepelm>>" ]
     let (iStepSummands, nonIStepSummands) = List.partition (\(LPESummand _ offers _ _) -> null offers) (Set.toList (lpeSummands lpe))
     combinedSummands <- Monad.mapM (combineSummand nonIStepSummands) iStepSummands
     return (Right (lpe { lpeSummands = Set.fromList (nonIStepSummands ++ concat combinedSummands) }))

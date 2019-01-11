@@ -44,7 +44,7 @@ mapGet m k =
 
 dataReset :: LPEOperation
 dataReset lpe _out invariant = do
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<dataReset>>" ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<datareset>>" ]
     let params = Map.keysSet (lpeInitEqs lpe)
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "Collecting information on parameter usage..." ]
     paramUsagePerSummand <- getParamUsagePerSummand (lpeSummands lpe) params invariant

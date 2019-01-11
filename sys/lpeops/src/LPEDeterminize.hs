@@ -139,7 +139,8 @@ doDetIteration invariant lpe = do
                                     -- Set newly created parameters to a default value:
                                     (defaultValueParamEqs (lpeContext lpe) (Map.keysSet chanVar3PerParam))
                    , lpeSummands = Set.fromList (disabledSummands ++ [newSummand1, newSummand2, newSummand3] ++ enabledSummands1 ++ enabledSummands2) }
-      Nothing -> return lpe
+      Nothing -> do IOC.putMsgs [ EnvData.TXS_CORE_ANY "No non-deterministic summand pair found!" ]
+                    return lpe
   where
     createVarMapping :: VarId.VarId -> IOC.IOC (VarId.VarId, VarId.VarId)
     createVarMapping varId = do

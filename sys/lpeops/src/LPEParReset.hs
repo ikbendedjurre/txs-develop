@@ -60,7 +60,7 @@ mapGetS i s m k =
 -- State spaces before and after are strongly bisimilar.
 parReset :: LPEOperation
 parReset lpe _out invariant = do
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<parReset>>" ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<parreset>>" ]
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "Identifying successors..." ]
     possibleSuccessors <- Monad.mapM (getPossibleSuccessors (lpeSummands lpe) invariant) (Set.toList (lpeSummands lpe))
     let successorsPerSummand = zipWith (\s i -> (s, i, Map.keys (lpeInitEqs lpe))) (Set.toList (lpeSummands lpe)) possibleSuccessors
