@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 module LPEValidity (
 validateLPE,
+validateLPEModel,
 validateLPESummand,
 validateValExpr,
 validateSortList,
@@ -26,6 +27,8 @@ validateSortPair
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import qualified EnvCore as IOC
+import qualified EnvData
 import qualified SortOf
 import qualified TxsDefs
 import qualified CstrId
@@ -37,16 +40,24 @@ import           ValExpr
 import           LPETypes
 import           ValExprVisitor
 
+validateLPE :: LPEOperation
+validateLPE lpe _out _invariant = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<valid>>" ]
+    let problems = validateLPEModel lpe
+    if problems /= []
+    then return (Left problems)
+    else return (Right lpe)
+-- validateLPE
+
 -- This method can detect certain problems with an LPE, making finding bugs in LPE operations easier:
-validateLPE :: LPE -> [String]
-validateLPE lpe =
+validateLPEModel :: LPE -> [String]
+validateLPEModel lpe =
     concatMap getSmdProblems (zip [1..] (Set.toList (lpeSummands lpe)))
   where
     getSmdProblems :: (Int, LPESummand) -> [String]
-    getSmdProblems (i, smd) = validateLPESummand ("summand " ++ show i) (Map.keysSet (lpeInitEqs lpe)) smd
--- validateLPE
+    getSmdProblems (i, smd) = validateLPESummand ("summand " ++ show i) (lpeParams lpe) smd
+-- validateLPEModel
 
--- Given a summand, 
 validateLPESummand :: String -> Set.Set VarId.VarId -> LPESummand -> [String]
 validateLPESummand location scope summand =
     let newScope = Set.union scope (lpeSmdVars summand) in
@@ -62,7 +73,7 @@ validateLPESummand location scope summand =
 
 -- Given a data expression, this method lists any problems that may exist that would indicate that the input is invalid.
 validateValExpr :: String -> Set.Set VarId.VarId -> TxsDefs.VExpr -> [String]
-validateValExpr location scope = customData . visitValExpr getProblemsVisitor
+validateValExpr location scope xpr = customData (visitValExpr getProblemsVisitor xpr)
   where
     getProblemsVisitor :: [ValExprVisitorOutput [String]] -> TxsDefs.VExpr -> ValExprVisitorOutput [String]
     getProblemsVisitor subExps expr =

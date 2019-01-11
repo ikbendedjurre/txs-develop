@@ -65,7 +65,7 @@ model2lpe modelId = do
                                                        , lpeInitEqs = initEqs
                                                        , lpeSummands = Set.fromList summands
                                                        }
-                                         let problems = initEqsProblems ++ validateLPE lpe
+                                         let problems = initEqsProblems ++ validateLPEModel lpe
                                          if null problems
                                          then return (Right lpe)
                                          else return (Left problems)
