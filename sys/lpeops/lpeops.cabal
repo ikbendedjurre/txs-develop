@@ -32,6 +32,8 @@ library
                     , LPETypes
                     , LPEConversion
                     , SetUnions
+                    , LPEUGuards
+                    , Pairs
                     , LPEBlindSubst
                     , UntilFixpoint
                     , LPEConfCheck
@@ -98,6 +100,8 @@ test-suite lpeops-test
                       , LPEConversion
                       , LPEBlindSubst
                       , SetUnions
+                      , LPEUGuards
+                      , Pairs
                       , UntilFixpoint
                       , LPEConfCheck
                       , LPEIsDet

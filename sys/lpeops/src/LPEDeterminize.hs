@@ -47,10 +47,10 @@ determinizeLPE lpe _out invariant = do
 
 doDetIteration :: TxsDefs.VExpr -> LPE -> IOC.IOC LPE
 doDetIteration invariant lpe = do
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Looking for non-deterministic summand pair in " ++ show (Set.size (lpeSummands lpe)) ++ " summands...") ]
-    -- Find a pair of non-deterministic summands:
-    nothingOrNonDetPair <- getNonDeterministicSummandPair invariant (Set.toList (lpeSummands lpe))
-    case nothingOrNonDetPair of
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Looking for determinizable summand pair in " ++ show (Set.size (lpeSummands lpe)) ++ " summands...") ]
+    -- Find a pair of determinizable (and non-deterministic) summands:
+    nothingOrDeterminizablePair <- getNonDeterministicSummandPair invariant (Set.toList (lpeSummands lpe))
+    case nothingOrDeterminizablePair of
       Just (summand1, summand2) -> do
         let sortedChans1 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand1))
         let sortedChans2 = List.sortOn (ChanId.unid . fst) (Map.toList (lpeSmdOffers summand2))
@@ -140,16 +140,19 @@ doDetIteration invariant lpe = do
         enabledSummands1 <- Monad.mapM getEnabledSmd1 possibleSuccessors1
         enabledSummands2 <- Monad.mapM getEnabledSmd2 possibleSuccessors2
         
-        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Added " ++ show (length enabledSummands1 + length enabledSummands2 + 1) ++ " summands to LPE") ]
-        
         -- Combine everything:
-        return lpe { lpeInitEqs = Map.union
-                                    -- Set the non-determinism flag to true, and add it to the original parameters:
-                                    (Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (lpeInitEqs lpe))
-                                    -- Set newly created parameters to a default value:
-                                    (defaultValueParamEqs (lpeContext lpe) params)
-                   , lpeSummands = Set.fromList (disabledSummands ++ [newSummand1, newSummand2, newSummand3] ++ enabledSummands1 ++ enabledSummands2) }
-      Nothing -> do IOC.putMsgs [ EnvData.TXS_CORE_ANY "No non-deterministic summand pair found!" ]
+        let newLpe = lpe { lpeInitEqs = Map.union
+                                          -- Set the non-determinism flag to true, and add it to the original parameters:
+                                          (Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (lpeInitEqs lpe))
+                                          -- Set newly created parameters to a default value:
+                                          (defaultValueParamEqs (lpeContext lpe) params)
+                         , lpeSummands = Set.fromList (disabledSummands ++ [newSummand1, newSummand2, newSummand3] ++ enabledSummands1 ++ enabledSummands2) }
+        
+        let newSummandCount = Set.size (lpeSummands newLpe) - Set.size (lpeSummands lpe)
+        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Added " ++ show newSummandCount ++ " summands to LPE") ]
+        
+        return newLpe
+      Nothing -> do IOC.putMsgs [ EnvData.TXS_CORE_ANY "No determinizable summand pair found!" ]
                     return lpe
   where
     createDoubleVarMapping :: (VarId.VarId, VarId.VarId) -> IOC.IOC ((VarId.VarId, VarId.VarId), (VarId.VarId, VarId.VarId))

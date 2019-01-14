@@ -30,6 +30,7 @@ getLPEOperations
 
 import qualified Control.Monad.State as MonadState
 import qualified Data.Text as Text
+import qualified Text.Read as Read
 import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
@@ -43,6 +44,7 @@ import qualified LPEConfCheck
 import qualified LPEIsDet
 import qualified LPEDeterminize
 import qualified LPEAngelic
+import qualified LPEUGuards
 import qualified LPE2MCRL2
 import           LPEPrettyPrint
 import           LPEConversion
@@ -50,9 +52,9 @@ import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.01.07.03"
+lpeOpsVersion = "2019.01.14.01"
 
-data LPEOp = LPEOpLoop | LPEOp LPEOperation
+data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 
 insertAtToken :: String -> String -> String
 insertAtToken _ [] = []
@@ -89,10 +91,16 @@ lpeOperations operations modelId out invariant = do
 lpeOperation :: [LPEOp] -> Int -> [LPEOp] -> [LPE] -> String -> TxsDefs.VExpr -> IOC.IOC (Either [String] [LPE])
 lpeOperation _ops _ _ [] _out _invariant = return (Left ["No input LPE found!"])
 lpeOperation _ops _ [] lpeInstances _out _invariant = return (Right lpeInstances)
-lpeOperation ops i (LPEOpLoop:xs) (lpe:ys) out invariant =
+lpeOperation ops i (LPEOpLoop n:xs) (lpe:ys) out invariant =
+    if (i >= n) || (lpe `elem` ys)
+    then lpeOperation ops i xs (lpe:ys) out invariant
+    else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("<<loop*" ++ show (n - i - 1) ++ ">>") ]
+            lpeOperation ops (i + 1) ops (lpe:lpe:ys) out invariant
+lpeOperation ops i (LPEOpLoopInf:xs) (lpe:ys) out invariant = do
     if lpe `elem` ys
-    then lpeOperation ops i xs (lpe:ys) (insertAtToken (show i) out) invariant
-    else lpeOperation ops (i + 1) ops (lpe:lpe:ys) (insertAtToken (show i) out) invariant
+    then lpeOperation ops i xs (lpe:ys) out invariant
+    else do IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<loop>>" ]
+            lpeOperation ops (i + 1) ops (lpe:lpe:ys) out invariant
 lpeOperation ops i (LPEOp op:xs) (lpe:ys) out invariant = do
     msgsOrNewLpe <- op lpe (insertAtToken (show i) out) invariant
     case msgsOrNewLpe of
@@ -147,7 +155,10 @@ getLPEOperation opName = case opName of
                            "show*" -> Right (LPEOps.LPEOp LPEOps.printAbbrevLPE)
                            "export" -> Right (LPEOps.LPEOp LPEOps.exportLPE)
                            "export*" -> Right (LPEOps.LPEOp LPEOps.exportAbbrevLPE)
-                           "loop" -> Right (LPEOps.LPEOpLoop)
+                           "loop" -> Right (LPEOps.LPEOpLoopInf)
+                           'l':'o':'o':'p':'*':xs -> case Read.readMaybe xs of
+                                                       Just n -> Right (LPEOps.LPEOpLoop n)
+                                                       Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")
                            "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
                            "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)
                            "parelm" -> Right (LPEOps.LPEOp LPEParElm.parElm)
@@ -157,6 +168,7 @@ getLPEOperation opName = case opName of
                            "isdet" -> Right (LPEOps.LPEOp LPEIsDet.isDeterministicLPE)
                            "det" -> Right (LPEOps.LPEOp LPEDeterminize.determinizeLPE)
                            "angelic" -> Right (LPEOps.LPEOp LPEAngelic.makeInputEnabledLPE)
+                           "uguard" -> Right (LPEOps.LPEOp LPEUGuards.addUGuardsToLPE)
                            "confelm" -> Right (LPEOps.LPEOp LPEConfCheck.confElm)
                            "mcrl2" -> Right (LPEOps.LPEOp LPE2MCRL2.lpe2mcrl2)
                            _ -> Left ("Unknown LPE operation (" ++ opName ++ ")!")
