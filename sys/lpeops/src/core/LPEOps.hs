@@ -52,7 +52,7 @@ import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.01.14.01"
+lpeOpsVersion = "2019.01.17.02"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 
@@ -83,7 +83,7 @@ lpeOperations operations modelId out invariant = do
                         Right [] -> return (Left ["No output LPE found!"]) -- Should not happen.
                         Right (newLpe:_) -> do if newLpe /= lpe
                                                then IOC.putMsgs [ EnvData.TXS_CORE_ANY "( LPE has been rewritten! )" ]
-                                               else IOC.putMsgs [ EnvData.TXS_CORE_ANY "( LPE is identical to input! )" ]
+                                               else IOC.putMsgs [ EnvData.TXS_CORE_ANY "( LPE is identical to input. )" ]
                                                temp <- lpe2model (newLpe { lpeName = Text.pack (insertAtToken "" out) })
                                                return (Right temp)
 -- lpeOperations

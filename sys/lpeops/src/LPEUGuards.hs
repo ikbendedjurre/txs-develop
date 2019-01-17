@@ -20,6 +20,7 @@ addUGuardsToLPE
 
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import qualified Control.Monad as Monad
 import qualified Data.Set as Set
 import qualified EnvCore as IOC
@@ -33,7 +34,10 @@ import qualified Satisfiability as Sat
 import Pairs
 import LPETypes
 import LPEBlindSubst
+import LPESuccessors
+import LPEDeterminism
 import UntilFixpoint
+import VarFactory
 
 -- Makes the LPE deterministic by delaying non-deterministic choices by one step until a fixpoint is reached.
 addUGuardsToLPE :: LPEOperation
@@ -45,6 +49,7 @@ addUGuardsToLPE lpe _out invariant = do
 
 doIteration :: TxsDefs.VExpr -> LPE -> IOC.IOC LPE
 doIteration invariant lpe = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Looking for same-state summand pairs in " ++ show (Set.size (lpeSummands lpe)) ++ " summand...") ]
     sameStatePairs <- getSameStateSummandPairs invariant (Set.toList (lpeSummands lpe))
     IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Checking " ++ show (length sameStatePairs) ++ " summand pairs for underspecifications...") ]
     resolvePairs sameStatePairs
@@ -52,30 +57,33 @@ doIteration invariant lpe = do
     resolvePairs :: [(LPESummand, LPESummand)] -> IOC.IOC LPE
     resolvePairs [] = return lpe
     resolvePairs (pair:pairs) = do
-        maybeLpe <- tryToAddUGuards lpe pair
-        case maybeLpe of
-          Just lpe -> return lpe
-          Nothing resolvePairs pairs
+        maybeNewLpe <- tryToAddUGuards lpe invariant pair
+        case maybeNewLpe of
+          Just newLpe -> return newLpe
+          Nothing -> resolvePairs pairs
 -- doIteration
 
-tryToAddUGuards :: LPE -> (LPESummand, LPESummand) -> IOC.IOC (Maybe LPE)
+tryToAddUGuards :: LPE -> TxsDefs.VExpr -> (LPESummand, LPESummand) -> IOC.IOC (Maybe LPE)
 tryToAddUGuards lpe invariant (summand1, summand2) = do
     let summands = Set.toList (lpeSummands lpe)
-    successors1 <- getPossibleSuccessors summands invariant summand1
-    successors2 <- getPossibleSuccessors summands invariant summand2
+    let sindex1 = Maybe.fromMaybe 0 (List.elemIndex summand1 summands)
+    let sindex2 = Maybe.fromMaybe 0 (List.elemIndex summand2 summands)
+    successors1 <- getPossibleSuccessors (lpeSummands lpe) invariant summand1
+    successors2 <- getDefiniteSuccessors (lpeSummands lpe) invariant summand2
     -- We are looking for an action in successors2 that is not in successors1, so throw out all shared successors:
-    let oldSuccessors2 = Set.fromList successors2 Set.\\ Set.fromList successors1
-    underspecifiedSuccessors2 <- Monad.filterM (isUnderspecifiedSuccessor2 successors1) oldSuccessors2
+    let uniqueSuccessors2 = Set.fromList successors2 Set.\\ Set.fromList successors1
+    underspecifiedSuccessors2 <- Monad.filterM (isUnderspecifiedSuccessor2 successors1) (Set.toList uniqueSuccessors2)
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("" ++ show (Set.size uniqueSuccessors2) ++ " successors of summand pair (" ++ show sindex1 ++ ", " ++ show sindex2 ++ ") are unique, " ++ show (length underspecifiedSuccessors2) ++ " are underspecified") ]
     if null underspecifiedSuccessors2
     then return Nothing
-    else do freshPar <- createFreshVarFromVar varId
+    else do freshPar <- createFreshBoolVarFromPrefix "__UG"
             
             -- Make the guards of all underspecified successors more strict by adding a conjunct:
             let conjunct = ValExpr.cstrEqual (ValExpr.cstrVar freshPar) (ValExpr.cstrConst (Constant.Cbool False))
             let conjunctedSuccessors2 = map (addConjunctToSuccessor2 conjunct) underspecifiedSuccessors2
             
             -- Replace the underspecified successors:
-            let conjunctedSummands = Set.union (lpeSummands lpe Set.\\ Set.fromList underspecifiedSuccessors2) conjunctedSuccessors2
+            let conjunctedSummands = Set.union (lpeSummands lpe Set.\\ Set.fromList underspecifiedSuccessors2) (Set.fromList conjunctedSuccessors2)
             
             -- It is possible that summand1 and summand2 were changed. This is how they look now:
             let conjunctedSummand1 = if summand1 `List.elem` underspecifiedSuccessors2
@@ -98,7 +106,7 @@ tryToAddUGuards lpe invariant (summand1, summand2) = do
                              , lpeInitEqs = addParamEq freshPar False (lpeInitEqs lpe)
                              }
             
-            IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Found and disabled " ++ show (Set.size underspecifiedSuccessors2) ++ " underspecified summands") ]
+            IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Found and disabled " ++ show (length underspecifiedSuccessors2) ++ " underspecified summands") ]
             
             -- Done!
             return (Just newLpe)
@@ -106,10 +114,10 @@ tryToAddUGuards lpe invariant (summand1, summand2) = do
     isUnderspecifiedSuccessor2 :: [LPESummand] -> LPESummand -> IOC.IOC Bool
     isUnderspecifiedSuccessor2 successors1 successor2 = do
         -- We are looking for successors1 that can be enabled together with successor2.
-        -- This is equivalent to looking for successors1 that are non-deterministic with successor2:
-        successors1 <- Monad.filterM (areSummandsNonDeterministic invariant successor2) successors1
+        -- This is equivalent to looking for successors1 that 'are non-deterministic with' successor2:
+        nonDetSuccs <- Monad.filterM (areSummandsNonDeterministic invariant successor2) successors1
         -- If no such successors1 exists, the action of successor2 is underspecified (at least when successor2 follows summand2):
-        return (null successors1)
+        return (null nonDetSuccs)
     -- isUnderspecifiedSuccessor2
     
     addConjunctToSuccessor2 :: TxsDefs.VExpr -> LPESummand -> LPESummand
@@ -122,7 +130,7 @@ tryToAddUGuards lpe invariant (summand1, summand2) = do
         successor2 { lpeSmdEqs = addParamEq freshPar freshParValue (lpeSmdEqs successor2) }
     -- addParamEqToSummand
     
-    addParamEq :: VarId.VarId -> Bool -> LPEParamEqs -> LPESummand
+    addParamEq :: VarId.VarId -> Bool -> LPEParamEqs -> LPEParamEqs
     addParamEq freshPar freshParValue = Map.insert freshPar (ValExpr.cstrConst (Constant.Cbool freshParValue))
 -- tryToAddUGuards
 
@@ -132,7 +140,7 @@ getSameStateSummandPairs _ [] = return []
 getSameStateSummandPairs invariant summands = Monad.filterM (isSameStateSummandPair invariant) (allPairsNonId summands summands)
 
 -- Check if a summand pair satisfies all of the following conditions:
---  - The guard of the first summand must imply the guard of the second summand;
+--  - The guard of the first summand must imply the guard of the second summand (modulo variable renaming);
 --  - The channels of the first summand must be equal to the channels of the second summand.
 -- This method may return false negatives!
 isSameStateSummandPair :: TxsDefs.VExpr -> (LPESummand, LPESummand) -> IOC.IOC Bool
