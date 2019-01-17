@@ -15,6 +15,7 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module LPESuccessors (
+getSuccessorEquation,
 isPossibleSuccessor,
 getPossibleSuccessors,
 isDefiniteSuccessor,
@@ -26,18 +27,38 @@ couldHavePredecessor
 
 import qualified Control.Monad       as Monad
 import qualified Data.List           as List
+import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified EnvCore             as IOC
 import qualified Satisfiability      as Sat
+import qualified FreeVar
 import qualified TxsDefs
 import qualified ValExpr
+import qualified VarId
 import           LPETypes
 import           BlindSubst
+import           VarFactory
+
+-- Returns an equation that can be used to check whether the second summand is (or could be) a successor of the first summand.
+getSuccessorEquation :: LPESummand -> TxsDefs.VExpr -> LPESummand -> IOC.IOC TxsDefs.VExpr
+getSuccessorEquation summand invariant candidate = do
+    let usedParams = Set.intersection (Set.fromList (FreeVar.freeVars (lpeSmdGuard candidate))) (Map.keysSet (lpeSmdEqs summand))
+    newParamPerUsedParam <- Map.fromList <$> Monad.mapM createNewParam (Set.toList usedParams)
+    g1 <- doBlindSubst (Map.map ValExpr.cstrVar newParamPerUsedParam) (lpeSmdGuard candidate)
+    g2 <- doBlindSubst (Map.mapKeys (\k -> newParamPerUsedParam Map.! k) (Map.restrictKeys (lpeSmdEqs summand) usedParams)) g1
+    let g3 = ValExpr.cstrAnd (Set.fromList [lpeSmdGuard summand, g2])
+    Sat.getPartiallySolvedExpr g3 invariant (Set.toList usedParams)
+  where
+    createNewParam :: VarId.VarId -> IOC.IOC (VarId.VarId, VarId.VarId)
+    createNewParam varId = do
+        newVarId <- createFreshVarFromVar varId
+        return (varId, newVarId)
+-- getSuccessorEquation
 
 isPossibleSuccessor :: LPESummand -> TxsDefs.VExpr -> LPESummand -> IOC.IOC Bool
 isPossibleSuccessor summand invariant candidate = do
-    g <- doBlindSubst (lpeSmdEqs summand) (lpeSmdGuard candidate)
-    Sat.couldBeSatisfiable (ValExpr.cstrAnd (Set.fromList [lpeSmdGuard summand, g])) invariant
+    succEq <- getSuccessorEquation summand invariant candidate
+    Sat.couldBeSatisfiable succEq invariant
 -- isPossibleSuccessor
 
 -- Selects all potential successors summands of a given summand from a list with all summands.
@@ -51,8 +72,8 @@ getPossibleSuccessors summands invariant summand =
 
 isDefiniteSuccessor :: LPESummand -> TxsDefs.VExpr -> LPESummand -> IOC.IOC Bool
 isDefiniteSuccessor summand invariant candidate = do
-    g <- doBlindSubst (lpeSmdEqs summand) (lpeSmdGuard candidate)
-    Sat.isTautology (ValExpr.cstrAnd (Set.fromList [lpeSmdGuard summand, g])) invariant
+    succEq <- getSuccessorEquation summand invariant candidate
+    Sat.isTautology succEq invariant
 -- isDefiniteSuccessor
 
 -- Selects all summands from a given list that are definitely successors of a given summand.

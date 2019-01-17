@@ -16,6 +16,7 @@ See LICENSE at root directory of this repository.
 
 module Satisfiability (
 getSomeSolution,
+getPartiallySolvedExpr,
 isTautology,
 isSatisfiable,
 couldBeSatisfiable,
@@ -99,6 +100,17 @@ getSomeSolution expr _invariant variables =
     buildSolution :: Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
     buildSolution solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
 -- getSomeSolution
+
+-- Solves an expression only for the given variables; that is,
+-- substitutes a possible solution in the given expression only for the given variables.
+getPartiallySolvedExpr :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC TxsDefs.VExpr
+getPartiallySolvedExpr expr invariant variables = do
+    sol <- getSomeSolution expr invariant variables
+    case sol of
+      SolveDefs.Solved solMap -> doBlindSubst (Map.map cstrConst solMap) expr
+      SolveDefs.Unsolvable -> return (ValExpr.cstrConst (Constant.Cbool False))
+      SolveDefs.UnableToSolve -> return expr
+-- getPartiallySolvedExpr
 
 -- Checks if the specified expression cannot be false.
 isTautology :: TxsDefs.VExpr -> TxsDefs.VExpr -> IOC.IOC Bool
