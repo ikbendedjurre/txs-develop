@@ -17,6 +17,7 @@ import TestParElm
 import TestDataReset
 import TestParReset
 import TestConfCheck
+import TestUGuard
 
 testList :: Test
 testList = TestList
@@ -33,6 +34,7 @@ testList = TestList
     , TestLabel "confElmNoChange"          testConfElmNoChange
     , TestLabel "confElmBasic"             testConfElmBasic
     , TestLabel "confElmModulo"            testConfElmModulo
+    , TestLabel "uguardBasic"              testUGuardBasic
     ]
 
 main :: IO ()

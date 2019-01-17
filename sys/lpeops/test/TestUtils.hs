@@ -73,7 +73,7 @@ printInputExpectedFound input expected found =
 -- printInputExpectedFound
 
 validateLPE :: LPE -> [String]
-validateLPE = Val.validateLPE
+validateLPE = Val.validateLPEModel
 
 tryLPEOperation :: LPEOperation -> LPE -> LPE -> IO ()
 tryLPEOperation op input expected = do

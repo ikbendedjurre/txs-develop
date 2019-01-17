@@ -128,6 +128,7 @@ test-suite lpeops-test
                       , TestParReset
                       , TestDataReset
                       , TestConfCheck
+                      , TestUGuard
 
   ghc-options:       -Werror -Wall -O2 -optc-O3 -optc-ffast-math -threaded -rtsopts -with-rtsopts=-N -fmax-pmcheck-iterations=100000000
 
