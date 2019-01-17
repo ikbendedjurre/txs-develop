@@ -1180,7 +1180,7 @@ txsLPEOp opChain inName outName invariant = do
             msgsOrOutModel <- LPEOps.lpeOperations ops modelId outName invariant
             case msgsOrOutModel of
               Left msgs -> return msgs
-              Right outModelId -> return ["LPE transformation complete; result saved to model " ++ T.unpack (ModelId.name outModelId) ++ "!"]
+              Right outModelId -> return ["LPE transformation complete; result saved to model " ++ T.unpack (ModelId.name outModelId)]
 --txsLPEOp
 
 -- ----------------------------------------------------------------------------------------- --
@@ -1203,7 +1203,7 @@ txsMerge firstName secondName outputName = do
                   tdefs' <- gets (IOC.tdefs . IOC.state)
                   let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert outputModelId newModelDef (TxsDefs.modelDefs tdefs') }
                   IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs'' }
-                  return ["Models merged; result saved to model " ++ TxsShow.fshow outputModelId ++ "!"]
+                  return ["Models merged; result saved to model " ++ TxsShow.fshow outputModelId]
 -- txsMerge
 
 -- ----------------------------------------------------------------------------------------- --

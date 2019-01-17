@@ -49,7 +49,7 @@ addUGuardsToLPE lpe _out invariant = do
 
 doIteration :: TxsDefs.VExpr -> LPE -> IOC.IOC LPE
 doIteration invariant lpe = do
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Looking for same-state summand pairs in " ++ show (Set.size (lpeSummands lpe)) ++ " summand...") ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Looking for same-state summand pairs in " ++ show (Set.size (lpeSummands lpe)) ++ " summands...") ]
     sameStatePairs <- getSameStateSummandPairs invariant (Set.toList (lpeSummands lpe))
     IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Checking " ++ show (length sameStatePairs) ++ " summand pairs for underspecifications...") ]
     resolvePairs sameStatePairs
