@@ -68,27 +68,27 @@ testUGuardBasic = TestCase $ tryLPEOperation addUGuardsToLPE model1 model2
         []
         [(chanIdAlpha, [])]
         (cstrEqual vexprX vexpr0)
-        [(varIdX, vexpr1), (varIdUG9, vexprTrue)]
+        [(varIdX, vexpr1), (varIdUG5, vexprTrue)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- Alpha [[ x == 0 ]] >-> P ( x ::= 2, __UG ::= True )
         []
         [(chanIdAlpha, [])]
         (cstrEqual vexprX vexpr0)
-        [(varIdX, vexpr2), (varIdUG9, vexprTrue)]
+        [(varIdX, vexpr2), (varIdUG5, vexprTrue)]
     summand2_3 :: LPESummand
     summand2_3 = newLPESummand -- Beta [[ x == 1 ]] >-> P ( x ::= 0, __UG ::= False )
         []
         [(chanIdBeta, [])]
         (cstrEqual vexprX vexpr1)
-        [(varIdX, vexpr0), (varIdUG9, vexprFalse)]
+        [(varIdX, vexpr0), (varIdUG5, vexprFalse)]
     summand2_4 :: LPESummand
     summand2_4 = newLPESummand -- Gamma [[ x == 2 ]] >-> P ( x ::= 0, __UG ::= False )
         []
         [(chanIdGamma, [])]
-        (cstrAnd (Set.fromList [cstrEqual vexprX vexpr2, cstrNot vexprUG9]))
-        [(varIdX, vexpr0), (varIdUG9, vexprFalse)]
+        (cstrAnd (Set.fromList [cstrEqual vexprX vexpr2, cstrNot vexprUG5]))
+        [(varIdX, vexpr0), (varIdUG5, vexprFalse)]
     model2 :: LPE
-    model2 = newLPE ([chanIdAlpha, chanIdBeta, chanIdGamma], [(varIdX, vexpr0), (varIdUG9, vexprFalse)], [summand2_1, summand2_2, summand2_3, summand2_4])
+    model2 = newLPE ([chanIdAlpha, chanIdBeta, chanIdGamma], [(varIdX, vexpr0), (varIdUG5, vexprFalse)], [summand2_1, summand2_2, summand2_3, summand2_4])
 -- testParElmBasic
 
 ---------------------------------------------------------------------------
@@ -119,8 +119,8 @@ varIdFV2 :: VarId
 varIdFV2 = VarId (T.pack "__FV2") (-2) intSort
 varIdFV3 :: VarId
 varIdFV3 = VarId (T.pack "__FV3") (-3) intSort
-varIdUG9 :: VarId
-varIdUG9 = VarId (T.pack "__UG9") (-9) boolSort
+varIdUG5 :: VarId
+varIdUG5 = VarId (T.pack "__UG5") (-5) boolSort
 
 vexprX :: VExpr
 vexprX = cstrVar varIdX
@@ -138,8 +138,8 @@ vexprFV2 :: VExpr
 vexprFV2 = cstrVar varIdFV2
 vexprFV3 :: VExpr
 vexprFV3 = cstrVar varIdFV3
-vexprUG9 :: VExpr
-vexprUG9 = cstrVar varIdUG9
+vexprUG5 :: VExpr
+vexprUG5 = cstrVar varIdUG5
 
 vexprSum :: VExpr -> VExpr -> VExpr
 vexprSum v1 v2 = cstrSum (FMX.fromOccurListT [(v1, 1), (v2, 1)])
