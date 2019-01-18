@@ -30,6 +30,7 @@ library
                      , Benchmarks.RealWorld
                      , Benchmarks.Sequence
                      , Benchmarks.Synchronization
+                     , Benchmarks.LPEBenchmarkSets
                      , Examples.Adder
                      , Examples.CustomersOrders
                      , Examples.ControlLoop

@@ -199,7 +199,11 @@ showLPESummandInContext f g orderedChans orderedParams summand =
       "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")"
   where
     showChannelOffers :: LPEChanOffers -> String
-    showChannelOffers offers = List.intercalate " | " (map showChannelOffer (Map.toList offers)) ++ " "
+    showChannelOffers offers =
+        if offers == Map.empty
+        then "ISTEP "
+        else List.intercalate " | " (map showChannelOffer (Map.toList offers)) ++ " "
+    -- showChannelOffers
     
     showChannelOffer :: LPEChanOffer -> String
     showChannelOffer (chanId, vars) = showChanId f chanId ++ concatMap (\v -> " ? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v)) vars
@@ -260,15 +264,15 @@ showValExprInContext f g = customData . visitValExpr showVisitor
                     (view -> Vcstr cid _)             -> mapGet f (TxsDefs.IdCstr cid) ++ "(" ++ List.intercalate ", " pars ++ ")"
                     (view -> Viscstr cid _)           -> "is" ++ mapGet f (TxsDefs.IdCstr cid) ++ "(" ++ head pars ++ ")"
                     (view -> Vaccess cid n _ _)       -> showAccessorId f cid n ++ "(" ++ head pars ++ ")"
-                    (view -> Vite _ t e)              ->
-                      case (t, e) of
-                        ((view -> Vconst (Cbool True)), (view -> Vconst (Cbool False))) -> head pars
-                        ((view -> Vconst (Cbool False)), (view -> Vconst (Cbool True))) -> "not(" ++ head pars ++ ")"
-                        ((view -> Vconst (Cbool True)), _) -> "(" ++ head pars ++ " \\/ " ++ pars !! 2 ++ ")"
-                        ((view -> Vconst (Cbool False)), _) -> "(not(" ++ head pars ++ ") /\\ " ++ pars !! 2 ++ ")"
-                        (_, (view -> Vconst (Cbool True))) -> "(not(" ++ head pars ++ ") \\/ " ++ pars !! 1 ++ ")"
-                        (_, (view -> Vconst (Cbool False))) -> "(" ++ head pars ++ " /\\ " ++ pars !! 1 ++ ")"
-                        (_, _) ->
+                    (view -> Vite _ _t _e)            ->
+                      -- case (_t, _e) of
+                        -- ((view -> Vconst (Cbool True)), (view -> Vconst (Cbool False))) -> head pars
+                        -- ((view -> Vconst (Cbool False)), (view -> Vconst (Cbool True))) -> "not(" ++ head pars ++ ")"
+                        -- ((view -> Vconst (Cbool True)), _) -> "(" ++ head pars ++ " \\/ " ++ pars !! 2 ++ ")"
+                        -- ((view -> Vconst (Cbool False)), _) -> "(not(" ++ head pars ++ ") /\\ " ++ pars !! 2 ++ ")"
+                        -- (_, (view -> Vconst (Cbool True))) -> "(not(" ++ head pars ++ ") \\/ " ++ pars !! 1 ++ ")"
+                        -- (_, (view -> Vconst (Cbool False))) -> "(" ++ head pars ++ " /\\ " ++ pars !! 1 ++ ")"
+                        -- (_, _) ->
                           "IF " ++ head pars ++ " THEN " ++ pars !! 1 ++ " ELSE " ++ pars !! 2 ++ " FI"
                     (view -> Vdivide _ _)             -> "(" ++ head pars ++ "/" ++ pars !! 1 ++ ")"
                     (view -> Vmodulo _ _)             -> "(" ++ head pars ++ "%" ++ pars !! 1 ++ ")"
