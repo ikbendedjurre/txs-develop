@@ -14,6 +14,10 @@ cd Bakery
 call :WriteAndExec bakery Model Bakery
 cd ..
 
+cd ControlLoop
+call :WriteAndExec ControlLoopModel Model ControlLoop
+cd ..
+
 cd CustomersOrders
 call :WriteAndExec CustomersOrders Model CustomersOrders
 cd ..
@@ -101,22 +105,24 @@ echo lpeop clean-^>cstelm-^>parelm-^>parreset-^>datareset-^>export* LPE_proxyMod
 echo quit >> _lpeExec.txscmd
 exit /B 0
 
-:ExecCommands
+:DeleteCommands
+del /q _lpeExec.txscmd
+exit /B 0
+
+:WriteAndExec
 :: Copy the original model to the benchmark directory
 copy /b/v/y %~1.txs %BENCHDIR%
 del /q %BENCHDIR%%~3-original.txs
 ren %BENCHDIR%%~1.txs %~3-original.txs
 :: Generate new models from the original model and copy them to the benchmark directory
+call :WriteCommands "%~2" "%~3"
 echo run _lpeExec.txscmd | torxakis %~1.txs
 move /y %~3-lpe-only.txs %BENCHDIR%
 move /y %~3-lpe-reduced.txs %BENCHDIR%
+call :DeleteCommands
 :: Create a file that instructs the benchmark on how to test the ORIGINAL model (because its model name may be different for each file)
 echo stepper %~2 > %BENCHDIR%%~3-original-stepper.txscmd
 echo step 500 >> %BENCHDIR%%~3-original-stepper.txscmd
 echo exit >> %BENCHDIR%%~3-original-stepper.txscmd
 exit /B 0
 
-:WriteAndExec
-call :WriteCommands "%~2" "%~3"
-call :ExecCommands "%~1" "%~2" "%~3"
-exit /B 0

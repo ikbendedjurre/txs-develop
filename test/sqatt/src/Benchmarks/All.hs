@@ -31,6 +31,7 @@ allExamples = [ --Choice.benchmarksSet
                 LPEBenchmarkSets.lpeBenchmarkSet "Adder" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "Adder3" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works
+              --, LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- TODO
               --, LPEBenchmarkSets.lpeBenchmarkSet "CustomersOrders" -- Takes too long!
               , LPEBenchmarkSets.lpeBenchmarkSet "DisPro01" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "DisPro02" -- Works

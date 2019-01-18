@@ -52,7 +52,7 @@ import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.01.18.04"
+lpeOpsVersion = "2019.01.18.06 (no-profiling)"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 

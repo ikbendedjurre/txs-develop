@@ -1,5 +1,0 @@
-lpe Queue
-run ../_lpeExec.txscmd
-lpe Lossy
-run ../_lpeExec.txscmd
-quit
