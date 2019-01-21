@@ -8,6 +8,20 @@ TYPEDEF ProduceReport ::= ProduceReport { id, value :: Int } ENDDEF
 TYPEDEF MeasureReport ::= MeasureReport { id, value :: Int } ENDDEF
 TYPEDEF Correction    ::= Correction    { id, value :: Int } ENDDEF
 
+TYPEDEF  ReportList  ::=   Nil
+                      | Cons  { hd ::  MeasureReport
+                              ; tl ::  ReportList
+                              }
+ENDDEF
+
+
+FUNCDEF  add ( x :: MeasureReport; l :: ReportList ) :: ReportList
+         ::= IF    isNil(l)
+             THEN  Cons(x,Nil)
+             ELSE  Cons(hd(l),add(x,tl(l)))
+             FI
+ENDDEF
+
 FUNCDEF sgn ( x :: Int ) :: Int ::=
     IF x > 0 
         THEN 1
@@ -54,16 +68,26 @@ ENDDEF
 PROCDEF measure [ In_Material   :: Int
                 ; Out_Report    :: MeasureReport
                 ; Out_Material  :: Int
-                ]( ) ::=
-        In_Material ? id
-    >-> (
-                Out_Report ? mr [[ id(mr) == id ]]
-            >->
-                (
-                        Out_Material ! id 
-                    >-> measure [ In_Material, Out_Report, Out_Material ] ()
-                )
-        )
+                ; Pass_Report   :: MeasureReport
+                ] ( ) ::=
+    In_Material ? id
+        >-> Pass_Report ? mr [[ id(mr) == id ]]
+        >-> Out_Material ! id
+        >-> measure [ In_Material, Out_Report, Out_Material, Pass_Report ] ( )
+ENDDEF
+
+PROCDEF measureReporter [ Out_Report :: MeasureReport
+                        ; Pass_Report :: MeasureReport
+                        ]( queuedReports :: ReportList ) ::=
+    (
+        Pass_Report ? mr
+            >-> measureReporter [ Out_Report, Pass_Report ] ( add(mr, queuedReports) )
+    )
+    ##
+    (
+        Out_Report ? mr [[ IF (isCons(queuedReports)) THEN hd(queuedReports) == mr ELSE False FI ]]
+            >-> measureReporter [ Out_Report, Pass_Report ] ( tl(queuedReports) )
+    )
 ENDDEF
 
 PROCDEF correct [ In_ProduceReport      :: ProduceReport
@@ -82,14 +106,19 @@ PROCDEF model [ In_Material                 :: Int
               ; Material                    :: Int
               ; MeasureReport               :: MeasureReport
               ; Out_Material                :: Int
+              ; Pass_Report                 :: MeasureReport
               ]( ) ::=
         (
                 produce [ In_Material, Correction, Material, ProduceReport ] ( )
-            |[ Material]|
-                measure [ Material, MeasureReport, Out_Material ] ( )
+             |[ Material]|
+                (
+                    measure [ Material, MeasureReport, Out_Material, Pass_Report ] ( )
+                    |[ Pass_Report ]|
+                    measureReporter [ MeasureReport, Pass_Report ] ( Nil )
+                )
         )
     |[ ProduceReport, MeasureReport, Correction ]|
-        correct [ ProduceReport, MeasureReport, Correction ] ( )
+      correct [ ProduceReport, MeasureReport, Correction ] ( )
 ENDDEF
 
 CHANDEF Chans ::=    In_Material     :: Int
@@ -98,6 +127,7 @@ CHANDEF Chans ::=    In_Material     :: Int
                    ; Material        :: Int
                    ; MeasureReport   :: MeasureReport
                    ; Out_Material    :: Int
+                   ; PassReport      :: MeasureReport
 ENDDEF
 
 MODELDEF Model ::=
@@ -108,6 +138,7 @@ MODELDEF Model ::=
     ,           Material
     ,           MeasureReport
     ,           Out_Material
+    ,           PassReport
 
     SYNC        {In_Material}
     ,           {Correction}
@@ -118,5 +149,5 @@ MODELDEF Model ::=
     ,           {ProduceReport | MeasureReport}
 
     BEHAVIOUR
-        model [In_Material, Correction, ProduceReport, Material, MeasureReport, Out_Material]()
+        model [In_Material, Correction, ProduceReport, Material, MeasureReport, Out_Material, PassReport]()
 ENDDEF

@@ -58,7 +58,7 @@ PROCDEF measure [ In_Material   :: Int
         In_Material ? id
     >-> (
                 Out_Report ? mr [[ id(mr) == id ]]
-            |||
+            >->
                 (
                         Out_Material ! id 
                     >-> measure [ In_Material, Out_Report, Out_Material ] ()
