@@ -1,0 +1,118 @@
+\chapter{parReset}
+
+\section{Introduction}
+
+A linearized process may have parameters that are initialized, changed and used, and subsequently ignored until they are initialized again.
+Parameters that often follow this pattern are \emph{control flow parameters}.
+
+During the period in between the last change or use of a parameter and its subsequent initialization, a parameter could have different values.
+These values contribute to the size of the state space of the process \emph{without} adding any new behavior!
+It may therefore be advantageous to detect from which moment the value of a parameter is no longer used and set it to a default value instead.
+
+\section{Algorithm}
+
+The algorithm is a generalization of an existing algorithm \cite{van2009state}.
+It consists of two phases, a preparation phase and an iteration phase.
+
+\subsection{Preparation phase}
+
+Consider all possible pairs of summands of the LPE (including symmetric pairs).
+Of a given summand pair $(s, t)$, let $t$ be a \emph{successor} of $s$ if $s$ contains a recursive process instantiation and if the following equation is satisfiable:
+\begin{align*}
+c_s \land {c_t}[p \rightarrow v_s(p) \;|\; p \in P]
+\end{align*}
+
+where
+
+\begin{itemize}
+\item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively;
+\item $P$ is the set of all process parameters;
+\item $v_s$ is a function that yields the expression that summand $s$ assigns to a given process parameter in its recursive process instantiation.
+\end{itemize}
+
+During the preparation phase, we determine all successors of each summand of the LPE.
+This gives an overapproximation of the control flow graph of the LPE.
+
+\subsection{Iteration phase}
+
+This phase follows these steps:
+
+\begin{enumerate}
+
+\item For each summand $s$, create a set $R_s$ that contains all process parameters.
+This means that, initially, we assume that all process parameters are used by one or more of the successors of $s$.
+
+\item For each summand $s$, set the value of $R_s$ to $\bigcup\limits_{t \in S_s}^{} r(t)$ where $S_s$ is the set of all successors of $s$ (as determined during the previous phase) and where $r$ is the function
+\begin{align*}
+r(t) = \left( \text{vars}(c_t) \cup \bigcup\limits_{x \in R_t}^{} \text{vars}(v_t(x)) \right) \setminus C_t
+\end{align*}
+
+where
+
+\begin{itemize}
+\item $\text{vars}(c_t)$ gives the free variables in $c_t$, the guard of summand $t$;
+\item $v_t$ is a function that yields the expression that summand $t$ assigns to a given process parameter in its recursive process instantiation;
+\item $\text{vars}(v_t)$ gives the free variables in $v_t$;
+\item $C_t$ is the set of the communication variables used by summand $t$.
+\end{itemize}
+
+\item Repeat the previous step until the new value of $R_s$ is the same as before for all summands $s$.
+
+\item For each summand $s$ with $R_s \subset P$, choose some $\rho = [x \rightarrow h_x \;|\; x \in P \setminus R_s]$ so that $({c_s} \land {c_t}[p \rightarrow v_s(p) \;|\; p \in P])[\rho]$ is unsatisfiable for all $t \notin S_s$, where
+
+\begin{itemize}
+\item $P$ is the set of all process parameters of the LPE;
+\item $h_x$ is a closed expression of the same sort as $x$;
+\item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively.
+\end{itemize}
+
+For each process parameter $x \in P \setminus R_s$, change the recursive process instantiation of $s$ so that $x$ is assigned $v_s(x)[\rho]$.
+Note that the choice of $\rho$ ensures that the set of summands that are successors of $s$ can only decrease.
+
+In practice, it is expensive to generate a suitable $\rho$, and only the initial values of the parameters in $P \setminus R_s$ are tried (that is, $\rho = [x \rightarrow v_0(x) \;|\; x \in P \setminus R_s]$).
+If this does not satisfy the further requirements, the summand is left unchanged.
+
+\end{enumerate}
+
+\section{Example}
+
+Consider the following LPE:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int, B](x, y :: Int)
+  = A ? i [[x==0]] >-> example[A, B](1, i)
+  + A ? i [[x==1 && i==y]] >-> example[A, B](2, y)
+  + B [[x==2]] >-> example[A, B](3, y)
+  + B [[x==3]] >-> example[A, B](0, y)
+  ;
+
+//Initialization:
+example[A, B](0, 0);
+\end{lstlisting}
+
+Finding the successors of each summand is easy: each summand has exactly one successor, namely the next one, except in case of the fourth summand, where the first summand is the successor.
+
+It is also obvious that $x$ will always be in $R_s$ for each summand $s$, because each summand uses $x$ in its guard.
+
+Process parameter $y$ will always be in $R_{s_1}$, where $s_1$ is the first summand, because $y$ is used in the guard of $s_1$'s successor (the second summand).
+After a few iterations, however, $y$ is removed from $R_{s_2}$ to $R_{s_4}$.
+This means that $y$ is assigned a default value in the corresponding summands.
+Depending on the mood of the SMT solver, this could give
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int, B](x, y :: Int)
+  = A ? i [[x==0]] >-> example[A, B](1, i)
+  + A ? i [[x==1 && i==y]] >-> example[A, B](2, 0)
+  + B [[x==2]] >-> example[A, B](3, 0)
+  + B [[x==3]] >-> example[A, B](0, 0)
+  ;
+
+//Initialization:
+example[A, B](0, 0);
+\end{lstlisting}
+
+
+
+

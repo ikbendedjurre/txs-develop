@@ -1,0 +1,83 @@
+\chapter{confCheck} \label{confcheck}
+
+\section{Introduction}
+
+Confluence checking is the analysis of an LPE to find ISTEP summands that are \emph{confluent}.
+A confluent ISTEP summand is a summand with the property that the possible behavior of a system is the same up to branching bisimulation before and after applying that summand.
+
+If branching bisimulation is sufficient in terms of accuracy, confluence information can be used to speed up state space generation by prioritizing confluent ISTEP summands.
+Note that this means that confluence checking does not bring benefits on its own!
+
+\section{Algorithm}
+
+Consider all possible pairs of summands $(s, t)$ of the LPE where $s$ is a summand that communicates exclusively over the channel ISTEP and does a recursive process instantiation.
+Then
+
+\begin{lstlisting}[mathescape]
+$s$ = ISTEP [[$c_s$]] >-> P($v_s(x_1)$, $\cdots{}$, $v_s(x_n)$)
+$t$ = $A$ ? $a_1$ ? $\cdots{}$ ? $a_m$ [[$c_t \land a_1 = h_1 \land \cdots{} \land a_m = h_m$]]
+                      >-> P($v_t(x_1)$, $\cdots{}$, $v_t(x_n)$)
+\end{lstlisting}
+
+where
+
+\begin{itemize}
+\item $x_1$ to $x_n$ are all process parameters of the LPE;
+\item $v_s$ and $v_t$ are functions that yield the expressions that summands $s$ and $t$, respectively, assign to a given process parameter in their recursive process instantiation.
+\end{itemize}
+
+Furthermore, let
+\begin{align*}
+\rho_s &= [x_1 \rightarrow v_s(x_1), \cdots{}, x_n \rightarrow v_s(x_n)] \\
+\rho_t &= [x_1 \rightarrow v_t(x_1), \cdots{}, x_n \rightarrow v_t(x_n)]
+\end{align*}
+
+If for a particular ISTEP summand $s$ the following condition holds for all pairs $(s, t)$ such that $s \neq t$, then $s$ is confluent:
+\begin{align*}
+c_s \land c_t \rightarrow{} &c_s[\rho_t] \land c_t[\rho_s] \\
+&{} \land h_1 = h_1[\rho_s] \land \cdots{} \land h_m = h_m[\rho_s] \\
+&{} \land x_1[\rho_s][\rho_t] = x_1[\rho_t][\rho_s] \land \cdots{} \land x_n[\rho_t][\rho_s] = x_n[\rho_s][\rho_t]
+\end{align*}
+
+\section{Example}
+
+Consider the following example:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int](x, y :: Int)
+  = A ? i [[x<=9 && x==i]] >-> example[A](x+1, y)
+  + ISTEP [[y<=9]] >-> example[A](x, y+1)
+  ;
+
+//Initialization:
+example[A](0, 0);
+\end{lstlisting}
+
+Is the second summand confluent?
+
+If $c_s \land c_t$ holds, then $c_s[\rho_t] \land c_t[\rho_s]$ holds as well.
+Since $h_i$ does not use $y$, it is unaffected by $\rho_s$.
+Finally,
+\begin{align*}
+x[\rho_s][\rho_t] = x[\rho_t][\rho_s] = x+1 \\
+y[\rho_s][\rho_t] = y[\rho_t][\rho_s] = y+1
+\end{align*}
+
+and therefore the confluence condition holds.
+
+So yes, the second summand is confluent.
+
+To store the new information about the second summand, the channel is renamed to CISTEP:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int](x, y :: Int)
+  = A ? i [[x<=9 && x==i]] >-> example[A](x+1, y)
+  + CISTEP [[y<=9]] >-> example[A](x, y+1)
+  ;
+
+//Initialization:
+example[A](0, 0);
+\end{lstlisting}
+

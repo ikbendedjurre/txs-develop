@@ -1,0 +1,70 @@
+\chapter{parElm}
+
+\section{Introduction}
+
+A linearized process may have parameters that do not affect the behavior of that process in any way.
+These parameters are called \emph{inert}.
+
+Removing inert parameters from a process has the advantages of fewer states, smaller state vectors (and therefore reduced memory usage), and faster performance in general.
+These advantages may be small; however, detection and removal of inert parameters can be done fairly cheaply.
+
+\section{Algorithm}
+
+The algorithm consists of the following steps \cite{groote2001computer}:
+
+\begin{enumerate}
+
+\item Mark all process parameters.
+(This means that, initially, we assume that all process parameters are inert.)
+
+\item Unmark all process parameters that occur in the guard of a summand.
+
+\item Consider the assignments that occur as part of the recursive process instantiations of the summands of the LPE.
+Unmark all process parameters that occur in the expression of which the value is assigned to an \emph{unmarked} process parameter.
+
+\item Repeat the previous step until no process parameter is unmarked.
+All remaining marked process parameters can be safely removed the process.
+
+\end{enumerate}
+
+\clearpage
+\section{Example}
+
+Consider the following LPE:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int, B](x, y, z :: Int)
+  = A ? i [[x==0]] >-> example[A, B](i, y, z)
+  + A ? i [[x==1]] >-> example[A, B](0, i, z)
+  + B [[x==2]] >-> example[A, B](0, y, z)
+  + B >-> example[A, B](z, y, x)
+  ;
+
+//Initialization:
+example[A, B](0, 0, 0);
+\end{lstlisting}
+
+First, $x$ is unmarked, because it occurs in the guards of the first three summands.
+
+In the fourth summand, $z$ is used in the expression of which the value is assigned to $x$.
+Therefore $z$ must also be unmarked.
+
+$y$ remains marked: it does not occur in a guard, nor is it used in the assignment to a process parameter other than itself.
+Removing $y$ gives
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int, B](x, z :: Int)
+  = A ? i [[x==0]] >-> example[A, B](i, z)
+  + A ? i [[x==1]] >-> example[A, B](0, z)
+  + B [[x==2]] >-> example[A, B](0, z)
+  + B >-> example[A, B](z, x)
+  ;
+
+//Initialization:
+example[A, B](0, 0);
+\end{lstlisting}
+
+
+

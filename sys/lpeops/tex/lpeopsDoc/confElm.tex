@@ -1,0 +1,97 @@
+\chapter{confElm}
+
+\section{Introduction}
+One way in which information about confluence can be used before state space generation, is by appending confluent ISTEPs to other summands.
+This has the effect that other branches that could follow those summands are ignored, reducing the size of the state space while maintaining its equivalence up to branching bisimulation.
+
+\section{Algorithm}
+
+Consider all possible pairs of summands of the LPE (including symmetric pairs).
+Of a given summand pair $(s, t)$, let $t$ be a \emph{definite successor} of $s$ if $s$ contains a recursive process instantiation and if the following equation is unsatisfiable:
+\begin{align*}
+\neg c_s \lor \neg {c_t}[p \rightarrow v_s(p) \;|\; p \in P]
+\end{align*}
+
+where
+
+\begin{itemize}
+\item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively;
+\item $P$ is the set of all process parameters;
+\item $v_s$ is a function that yields the expression that summand $s$ assigns to a given process parameter in its recursive process instantiation.
+\end{itemize}
+
+For each summand $s$, let $D_s$ be the set of all definite successors of $s$.
+$D_s$ is an underapproximation of the actual successors of $s$.
+
+\clearpage
+The algorithm follows these steps:
+
+\begin{enumerate}
+
+\item Determine which ISTEP summands of the LPE are confluent (see Chapter~\ref{confcheck}).
+
+\item For each summand $s$, determine $D_s$.
+Check if $D_s$ contains a confluent ISTEP summand $t$.
+If so, let
+
+\begin{lstlisting}[mathescape]
+$s$ = $A$ ? $a_1$ ? $\cdots{}$ ? $a_m$ [[$c_s$]] >-> P($v_s(x_1)$, $\cdots{}$, $v_s(x_n)$)
+$t$ = ISTEP [[$c_t$]] >-> P($v_t(x_1)$, $\cdots{}$, $v_t(x_n)$)
+$\lor$
+$t$ = ISTEP [[$c_t$]] >-> STOP
+\end{lstlisting}
+
+where
+
+\begin{itemize}
+\item $x_1$ to $x_n$ are all process parameters of the LPE;
+\item $v_s$ and $v_t$ are functions that yield the expressions that summands $s$ and $t$, respectively, assign to a given process parameter in their recursive process instantiation.
+\end{itemize}
+
+Furthermore, let $\rho_s = [x_1 \rightarrow v_s(x_1), \cdots{}, x_n \rightarrow v_s(x_n)]$.
+
+Replace $s$ by $s'$:
+
+\begin{lstlisting}[mathescape]
+$s'$ = $A$ ? $a_1$ ? $\cdots{}$ ? $a_m$ [[$c_s$]] >-> P($v_t(x_1)[\rho_s]$, $\cdots{}$, $v_t(x_n)[\rho_s]$)
+\end{lstlisting}
+
+\end{enumerate}
+
+\clearpage
+\section{Example}
+
+Consider the following example:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int](x, y :: Int)
+  = A >-> example[A]((x+1) mod 3, y)
+  + ISTEP >-> example[A](x, (y+1) mod 4)
+  ;
+
+//Initialization:
+example[A](0, 0);
+\end{lstlisting}
+
+The second summand is a confluent ISTEP summand.
+It is also a definite successor of the first summand.
+This means that the second summand can be appended to the first summand.
+
+The second summand is also a definite successor of itself.
+This means that the second summand can also be appended to itself.
+
+Therefore, the original process can be changed to
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int](x, y :: Int)
+  = A >-> example[A]((x+1) mod 3, (y+1) mod 4)
+  + ISTEP >-> example[A](x, (((y+1) mod 4)+1) mod 4)
+  ;
+
+//Initialization:
+example[A](0, 0);
+\end{lstlisting}
+
+

@@ -1,0 +1,104 @@
+\chapter{constElm}
+
+\section{Introduction}
+
+A linearized process may have parameters that do not change value throughout the state space of that process.
+These parameters are essentially \emph{constants}.
+
+Constants can be removed from a process as follows:
+\begin{itemize}
+\item Substitute references to a constant by the explicit value of that constant;
+\item Remove the constant from the process parameter list.
+\end{itemize}
+
+The advantages of removing constants from a process are smaller state vectors (and therefore reduced memory usage) and faster performance in general.
+These advantages may be small; however, the detection and removal of constants can be done fairly cheaply.
+
+\section{Algorithm}
+
+The algorithm consists of the following steps \cite{groote2001computer}:
+
+\begin{enumerate}
+
+\item Mark all process parameters.
+(This means that, initially, we assume that all process parameters are constants.)
+
+\item Let $P$ be the set of all marked process parameters.
+Define a substitution $\rho = [p \rightarrow v_0(p) \;|\; p \in P]$, where $v_0$ is a function that gives the initial value of a given process parameter.
+
+\item Consider each summand $s$ of the LPE.
+Construct an equation $c_s \rightarrow p = v_s(p)$ for all $p \in P$, where $c_s$ is the guard of $s$ and where $v_s$ is a function that gives the expression of which the value is assigned to the process parameter $p$ in the instantiation, and apply the substitution $\rho$ to it.
+(This gives $(c_s \rightarrow p = v_s(p))[\rho] \Leftrightarrow {c_s}[\rho] \rightarrow v_0(p) = v_s(p)[\rho]$.)
+
+If the obtained equation is a tautology (that is, if its negation is unsatisfiable) for all $s$, $p$ remains marked; otherwise, unmark $p$.
+
+\item Repeat the previous two steps until $P$ remains constant.
+All remaining marked process parameters can be safely removed the process.
+
+\end{enumerate}
+
+\section{Example}
+
+Consider the following LPE:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A](x, y, z :: Int)
+  = A [[z = 2]] >-> example[A](z-1, 1, 2)
+  + A >-> example[A](y, x, x+y)
+  + A >-> example[A](1, x, z+1)
+  ;
+
+//Initialization:
+example[A](1, 1, 2);
+\end{lstlisting}
+
+First, $\rho = [ x \rightarrow 1, y \rightarrow 1, z \rightarrow 2 ]$.
+
+We must check the following equations:
+
+\begin{align*}
+(z = 2 \rightarrow x = z-1)[\rho] &\Leftrightarrow (2 = 2 \rightarrow 1 = 2-1) \Leftrightarrow \textit{true} \\
+(z = 2 \rightarrow y = 1)[\rho] &\Leftrightarrow (2 = 2 \rightarrow 1 = 1) \Leftrightarrow \textit{true} \\
+(z = 2 \rightarrow z = 2)[\rho] &\Leftrightarrow (2 = 2 \rightarrow 2 = 2) \Leftrightarrow \textit{true} \\
+(x = y)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(z = x+y)[\rho] &\Leftrightarrow (2 = 1+1) \Leftrightarrow \textit{true} \\
+(x = 1)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(z = z+1)[\rho] &\Leftrightarrow (2 = 2+1) \Leftrightarrow \textit{false} \\
+\end{align*}
+
+The last equation is not a tautology, and so $z$ is unmarked.
+
+The new value of $\rho$ is $[ x \rightarrow 1, y \rightarrow 1 ]$.
+
+\clearpage
+The equations are now the following:
+
+\begin{align*}
+(z = 2 \rightarrow x = z-1)[\rho] &\Leftrightarrow (z = 2 \rightarrow 1 = z-1) \Leftrightarrow \textit{true} \\
+(z = 2 \rightarrow y = 1)[\rho] &\Leftrightarrow (z = 2 \rightarrow 1 = 1) \Leftrightarrow \textit{true} \\
+(x = y)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(x = 1)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+\end{align*}
+
+All of the equations above are tautologies, and so $x$ and $y$ remain marked.
+Removing the marked parameters from the LPE gives
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A](z :: Int)
+  = A [[z==2]] >-> example[A](2)
+  + A >-> example[A](2)
+  + A >-> example[A](z+1)
+  ;
+
+//Initialization:
+example[A](2);
+\end{lstlisting}
+
+Obviously, more simplification is possible.
+

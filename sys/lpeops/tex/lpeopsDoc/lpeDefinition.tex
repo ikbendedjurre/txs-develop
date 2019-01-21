@@ -1,0 +1,61 @@
+\chapter{LPE}
+
+\section{Introduction}
+The techniques that are described in the following chapters must be applied to a \emph{linear process equation}, or LPE for short.
+
+\section{Requirements}
+
+An LPE must satisfy the following requirements:
+
+\begin{itemize}
+
+\item Given are the definition of a single process \emph{and} its instantiation.
+The instantiation must be a closed expression, and otherwise satisfy the usual requirements of \txs{} of process instantiations.
+There are no requirements for the channel parameters and data parameters beyond the usual requirements of \txs{} of process definitions.
+
+\item The body of the process consists of one or more \emph{summands}.
+In this context, a summand must contain exactly the following, in the given order:
+
+\begin{itemize}
+
+\item One or more \emph{channel communications}; that is, channel references followed by the variables that are used to communicate over those channels.
+For example, \inlinecode{OUTPUT ? x ? y}, or simply \inlinecode{OUTPUT}.
+
+Channel communications are combined with \inlinecode{|}.
+To give another example, \inlinecode{INPUT ? x | OUTPUT ? y}.
+
+The variables that are used to communicate over a channel must be \emph{fresh}.
+
+\item A guard, yielding a boolean value.
+The guard is not always explicitly written if it is semantically equivalent to \inlinecode{true}.
+
+\item A sequence operator, \inlinecode{>->}.
+
+\item The expression for deadlock (\inlinecode{STOP}) \emph{or} a recursive process instantiation.
+The instantiated process must use the process definition given by the LPE, which satisfies the requirements of a \txs{} process signature.
+This includes channel parameters: these must be assigned their current values of the instantiating process.
+There are no requirements for the values assigned to the data parameters beyond the usual requirements of \txs{} (such as type compatibility).
+
+\end{itemize}
+
+\end{itemize}
+
+\section{Example}
+
+The following code snippet gives a valid example of an LPE:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int, B](state, curr, prev :: Int)
+  = A ? i [[state==0]] >-> example[A, B](2, i, prev)
+  + A ? i [[state==1 && i!=prev]] >-> example[A, B](2, i, prev)
+  + A ? i [[state==2 && i==curr]] >-> example[A, B](1, curr, curr)
+  + B >-> STOP
+  ;
+
+//Initialization:
+example[A, B](0, 0, 0);
+\end{lstlisting}
+
+The process only accepts input sequences in which every number is repeated exactly once.
+The process terminates non-deterministically.
