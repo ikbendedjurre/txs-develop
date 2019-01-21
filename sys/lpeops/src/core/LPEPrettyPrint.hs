@@ -192,11 +192,13 @@ showLPESummandInContext :: LPEContext -> VExprFromSortIdFunc -> [ChanId.ChanId] 
 showLPESummandInContext f g orderedChans orderedParams summand =
     let visibleChannelVars = Set.fromList (concat (Map.elems (lpeSmdOffers summand))) in
     let hiddenChannelVars = Set.toList (lpeSmdVars summand Set.\\ visibleChannelVars) in
+      (if null hiddenChannelVars then "" else "HIDE [ HiddenChannel ] IN ") ++
       showChannelOffers (lpeSmdOffers summand) ++
       showHiddenVars hiddenChannelVars ++
       "[[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
       "LPE" ++ showChanRefs orderedChans ++
-      "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")"
+      "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")" ++
+      (if null hiddenChannelVars then "" else " NI")
   where
     showChannelOffers :: LPEChanOffers -> String
     showChannelOffers offers =
@@ -205,16 +207,19 @@ showLPESummandInContext f g orderedChans orderedParams summand =
         else List.intercalate " | " (map showChannelOffer (Map.toList offers)) ++ " "
     -- showChannelOffers
     
+    showHiddenVars :: [VarId.VarId] -> String
+    showHiddenVars [] = ""
+    showHiddenVars hiddenVars = "| HiddenChannel" ++ showChannelVars hiddenVars ++ " "
+    
     showChannelOffer :: LPEChanOffer -> String
-    showChannelOffer (chanId, vars) = showChanId f chanId ++ concatMap (\v -> " ? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v)) vars
+    showChannelOffer (chanId, vars) = showChanId f chanId ++ showChannelVars vars
+    
+    showChannelVars :: [VarId.VarId] -> String
+    showChannelVars vars = concatMap (\v -> " ? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v)) vars
     
     showChanRefs :: [ChanId.ChanId] -> String
     showChanRefs [] = ""
     showChanRefs cids = "[" ++ List.intercalate ", " (map (showChanId f) cids) ++ "]"
-    
-    showHiddenVars :: [VarId.VarId] -> String
-    showHiddenVars [] = ""
-    showHiddenVars hiddenVars = "(" ++ List.intercalate ", " (map (showVarId f) hiddenVars) ++ ") "
 -- showLPESummandInContext
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
