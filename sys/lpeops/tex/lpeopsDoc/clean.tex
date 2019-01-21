@@ -2,14 +2,45 @@
 
 \section{Introduction}
 
-A linearized process may have parameters that are initialized, changed and used, and subsequently ignored until they are initialized again.
-Parameters that often follow this pattern are \emph{control flow parameters}.
+An LPE may contain redundant information, for example because some summands are equivalent or because some summands will never be used.
+Obviously, such summands can be removed without hesitation, which may result in a speedup in other computations in which the LPE is input.
 
-During the period in between the last change or use of a parameter and its subsequent initialization, a parameter could have different values.
-These values contribute to the size of the state space of the process \emph{without} adding any new behavior!
-It may therefore be advantageous to detect from which moment the value of a parameter is no longer used and set it to a default value instead.
+The \texttt{clean} command attempts to detect redundant summands and subsequently removes the ones it finds.
 
-\section{Algorithm}
+\section{Summand equivalence}
+
+Consider two summands, $s_1$ and $s_2$, defined as
+
+\begin{align*}
+s_i = C_i(1) \;|\; \cdots{} \;|\; C_i(n_i) [[g_i]] \text{ \texttt{>->} } P(f_i(s)) \\
+C_i(x) = c_i(x) \text{ \texttt{?} } v_i(x,1) \cdots{} \text{ \texttt{?} } v_i(x,k_i(x))
+\end{align*}
+
+where
+
+\begin{itemize}
+\item $C_i(1) \;|\; \cdots{} \;|\; C_i(n_i)$ are the channel communications used in the summand;
+\item $n_i$ is the number of channels over which the summand communicates;
+\item $c_i(x)$ is the name of the $j$th channel over which the summand communicates;
+\item $v_i(x,y)$ is the variable that the summand uses to communicate the $y$th value of the $x$th channel;
+\item $k_i(x)$ is the number of variables that the summand uses to communicate the $x$th channel;
+\item $g_i$ is the guard of the summand;
+\item $P$ is the LPE;
+\item $f_i(s)$ is the next-state function of the summand applied to the current state $s$.
+\end{itemize}
+
+Summands $s_1$ and $s_2$ are considered \emph{equivalent} if and only if all of the following conditions hold:
+
+\begin{itemize}
+\item $n_1 = n_2$;
+\item $\forall x \in [1, \cdots{}, n_1] \;.\; c_1(x) = c_2(x)$;
+\item There exists a mapping $[v_1(x,y) \rightarrow v_2(x,y) \;|\; x \in [1, \cdots{}, n_i], y \in [1, \cdots{}, k_i(x)]]$ such that TODO
+\end{itemize}
+
+
+\section{Unreachable summands}
+
+
 
 The algorithm is a generalization of an existing algorithm \cite{van2009state}.
 It consists of two phases, a preparation phase and an iteration phase.
