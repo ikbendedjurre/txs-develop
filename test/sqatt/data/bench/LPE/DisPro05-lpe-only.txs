@@ -1,0 +1,33 @@
+-- LPE_proxyProcess --
+CHANDEF ChanDefs
+    ::= Chan1 :: Int
+      ; Chan2 :: Int # Int
+ENDDEF
+PROCDEF LPE[Chan1 :: Int; Chan2 :: Int # Int](v30 :: Int; v31 :: Int; v34 :: Int; v32 :: Int; v33 :: Int; v35 :: Int; v36 :: Int; v37 :: Int; v38 :: Int; v39 :: Int; v40 :: Int; v41 :: Int; v42 :: Int; v43 :: Int; v44 :: Int) ::=
+        Chan1 ? v3 :: Int [[ IF (1==v30) THEN IF (1==v31) THEN IF (1==v35) THEN (1==v36) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, v34, v32, v33, 1, 0, v37, v38, v39, v40, v41, v42, v43, v44)
+     ## Chan1 ? v3 :: Int [[ IF (1==v30) THEN IF (1==v31) THEN IF (1==v35) THEN (1==v39) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, v34, v32, v33, 1, v36, v37, v38, 0, v40, v41, v42, v43, v44)
+     ## Chan1 ? v3 :: Int [[ IF (1==v30) THEN IF (1==v31) THEN IF (1==v35) THEN (1==v42) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, v34, v32, v33, 1, v36, v37, v38, v39, v40, v41, 0, v43, v44)
+     ## Chan1 ? v3 :: Int | Chan2 ? v4 :: Int ? v5 :: Int [[ IF (1==v30) THEN IF (1==v31) THEN ((0==v34) /\ IF (1==v35) THEN (1==v36) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 1, v4, v5, 1, 0, v37, v38, v39, v40, v41, v42, v43, v44)
+     ## Chan1 ? v3 :: Int | Chan2 ? v4 :: Int ? v5 :: Int [[ IF (1==v30) THEN IF (1==v31) THEN ((0==v34) /\ IF (1==v35) THEN (1==v39) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 1, v4, v5, 1, v36, v37, v38, 0, v40, v41, v42, v43, v44)
+     ## Chan1 ? v3 :: Int | Chan2 ? v4 :: Int ? v5 :: Int [[ IF (1==v30) THEN IF (1==v31) THEN ((0==v34) /\ IF (1==v35) THEN (1==v42) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 1, v4, v5, 1, v36, v37, v38, v39, v40, v41, 0, v43, v44)
+     ## Chan1 ? v3 :: Int (v7, v19) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v7==v32) /\ (v19==v33)) ELSE False FI /\ IF (1==v35) THEN ((0==v36) /\ (1==v39)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 1, v7, v19, 0, v40, v41, v42, v43, v44)
+     ## Chan1 ? v3 :: Int (v8, v20) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v8==v32) /\ (v20==v33)) ELSE False FI /\ IF (1==v35) THEN ((0==v36) /\ (1==v42)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 1, v8, v20, v39, v40, v41, 0, v43, v44)
+     ## Chan1 ? v3 :: Int (v9, v21) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v9==v32) /\ (v21==v33)) ELSE False FI /\ IF (1==v35) THEN ((0==v39) /\ (1==v36)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 0, v37, v38, 1, v9, v21, v42, v43, v44)
+     ## Chan1 ? v3 :: Int (v10, v22) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v10==v32) /\ (v22==v33)) ELSE False FI /\ IF (1==v35) THEN ((0==v39) /\ (1==v42)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, v36, v37, v38, 1, v10, v22, 0, v43, v44)
+     ## Chan1 ? v3 :: Int (v11, v23) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v11==v32) /\ (v23==v33)) ELSE False FI /\ IF (1==v35) THEN ((0==v42) /\ (1==v36)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 0, v37, v38, v39, v40, v41, 1, v11, v23)
+     ## Chan1 ? v3 :: Int (v12, v24) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v12==v32) /\ (v24==v33)) ELSE False FI /\ IF (1==v35) THEN ((0==v42) /\ (1==v39)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, v36, v37, v38, 0, v40, v41, 1, v12, v24)
+     ## Chan2 ? v4 :: Int ? v5 :: Int [[ (0==v30) ]] >-> LPE[Chan1, Chan2](1, 1, 1, v4, v5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+     ## Chan2 ? v4 :: Int ? v5 :: Int [[ IF (1==v30) THEN (0==v31) ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 1, v4, v5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+     ## Chan2 ? v4 :: Int ? v5 :: Int [[ IF (1==v30) THEN IF (1==v31) THEN (0==v34) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 1, v4, v5, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44)
+     ## ISTEP (v6, v18) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v6==v32) /\ (v18==v33)) ELSE False FI /\ IF (1==v35) THEN (0==v42) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, v36, v37, v38, v39, v40, v41, 1, v6, v18)
+     ## ISTEP (v13, v25) [[ IF (1==v30) THEN IF (1==v31) THEN ((0==v35) /\ IF (1==v34) THEN ((v13==v32) /\ (v25==v33)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 0, 0, 0, 0, 0, 0, 1, v13, v25)
+     ## ISTEP (v14, v26) [[ IF (1==v30) THEN IF (1==v31) THEN ((0==v35) /\ IF (1==v34) THEN ((v14==v32) /\ (v26==v33)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 0, 0, 0, 1, v14, v26, 0, 0, 0)
+     ## ISTEP (v15, v27) [[ IF (1==v30) THEN IF (1==v31) THEN ((0==v35) /\ IF (1==v34) THEN ((v15==v32) /\ (v27==v33)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 1, v15, v27, 0, 0, 0, 0, 0, 0)
+     ## ISTEP (v16, v28) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v16==v32) /\ (v28==v33)) ELSE False FI /\ IF (1==v35) THEN (0==v36) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, 1, v16, v28, v39, v40, v41, v42, v43, v44)
+     ## ISTEP (v17, v29) [[ IF (1==v30) THEN IF (1==v31) THEN (IF (1==v34) THEN ((v17==v32) /\ (v29==v33)) ELSE False FI /\ IF (1==v35) THEN (0==v39) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2](1, 1, 0, v32, v33, 1, v36, v37, v38, 1, v17, v29, v42, v43, v44)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan2
+    CHAN OUT Chan1
+    BEHAVIOUR LPE[Chan1, Chan2](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+ENDDEF

@@ -1,0 +1,18 @@
+-- LPE_proxyProcess --
+TYPEDEF Sort1_Point ::= Cstr2_Point { f5_x :: Int; f6_y :: Int } ENDDEF
+FUNCDEF f3_inRange(v13 :: Sort1_Point; v14 :: Sort1_Point) :: Bool ::= not((not((f5_x(v13)==f5_x(v14))) /\ not((f6_y(v13)==f6_y(v14))))) ENDDEF
+FUNCDEF f4_validPoint(v12 :: Sort1_Point) :: Bool ::= (not((0==f5_x(v12))) /\ not((0==f6_y(v12)))) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan7 :: Sort1_Point
+      ; Chan8 :: Sort1_Point
+ENDDEF
+PROCDEF LPE[Chan7 :: Sort1_Point; Chan8 :: Sort1_Point](v15 :: Int; v11 :: Sort1_Point) ::=
+        Chan7 ? v9 :: Sort1_Point [[ IF (0==v15) THEN f4_validPoint(v9) ELSE False FI ]] >-> LPE[Chan7, Chan8](1, v9)
+     ## Chan7 ? v9 :: Sort1_Point [[ IF (2==v15) THEN f4_validPoint(v9) ELSE False FI ]] >-> LPE[Chan7, Chan8](1, v9)
+     ## Chan8 ? v10 :: Sort1_Point [[ IF (1==v15) THEN (f3_inRange(v11, v10) /\ f4_validPoint(v10)) ELSE False FI ]] >-> LPE[Chan7, Chan8](2, v11)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan7
+    CHAN OUT Chan8
+    BEHAVIOUR LPE[Chan7, Chan8](0, Cstr2_Point(0, 0))
+ENDDEF

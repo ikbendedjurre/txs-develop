@@ -1,0 +1,23 @@
+-- LPE_proxyProcess --
+TYPEDEF Sort1_Person ::= Cstr5_Person { f15_sex :: Sort2_Sex; f7_firstName :: String; f13_lastName :: String; f6_dayOfBirth :: Int; f14_monthOfBirth :: Int } ENDDEF
+TYPEDEF Sort2_Sex ::= Cstr3_Female | Cstr4_Male ENDDEF
+FUNCDEF f8_isLuckyByBirthday(v34 :: Sort1_Person) :: Bool ::= (f6_dayOfBirth(v34)==f14_monthOfBirth(v34)) ENDDEF
+FUNCDEF f9_isLuckyByGender(v32 :: Sort1_Person; v21 :: Sort2_Sex; v29 :: Int) :: Bool ::= (not((v21==f15_sex(v32))) /\ (((-5)+(v29))>=0)) ENDDEF
+FUNCDEF f10_isLuckyByName(v33 :: Sort1_Person) :: Bool ::= (at(f7_firstName(v33), 0)==at(f13_lastName(v33), 0)) ENDDEF
+FUNCDEF f11_isLuckyPerson(v31 :: Sort1_Person; v20 :: Sort2_Sex; v28 :: Int) :: Bool ::= not((not(f8_isLuckyByBirthday(v31)) /\ not(f9_isLuckyByGender(v31, v20, v28)) /\ not(f10_isLuckyByName(v31)))) ENDDEF
+FUNCDEF f12_isValid_Person(v30 :: Sort1_Person) :: Bool ::= ((((-1)+(f6_dayOfBirth(v30)))>=0) /\ (((-1)+(f14_monthOfBirth(v30)))>=0) /\ (((12)+(f14_monthOfBirth(v30)*(-1)))>=0) /\ (((31)+(f6_dayOfBirth(v30)*(-1)))>=0) /\ strinre(f7_firstName(v30), REGEX('[A-Z][a-z]*')) /\ strinre(f13_lastName(v30), REGEX('[A-Z][a-z]*'))) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan16 :: Sort1_Person
+      ; Chan17 :: Bool
+ENDDEF
+PROCDEF LPE[Chan16 :: Sort1_Person; Chan17 :: Bool](v35 :: Int; v22 :: Sort2_Sex; v23 :: Int; v24 :: Sort1_Person; v25 :: Sort2_Sex; v26 :: Int; v27 :: Sort1_Person) ::=
+        Chan16 ? v18 :: Sort1_Person [[ IF (0==v35) THEN f12_isValid_Person(v18) ELSE False FI ]] >-> LPE[Chan16, Chan17](1, Cstr4_Male(), 0, v18, v25, v26, v27)
+     ## Chan16 ? v18 :: Sort1_Person [[ IF (2==v35) THEN IF (v25==f15_sex(v27)) THEN False ELSE f12_isValid_Person(v18) FI ELSE False FI ]] >-> LPE[Chan16, Chan17](1, f15_sex(v27), 1, v18, v25, v26, v27)
+     ## Chan16 ? v18 :: Sort1_Person [[ IF (2==v35) THEN IF (v25==f15_sex(v27)) THEN f12_isValid_Person(v18) ELSE False FI ELSE False FI ]] >-> LPE[Chan16, Chan17](1, f15_sex(v27), ((1)+(v26)), v18, v25, v26, v27)
+     ## Chan17 ? v19 :: Bool [[ IF (1==v35) THEN (v19==f11_isLuckyPerson(v24, v22, v23)) ELSE False FI ]] >-> LPE[Chan16, Chan17](2, v22, v23, v24, v22, v23, v24)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan16
+    CHAN OUT Chan17
+    BEHAVIOUR LPE[Chan16, Chan17](0, Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0), Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0))
+ENDDEF

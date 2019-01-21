@@ -1,0 +1,33 @@
+-- LPE_proxyProcess --
+CHANDEF ChanDefs
+    ::= Chan1 :: Int
+      ; Chan2 :: Int # Int
+      ; Chan3 :: Int # Int
+ENDDEF
+PROCDEF LPE[Chan1 :: Int; Chan2 :: Int # Int; Chan3 :: Int # Int](v9 :: Int; v12 :: Int; v10 :: Int; v11 :: Int; v13 :: Int; v14 :: Int; v15 :: Int; v16 :: Int) ::=
+        Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v14) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, v12, v10, v11, 1, 0, v15, v16)
+     ## Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v15) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, v12, v10, v11, 1, v14, 0, v16)
+     ## Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v16) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, v12, v10, v11, 1, v14, v15, 0)
+     ## Chan1 ? v4 :: Int | Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN (IF (0==v12) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI /\ IF (1==v13) THEN (1==v14) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 1, 0, v15, v16)
+     ## Chan1 ? v4 :: Int | Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN (IF (0==v12) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI /\ IF (1==v13) THEN (1==v15) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 1, v14, 0, v16)
+     ## Chan1 ? v4 :: Int | Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN (IF (0==v12) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI /\ IF (1==v13) THEN (1==v16) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 1, v14, v15, 0)
+     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((1==v14) /\ IF (0==v15) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, 1, v16)
+     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((1==v14) /\ IF (0==v16) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, v15, 1)
+     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((1==v15) /\ IF (0==v14) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, 0, v16)
+     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((1==v15) /\ IF (0==v16) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, 0, 1)
+     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((1==v16) /\ IF (0==v14) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, v15, 0)
+     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((1==v16) /\ IF (0==v15) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, 1, 0)
+     ## Chan2 ? v5 :: Int ? v6 :: Int [[ IF (0==v9) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 0, 0, 0, 0)
+     ## Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN IF (0==v12) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, v13, v14, v15, v16)
+     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (0==v13) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, 0, 1)
+     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (0==v13) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, 1, 0)
+     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (0==v13) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, 0, 0)
+     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN IF (0==v14) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, v15, v16)
+     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN IF (0==v15) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, 1, v16)
+     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN IF (0==v16) THEN (not((((v7*(-1)))>=0)) /\ not((((v8*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, v15, 1)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan2
+    CHAN OUT Chan1, Chan3
+    BEHAVIOUR LPE[Chan1, Chan2, Chan3](0, 0, 0, 0, 0, 0, 0, 0)
+ENDDEF

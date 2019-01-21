@@ -1,0 +1,41 @@
+{-
+TorXakis - Model Based Testing
+Copyright (c) 2015-2017 TNO and Radboud University
+See LICENSE at root directory of this repository.
+-}
+
+
+-- ----------------------------------------------------------------------------------------- --
+-- Dispatch Process
+
+
+PROCDEF  processor [ Start, Finish ] ( ) ::=
+             Start
+        >->  Finish
+        >->  processor [ Start, Finish ] ( )
+ENDDEF
+
+
+-- ----------------------------------------------------------------------------------------- --
+
+
+MODELDEF Model ::=
+    CHAN IN    Start
+    CHAN OUT   Finish
+
+    BEHAVIOUR
+
+        processor [ Start, Finish] ( )
+
+ENDDEF
+
+
+-- ----------------------------------------------------------------------------------------- --
+
+CHANDEF Channels ::=
+    Start, Finish
+ENDDEF
+
+-- ----------------------------------------------------------------------------------------- --
+--                                                                                           --
+-- ----------------------------------------------------------------------------------------- --

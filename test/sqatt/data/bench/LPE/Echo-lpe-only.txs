@@ -1,0 +1,15 @@
+-- LPE_proxyProcess --
+CHANDEF ChanDefs
+    ::= Chan1 :: Int
+      ; Chan2 :: Int
+ENDDEF
+PROCDEF LPE[Chan1 :: Int; Chan2 :: Int](v5 :: Int; v6 :: Int) ::=
+        Chan1 ? v3 :: Int [[ (0==v5) ]] >-> LPE[Chan1, Chan2](1, v3)
+     ## Chan1 ? v3 :: Int [[ (2==v5) ]] >-> LPE[Chan1, Chan2](1, v3)
+     ## Chan2 ? v4 :: Int [[ IF (1==v5) THEN (v4==v6) ELSE False FI ]] >-> LPE[Chan1, Chan2](2, v6)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan1
+    CHAN OUT Chan2
+    BEHAVIOUR LPE[Chan1, Chan2](0, 0)
+ENDDEF

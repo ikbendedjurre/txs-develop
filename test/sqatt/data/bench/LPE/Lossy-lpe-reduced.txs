@@ -1,0 +1,16 @@
+-- LPE_proxyProcess --
+TYPEDEF Sort1_IntList ::= Cstr3_Cons { f8_hd :: Int; f9_tl :: Sort1_IntList } | Cstr7_Nil ENDDEF
+TYPEDEF Sort2_QueueOp ::= Cstr4_Deq | Cstr5_Enq { f10_val :: Int } | Cstr6_Error ENDDEF
+CHANDEF ChanDefs
+    ::= Chan11 :: Sort2_QueueOp
+      ; Chan12 :: Int
+ENDDEF
+PROCDEF LPE[Chan11 :: Sort2_QueueOp; Chan12 :: Int](v15 :: Int; v14 :: Sort1_IntList) ::=
+        Chan11 ? v13 :: Sort2_QueueOp [[ IF (0==v15) THEN isCstr4_Deq(v13) ELSE False FI ]] >-> LPE[Chan11, Chan12](3, Cstr7_Nil())
+     ## Chan11 ? v13 :: Sort2_QueueOp [[ IF (3==v15) THEN IF isCstr7_Nil(v14) THEN isCstr4_Deq(v13) ELSE False FI ELSE False FI ]] >-> LPE[Chan11, Chan12](3, Cstr7_Nil())
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan11
+    CHAN OUT Chan12
+    BEHAVIOUR LPE[Chan11, Chan12](0, Cstr3_Cons(0, Cstr7_Nil()))
+ENDDEF

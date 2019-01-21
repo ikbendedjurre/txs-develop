@@ -1,0 +1,26 @@
+-- LPE_proxyProcess --
+TYPEDEF Sort1_Operation ::= Cstr2_Minus { f4_m1 :: Int; f5_m2 :: Int } | Cstr3_Plus { f7_p1 :: Int; f8_p2 :: Int } ENDDEF
+FUNCDEF f6_overflow(v22 :: Int) :: Bool ::= not(((((2147483647)+(v22*(-1)))>=0) /\ (((2147483648)+(v22))>=0))) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan9 :: Sort1_Operation
+      ; Chan10 :: Sort1_Operation
+      ; Chan11 :: Sort1_Operation
+      ; Chan12 :: Sort1_Operation
+      ; Chan13 :: Int
+      ; Chan14 :: Int
+      ; Chan15 :: Int
+      ; Chan16 :: Int
+ENDDEF
+PROCDEF LPE[Chan9 :: Sort1_Operation; Chan10 :: Sort1_Operation; Chan11 :: Sort1_Operation; Chan12 :: Sort1_Operation; Chan13 :: Int; Chan14 :: Int; Chan15 :: Int; Chan16 :: Int](v21 :: Int; v19 :: Sort1_Operation; v20 :: Sort1_Operation) ::=
+        Chan9 ? v17 :: Sort1_Operation [[ IF (0==v21) THEN IF isCstr2_Minus(v17) THEN (not(f6_overflow(((f4_m1(v17))+(f5_m2(v17)*(-1))))) /\ not(f6_overflow(f4_m1(v17))) /\ not(f6_overflow(f5_m2(v17)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14, Chan15, Chan16](3, v19, v17)
+     ## Chan9 ? v17 :: Sort1_Operation [[ IF (0==v21) THEN IF isCstr3_Plus(v17) THEN (not(f6_overflow(((f7_p1(v17))+(f8_p2(v17))))) /\ not(f6_overflow(f7_p1(v17))) /\ not(f6_overflow(f8_p2(v17)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14, Chan15, Chan16](1, v17, v20)
+     ## Chan9 ? v17 :: Sort1_Operation [[ IF (2==v21) THEN IF isCstr2_Minus(v17) THEN (not(f6_overflow(((f4_m1(v17))+(f5_m2(v17)*(-1))))) /\ not(f6_overflow(f4_m1(v17))) /\ not(f6_overflow(f5_m2(v17)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14, Chan15, Chan16](3, v19, v17)
+     ## Chan9 ? v17 :: Sort1_Operation [[ IF (2==v21) THEN IF isCstr3_Plus(v17) THEN (not(f6_overflow(((f7_p1(v17))+(f8_p2(v17))))) /\ not(f6_overflow(f7_p1(v17))) /\ not(f6_overflow(f8_p2(v17)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14, Chan15, Chan16](1, v17, v20)
+     ## Chan13 ? v18 :: Int [[ IF (1==v21) THEN (v18==((f7_p1(v19))+(f8_p2(v19)))) ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14, Chan15, Chan16](2, v19, v20)
+     ## Chan13 ? v18 :: Int [[ IF (3==v21) THEN (v18==((f4_m1(v20))+(f5_m2(v20)*(-1)))) ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14, Chan15, Chan16](2, v19, v20)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan9
+    CHAN OUT Chan13
+    BEHAVIOUR LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14, Chan15, Chan16](0, Cstr2_Minus(0, 0), Cstr2_Minus(0, 0))
+ENDDEF

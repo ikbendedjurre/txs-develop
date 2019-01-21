@@ -1,0 +1,45 @@
+-- LPE_proxyProcess --
+TYPEDEF Sort1_Address ::= Cstr13_Address { f27_address :: String; f28_city :: String; f60_region :: String; f59_postalCode :: String; f33_country :: String } ENDDEF
+TYPEDEF Sort2_Conditional_dateTime ::= Cstr11_Absent_dateTime | Cstr22_Present_dateTime { f74_value :: Int } ENDDEF
+TYPEDEF Sort3_Conditional_string ::= Cstr12_Absent_string | Cstr23_Present_string { f75_value :: String } ENDDEF
+TYPEDEF Sort4_Customer ::= Cstr17_Customer { f29_companyName :: String; f30_contactName :: String; f31_contactTitle :: String; f58_phone :: String; f38_fax :: Sort3_Conditional_string; f40_fullAddress :: Sort1_Address; f34_customerID :: Int } ENDDEF
+TYPEDEF Sort5_List_Customer ::= Cstr14_Cstr_Customer { f41_head :: Sort4_Customer; f71_tail :: Sort5_List_Customer } | Cstr18_Nil_Customer ENDDEF
+TYPEDEF Sort6_List_Order ::= Cstr15_Cstr_Order { f42_head :: Sort7_Order; f72_tail :: Sort6_List_Order } | Cstr19_Nil_Order ENDDEF
+TYPEDEF Sort7_Order ::= Cstr21_Order { f35_customerID :: Int; f37_employeeID :: Int; f56_orderDate :: Int; f61_requiredDate :: Int; f65_shipInfo :: Sort10_ShipInfo } ENDDEF
+TYPEDEF Sort8_Report ::= Cstr24_Report { f36_customers :: Sort5_List_Customer; f57_orders :: Sort6_List_Order } ENDDEF
+TYPEDEF Sort9_ReportList ::= Cstr16_Cstr_Report { f43_head :: Sort8_Report; f73_tail :: Sort9_ReportList } | Cstr20_Nil_Report ENDDEF
+TYPEDEF Sort10_ShipInfo ::= Cstr25_ShipInfo { f69_shipVia :: Int; f39_freight :: Int; f66_shipName :: String; f62_shipAddress :: String; f63_shipCity :: String; f68_shipRegion :: String; f67_shipPostalCode :: String; f64_shipCountry :: String; f70_shippedDate :: Sort2_Conditional_dateTime } ENDDEF
+FUNCDEF f26_add(v105 :: Sort8_Report; v85 :: Sort9_ReportList) :: Sort9_ReportList ::= IF isCstr20_Nil_Report(v85) THEN Cstr16_Cstr_Report(v105, Cstr20_Nil_Report()) ELSE Cstr16_Cstr_Report(f43_head(v85), f26_add(v105, f73_tail(v85))) FI ENDDEF
+FUNCDEF f32_containsCustomerID(v84 :: Int; v104 :: Sort5_List_Customer) :: Bool ::= IF isCstr18_Nil_Customer(v104) THEN False ELSE IF (v84==f34_customerID(f41_head(v104))) THEN True ELSE f32_containsCustomerID(v84, f71_tail(v104)) FI FI ENDDEF
+FUNCDEF f44_isValid_Address(v93 :: Sort1_Address) :: Bool ::= (f53_isValid_string(f27_address(v93)) /\ f53_isValid_string(f28_city(v93)) /\ f53_isValid_string(f33_country(v93)) /\ f53_isValid_string(f59_postalCode(v93)) /\ f53_isValid_string(f60_region(v93))) ENDDEF
+FUNCDEF f45_isValid_Conditional_dateTime(v103 :: Sort2_Conditional_dateTime) :: Bool ::= IF isCstr22_Present_dateTime(v103) THEN f50_isValid_dateTime(f74_value(v103)) ELSE True FI ENDDEF
+FUNCDEF f46_isValid_Conditional_string(v102 :: Sort3_Conditional_string) :: Bool ::= IF isCstr23_Present_string(v102) THEN f53_isValid_string(f75_value(v102)) ELSE True FI ENDDEF
+FUNCDEF f47_isValid_Customer(v92 :: Sort4_Customer) :: Bool ::= (f44_isValid_Address(f40_fullAddress(v92)) /\ f46_isValid_Conditional_string(f38_fax(v92)) /\ f53_isValid_string(f29_companyName(v92)) /\ f53_isValid_string(f30_contactName(v92)) /\ f53_isValid_string(f31_contactTitle(v92)) /\ f53_isValid_string(f58_phone(v92)) /\ f55_isValid_unsignedLong(f34_customerID(v92))) ENDDEF
+FUNCDEF f48_isValid_Order(v94 :: Sort7_Order) :: Bool ::= (IF isCstr22_Present_dateTime(f70_shippedDate(f65_shipInfo(v94))) THEN (((f56_orderDate(v94)*(-1))+(f74_value(f70_shippedDate(f65_shipInfo(v94)))))>=0) ELSE True FI /\ not((((f56_orderDate(v94))+(f61_requiredDate(v94)*(-1)))>=0)) /\ f49_isValid_ShipInfo(f65_shipInfo(v94)) /\ f50_isValid_dateTime(f56_orderDate(v94)) /\ f50_isValid_dateTime(f61_requiredDate(v94)) /\ f54_isValid_unsignedInt(f37_employeeID(v94)) /\ f55_isValid_unsignedLong(f35_customerID(v94))) ENDDEF
+FUNCDEF f49_isValid_ShipInfo(v95 :: Sort10_ShipInfo) :: Bool ::= (f45_isValid_Conditional_dateTime(f70_shippedDate(v95)) /\ f51_isValid_decimal(f39_freight(v95)) /\ f52_isValid_integer(f69_shipVia(v95)) /\ f53_isValid_string(f62_shipAddress(v95)) /\ f53_isValid_string(f63_shipCity(v95)) /\ f53_isValid_string(f64_shipCountry(v95)) /\ f53_isValid_string(f66_shipName(v95)) /\ f53_isValid_string(f67_shipPostalCode(v95)) /\ f53_isValid_string(f68_shipRegion(v95))) ENDDEF
+FUNCDEF f50_isValid_dateTime(v100 :: Int) :: Bool ::= True ENDDEF
+FUNCDEF f51_isValid_decimal(v101 :: Int) :: Bool ::= True ENDDEF
+FUNCDEF f52_isValid_integer(v96 :: Int) :: Bool ::= True ENDDEF
+FUNCDEF f53_isValid_string(v99 :: String) :: Bool ::= strinre(v99, REGEX('[A-Z]*')) ENDDEF
+FUNCDEF f54_isValid_unsignedInt(v98 :: Int) :: Bool ::= ((v98>=0) /\ (((4294967295)+(v98*(-1)))>=0)) ENDDEF
+FUNCDEF f55_isValid_unsignedLong(v97 :: Int) :: Bool ::= ((v97>=0) /\ (((18446744073709551615)+(v97*(-1)))>=0)) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan76 :: Sort4_Customer
+      ; Chan77 :: Sort7_Order
+      ; Chan78 :: Sort8_Report
+ENDDEF
+PROCDEF LPE[Chan76 :: Sort4_Customer; Chan77 :: Sort7_Order; Chan78 :: Sort8_Report](v86 :: Int; v87 :: Int; v89 :: Sort5_List_Customer; v90 :: Sort6_List_Order; v88 :: Bool; v91 :: Sort9_ReportList) ::=
+        Chan76 ? v79 :: Sort4_Customer [[ IF (0==v86) THEN (not(f32_containsCustomerID(f34_customerID(v79), Cstr18_Nil_Customer())) /\ f47_isValid_Customer(v79)) ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, Cstr14_Cstr_Customer(v79, Cstr18_Nil_Customer()), Cstr19_Nil_Order(), True, Cstr20_Nil_Report())
+     ## Chan76 ? v79 :: Sort4_Customer [[ IF (1==v86) THEN IF (1==v87) THEN (not(f32_containsCustomerID(f34_customerID(v79), v89)) /\ f47_isValid_Customer(v79)) ELSE False FI ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, Cstr14_Cstr_Customer(v79, v89), v90, True, v91)
+     ## Chan76 ? v79 :: Sort4_Customer | Chan78 ? v83 :: Sort8_Report [[ IF (1==v86) THEN IF (1==v87) THEN (IF isCstr16_Cstr_Report(v91) THEN (v83==f43_head(v91)) ELSE False FI /\ not(f32_containsCustomerID(f34_customerID(v79), v89)) /\ f47_isValid_Customer(v79)) ELSE False FI ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, Cstr14_Cstr_Customer(v79, v89), v90, True, f73_tail(v91))
+     ## ISTEP (v80) [[ IF (0==v86) THEN (Cstr24_Report(Cstr18_Nil_Customer(), Cstr19_Nil_Order())==v80) ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, Cstr18_Nil_Customer(), Cstr19_Nil_Order(), False, f26_add(v80, Cstr20_Nil_Report()))
+     ## ISTEP (v81) [[ IF (1==v86) THEN IF (1==v87) THEN IF v88 THEN (v81==Cstr24_Report(v89, v90)) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, v89, v90, False, f26_add(v81, v91))
+     ## Chan77 ? v82 :: Sort7_Order [[ IF (1==v86) THEN IF (1==v87) THEN (f32_containsCustomerID(f35_customerID(v82), v89) /\ f48_isValid_Order(v82)) ELSE False FI ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, v89, Cstr15_Cstr_Order(v82, v90), True, v91)
+     ## Chan77 ? v82 :: Sort7_Order | Chan78 ? v83 :: Sort8_Report [[ IF (1==v86) THEN IF (1==v87) THEN (IF isCstr16_Cstr_Report(v91) THEN (v83==f43_head(v91)) ELSE False FI /\ f32_containsCustomerID(f35_customerID(v82), v89) /\ f48_isValid_Order(v82)) ELSE False FI ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, v89, Cstr15_Cstr_Order(v82, v90), True, f73_tail(v91))
+     ## Chan78 ? v83 :: Sort8_Report [[ IF (1==v86) THEN IF (1==v87) THEN IF isCstr16_Cstr_Report(v91) THEN (v83==f43_head(v91)) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan76, Chan77, Chan78](1, 1, v89, v90, v88, f73_tail(v91))
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan76, Chan77
+    CHAN OUT Chan78
+    BEHAVIOUR LPE[Chan76, Chan77, Chan78](0, 0, Cstr14_Cstr_Customer(Cstr17_Customer("", "", "", "", Cstr12_Absent_string(), Cstr13_Address("", "", "", "", ""), 0), Cstr18_Nil_Customer()), Cstr15_Cstr_Order(Cstr21_Order(0, 0, 0, 0, Cstr25_ShipInfo(0, 0, "", "", "", "", "", "", Cstr11_Absent_dateTime())), Cstr19_Nil_Order()), False, Cstr16_Cstr_Report(Cstr24_Report(Cstr14_Cstr_Customer(Cstr17_Customer("", "", "", "", Cstr12_Absent_string(), Cstr13_Address("", "", "", "", ""), 0), Cstr18_Nil_Customer()), Cstr15_Cstr_Order(Cstr21_Order(0, 0, 0, 0, Cstr25_ShipInfo(0, 0, "", "", "", "", "", "", Cstr11_Absent_dateTime())), Cstr19_Nil_Order())), Cstr20_Nil_Report()))
+ENDDEF
