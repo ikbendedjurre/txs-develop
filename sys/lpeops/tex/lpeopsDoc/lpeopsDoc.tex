@@ -38,6 +38,8 @@
 \usepackage{graphicx}
 %----------------------------------------------------------
 \usepackage{url}
+\usepackage{tabularx}
+\usepackage{tablefootnote}
 \usepackage[square,sort,comma,numbers]{natbib}
 \usepackage{chapterbib}
 \usepackage{hyperref}
@@ -82,7 +84,12 @@
 }
 %----------------------------------------------------------
 \newcommand{\txs}{TorXakis}
+\newcommand{\mcrl}{mCRL2}
 \newcommand{\inlinecode}[1]{{\lstinline[language=torxakis]{#1}}}
+%----------------------------------------------------------
+\makeatletter
+\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref*{#1}}\@footnotemark}
+\makeatother
 %----------------------------------------------------------
 \newtheorem{theorem}{Theorem}
 \newtheorem{acknowledgement}[theorem]{Acknowledgement}
@@ -116,12 +123,19 @@
 \tableofcontents
 
 \input{lpeDefinition}
-\input{constElm}
-\input{parElm}
-\input{dataReset}
-\input{parReset}
-\input{confCheck}
-\input{confElm}
+\input{opsOverview}
+\input{clean}
+\input{cstelm}
+\input{parelm}
+\input{parreset}
+\input{datareset}
+\input{confcheck}
+\input{confelm}
+\input{istepelm}
+%\input{mcrl2}
+\input{isdet}
+\input{det}
+\input{uguard}
 
 \bibliographystyle{plainnat}
 \bibliography{biblio}

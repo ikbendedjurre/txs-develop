@@ -1,0 +1,77 @@
+\chapter{LPE operations}
+
+\section{Usage}
+
+The \texttt{lpeop} command has 3 space-separated arguments. In order, these arguments are:
+
+\begin{itemize}
+\item A chain of LPE operations.
+LPE operations are represented by their name, such as \texttt{cstelm} or \texttt{loop}.
+These names are separated by the symbol \texttt{->}.
+
+LPE operations in the chain are executed from left to right, passing their output to the next LPE operation as input.
+If a problem occurs, the process ends immediately.
+Otherwise, the final LPE is saved as a new model.
+\item The name of the input model.
+The input model should be in the LPE format (obviously).
+\item A base name \textit{base} for generated output.
+The name is primarily used for the output model (if any), which is in the LPE format.
+However, LPE operations may adopt the name for their own purposes.
+The \texttt{export} operation, for example, will create a file by that name with the \texttt{.txs} extension.
+
+It is possible to use the \texttt{\%i} token in the base name.
+This will insert the current counter value into the name.
+Use the \texttt{inc} command to increase the counter (which starts at 1).
+\end{itemize}
+
+\section{Basic operations}
+
+\begin{tabularx}{\linewidth}{l|X|}
+\textbf{Operation} & \textbf{Description} \\ \hline
+\texttt{stop} & End the chain of operations immediately. \\ \hline
+\texttt{show} & Print the input LPE to the terminal. \\ \hline
+\texttt{show*} & Same as \texttt{show}, but the output is compilable \txs{} code, and identifiers in the output have been shortened for readability. \\ \hline
+\texttt{export} & Save the input LPE to \textit{base}\texttt{.txt}. \\ \hline
+\texttt{export*} & Same as \texttt{export}, but the output is compilable \txs{} code, and identifiers in the output have been shortened for readability. \\ \hline
+\texttt{loop} & If the input LPE has not been encountered before, restart from the most recent \texttt{start} command, or from the first operation if no \texttt{start} command has been encountered yet. \\ \hline
+\texttt{loop*}$N$ & Same as \texttt{loop}, but the number of restarts is limited to $N$. \\ \hline
+\texttt{start} & Set the location where the command chain should continue when looping. \\ \hline
+\texttt{inc} & Increase the counter that can be used in \textit{base}. \\ \hline
+\end{tabularx}
+
+\section{Analysis and rewrite methods}
+
+\begin{tabularx}{\linewidth}{l|X|}
+\textbf{Operation} & \textbf{Description} \\ \hline
+\texttt{clean} & Remove summands of which it can be established that there already exists an equivalent instance in the LPE from the input LPE; and remove summands of which it can be established via symbolic reachability that they cannot be reached from the input LPE. \\ \hline
+\texttt{cstelm} & Remove parameters of which it can be established that their value never changes from the input LPE. \\ \hline
+\texttt{parelm} & Remove parameters of which it can be established that their value is never used from the input LPE. \\ \hline
+\texttt{parreset} & Set parameters of which it can be established via symbolic reachability that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
+\texttt{datareset} & Set parameters of which it can be established via control-flow analysis that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
+\texttt{confcheck} & Returns the input LPE after assessing whether it contains confluent \texttt{ISTEP} summands. \\ \hline
+\texttt{confelm} & Rewrite the input LPE so that confluent \texttt{ISTEP} summands are prioritized. \\ \hline
+\texttt{istepelm} & Rewrite the input LPE so that \texttt{ISTEP} channels no longer occur. \\ \hline
+\texttt{mcrl2} & Convert the current LPE to an \mcrl{} specification, and save it to \textit{base}\texttt{.mcrl2}. \\ \hline
+\texttt{isdet} & Return the input LPE after assessing whether it is deterministic. May yield false negatives. \\ \hline
+\texttt{det} & \textit{Experimental.} Rewrite the input LPE in an attempt to reduce non-determinism. By design, \texttt{det} does not generally remove all non-determinism in one execution because it may not terminate (so use with \texttt{loop}). \\ \hline
+\texttt{uguard} & \textit{Experimental.} Search for underspecified summands and remove them from the input LPE. \\ \hline
+\end{tabularx}
+
+\section{Operation properties}
+
+\begin{tabularx}{\linewidth}{X|c|c|c|c|}
+\textbf{Operation} & \textbf{u-ioco} & \textbf{weak bis.} & \textbf{strong bis.} & \textbf{state sp. equiv.} \\ \hline
+\texttt{clean} & Yes & Yes & Yes & Yes \\ \hline
+\texttt{cstelm} & Yes & Yes & Yes & Yes\footnote{\label{statevectors}Only change is that state vectors may be smaller.} \\ \hline
+\texttt{parelm} & Yes & Yes & Yes & Yes\footnoteref{statevectors} \\ \hline
+\texttt{parreset} & Yes & Yes & Yes & No \\ \hline
+\texttt{datareset} & Yes & Yes & Yes & No \\ \hline
+\texttt{confcheck} & Yes & Yes & Yes & Yes \\ \hline
+\texttt{confelm} & Yes & Yes & No & No \\ \hline
+\texttt{istepelm} & Yes & Yes & No & No \\ \hline
+\texttt{mcrl2} & Yes & Yes & Yes & Yes \\ \hline
+\texttt{isdet} & Yes & Yes & Yes & Yes \\ \hline
+\texttt{det} & Yes & Yes & Yes & Yes\footnote{Only change is that state vectors may be larger.} \\ \hline
+\texttt{uguard} & Yes & No & No & No \\ \hline
+\end{tabularx}
+
