@@ -24,6 +24,7 @@ validateSortList,
 validateSortPair
 ) where
 
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
@@ -107,7 +108,9 @@ validateValExpr location scope xpr = customData (visitValExpr getProblemsVisitor
                         (view -> Vconst (Cany _))         -> []
                         -- Variables that are referenced must exist in the current scope:
                         (view -> Vvar vid)                ->
-                            ["Variable \"" ++ Text.unpack (VarId.name vid) ++ "\" is not in scope for " ++ location ++ "!" | Set.notMember vid scope]
+                            let alternatives = "{" ++ List.intercalate ", " (map show (Set.toList scope)) ++ "}" in
+                              --["Variable \"" ++ Text.unpack (VarId.name vid) ++ "\" is not in scope for " ++ location ++ "; did you mean one of " ++ alternatives ++ "?" | Set.notMember vid scope]
+                              ["Variable \"" ++ show vid ++ "\" is not in scope for " ++ location ++ "; did you mean one of " ++ alternatives ++ "?" | Set.notMember vid scope]
                         -- Function signatures must be used properly:
                         (view -> Vfunc fid args)          ->
                             validateSortList ("function \"" ++ Text.unpack (FuncId.name fid) ++ "\" call in " ++ location) (FuncId.funcargs fid) (map SortOf.sortOf args)

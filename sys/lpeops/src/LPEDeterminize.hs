@@ -36,6 +36,7 @@ import LPESuccessors
 import LPEDeterminism
 import UntilFixpoint
 import VarFactory
+-- import LPEValidity
 
 -- Makes the LPE deterministic by delaying non-deterministic choices by one step until a fixpoint is reached.
 determinizeLPE :: LPEOperation
@@ -113,8 +114,8 @@ doDetIteration invariant lpe = do
         guard1'' <- doConfidentSubst summand1 (Map.map ValExpr.cstrVar chanVar3PerChanVar1) (lpeSmdGuard summand1)
         guard2'' <- doConfidentSubst summand2 (Map.map ValExpr.cstrVar chanVar3PerChanVar2) (lpeSmdGuard summand2)
         let guard3 = ValExpr.cstrAnd (Set.fromList [disableGuard, guard1'', guard2''])
-        let vars3 = Set.fromList (FreeVar.freeVars guard3) Set.\\ (Set.insert nonDetFlagVar params)
-        let newSummand3 = LPESummand { lpeSmdVars = vars3 Set.\\ lpeParams lpe
+        let vars3 = Set.union (Set.fromList chanVars3) (Set.fromList (FreeVar.freeVars guard3))
+        let newSummand3 = LPESummand { lpeSmdVars = (vars3 Set.\\ lpeParams lpe) Set.\\ (Set.insert nonDetFlagVar params)
                                      , lpeSmdOffers = Map.map (map (\v -> chanVar3PerChanVar1 Map.! v)) (lpeSmdOffers summand1)
                                      , lpeSmdGuard = guard3
                                      , lpeSmdEqs =
@@ -140,13 +141,23 @@ doDetIteration invariant lpe = do
         enabledSummands1 <- Monad.mapM getEnabledSmd1 possibleSuccessors1
         enabledSummands2 <- Monad.mapM getEnabledSmd2 possibleSuccessors2
         
+        let allSummands = map updateSmdVars (disabledSummands ++ [newSummand1, newSummand2, newSummand3] ++ enabledSummands1 ++ enabledSummands2)
+        
+        -- let summandVal = validateLPESummand "Determinize" (Map.keysSet (lpeSmdEqs newSummand3))
+        -- Monad.when (concatMap summandVal disabledSummands /= []) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Problems in disabled summands!") ])
+        -- Monad.when (summandVal newSummand1 /= []) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Problems in enabled summand 1!") ])
+        -- Monad.when (summandVal newSummand2 /= []) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Problems in enabled summand 2!") ])
+        -- Monad.when (summandVal newSummand3 /= []) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Problems in enabled summand 3!") ])
+        -- Monad.when (concatMap summandVal enabledSummands1 /= []) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Problems in enabled summands 1!") ])
+        -- Monad.when (concatMap summandVal enabledSummands2 /= []) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Problems in enabled summands 2!") ])
+        
         -- Combine everything:
         let newLpe = lpe { lpeInitEqs = Map.union
                                           -- Set the non-determinism flag to true, and add it to the original parameters:
                                           (Map.insert nonDetFlagVar (ValExpr.cstrConst (Constant.Cbool False)) (lpeInitEqs lpe))
                                           -- Set newly created parameters to a default value:
                                           (defaultValueParamEqs (lpeContext lpe) params)
-                         , lpeSummands = Set.fromList (disabledSummands ++ [newSummand1, newSummand2, newSummand3] ++ enabledSummands1 ++ enabledSummands2) }
+                         , lpeSummands = Set.fromList allSummands }
         
         let newSummandCount = Set.size (lpeSummands newLpe) - Set.size (lpeSummands lpe)
         IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Added " ++ show newSummandCount ++ " summands to LPE") ]
@@ -182,5 +193,12 @@ doDetIteration invariant lpe = do
                         , lpeSmdEqs = Map.union (lpeSmdEqs summand) extraSmdEqs
                         })
     -- getEnabledSummand
+    
+    updateSmdVars :: LPESummand -> LPESummand
+    updateSmdVars summand =
+        let guardVars = Set.fromList (FreeVar.freeVars (lpeSmdGuard summand)) in
+        let eqsVars = Set.fromList (concatMap FreeVar.freeVars (Map.elems (lpeSmdEqs summand))) in
+        let params = Map.keysSet (lpeSmdEqs summand) in
+          summand { lpeSmdVars = Set.union guardVars eqsVars Set.\\ params }
 -- doDetIteration
 
