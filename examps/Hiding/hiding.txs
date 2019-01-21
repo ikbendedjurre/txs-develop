@@ -1,0 +1,26 @@
+
+
+
+
+CHANDEF ChanDefs
+    ::= Chan1 :: Int
+ENDDEF
+
+PROCDEF LPE[Chan1 :: Int](a :: Int) ::=
+    HIDE [ Chan2 ] IN
+       Chan1 ? x :: Int | Chan2 [[ x > 0 ]] >-> LPE[Chan1](1)
+    NI
+ENDDEF
+
+MODELDEF Model ::=
+    CHAN IN 
+    CHAN OUT Chan1
+    BEHAVIOUR LPE[Chan1](0)
+ENDDEF
+
+
+
+
+
+
+
