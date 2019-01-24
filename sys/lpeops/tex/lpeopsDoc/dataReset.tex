@@ -2,45 +2,49 @@
 
 \section{Introduction}
 
-A linearized process may have parameters that are initialized, changed and used, and subsequently ignored until they are used again.
-In the interval from the last change or use of a parameter to its subsequent reuse, a parameter could have different values.
-These values contribute to the size of the state space of the process \emph{without} adding any new behavior!
+The \texttt{datareset} command assumes that certain parameters of the LPE determine which summands can be followed by which summands.
+These parameters determine the control-flow of the LPE, and are therefore called \emph{control-flow parameters}.
 
-It may be advantageous to detect from which moment the value of a parameter is no longer used and set it to a default value instead.
-This is called `resetting'.
-Analysis of an LPE can yield information on when parameters can be safely reset.
+\emph{Data parameters}, on the other hand, are used to store values, and often temporarily, which means that their values may not be used anymore after a particular state.
+Data parameters can typically have different values after such a state, which causes them to add states to the state space for each of those values -- \emph{without} adding any new behavior!
+
+The \texttt{datareset} command attempts to detect LPE control flows and determine the parts of those control flows where data parameters are no longer used.
+At these locations, data parameters are set to a default value (`reset').
+This removes states from the state space, potentially improving performance of subsequent computations.
 
 \section{Algorithm}
 
 The algorithm is based on earlier work \cite{van2009state}.
 
+\subsection{Preparation}
+
 As a preparative step, several determinations are made about each parameter $p$ of the LPE per summand $s$:
 \begin{itemize}
 
 \item Is the value of $p$ potentially altered by $s$?
-If so, $p$ is marked as `changed'.
+If so, $p$ receives the label `changed'.
 
 \item Does $p$ occur in the guard of $s$?
-If so, $p$ is marked as `directly used'.
+If so, $p$ receives the label `directly used'.
 
-\item Is $p$ marked as `directly used' in $s$?
-Or does $p$ occur in the assignment by $s$ to a parameter that is marked as `changed'?
-In either case, $p$ is marked as `used'.
+\item Has $p$ received the label `directly used' in $s$?
+Or does $p$ occur in the assignment by $s$ to a parameter that has received the label as `changed'?
+In either case, $p$ also receives the label `used'.
 
 \item Must the value of $p$ have a specific (unique) value $v$ in order for $s$ to be enabled?
-If so, $p$ is marked as `having a source' for $s$, with the source being $v$.
+If so, $p$ receives the label `having a source' for $s$, with the source being $v$.
 
 \item Does the value of $p$ have a specific (unique) value $v$ immediately after $s$ has been applied?
-If so, $p$ is marked as `having a destination' for $s$, with the source being $v$.
+If so, $p$ receives the label `having a destination' for $s$, with the source being $v$.
 
 \item Does $p$ have both a source and a destination for $s$?
-Then $p$ is called a \emph{ruling parameter}.
+Then $p$ is called a \emph{ruling parameter}, and $p$ is said to `rule' summand $s$.
 
 \end{itemize}
 
 \subsection{Control flow graphs}
 
-A parameter of the LPE is a \emph{control flow parameter} of the LPE if for all summands it is either a ruling parameter or not marked as `changed' (or both).
+A parameter of the LPE is a \emph{control flow parameter} of the LPE if for all summands it is either a ruling parameter or not labeled as `changed' (or both).
 A parameter that is not a control flow parameter is defined as a \emph{data parameter}.
 
 \vspace{1mm}
@@ -63,17 +67,17 @@ where
 
 \begin{itemize}
 \item $F$ is the set of all control flow parameters;
-\item $S$ is the set of all summands in which $d$ is marked as `changed' or `used';
+\item $S$ is the set of all summands in which $d$ is labeled as `changed' or `used';
 \item $\text{ruling}(s)$ is the set of all parameters that rule summand $s$.
 \end{itemize}
 
 \clearpage
 \subsection{Relevance relation}
 
-The relevance relation $R$ bundles the information that has been gathered so far.
-The relation $R$ relates a data parameter $d$, a control flow parameter $f$, and a value $v$ if $d$ may be used after a state in which $f$ has value $v$.
+The relevance relation $R$ combines the information that has been gathered so far.
+The relation $R$ relates a data parameter $d$, a control flow parameter $f$, and a value $v$ if $d$ is `relevant' after a state in which $f$ has value $v$.
 This is denoted $R(d, f, v)$.
-Intuitively, this is a situation in which $d$ should \emph{not} be reset.
+Intuitively, this is a situation in which $d$ should \emph{not} be reset because its value may be needed in the future.
 
 The computation of $R$ is a fixpoint algorithm: modifications are applied iteratively until $R$ no longer changes.
 The initial value of $R$ is set to
@@ -86,12 +90,12 @@ where
 
 \begin{itemize}
 \item $S$ is the set of all summands;
-\item $\text{directlyUsed}(i)$ is a function that gives the set of all parameters marked as `directly used' in a summand $i$;
+\item $\text{directlyUsed}(i)$ is a function that gives the set of all parameters that are labeled as `directly used' in a summand $i$;
 \item $\text{source}(i, f)$ is a function that gives the source value of a control flow parameter $f$ for a summand $i$.
 \end{itemize}
 
 Each iteration can be split into two steps.
-The first step checks for control flow graphs in which a data parameter $d$ has already been marked as `relevant' whether this implies that $d$ is also relevant in preceding states (of the same control flow graph).
+The first step checks for control flow graphs in which a data parameter $d$ has already been labeled as `relevant' whether this implies that $d$ is also relevant in preceding states (of the same control flow graph).
 If so, the appropriate triples are added to $R$:
 
 \begin{align*}
@@ -131,4 +135,43 @@ where
 \item $\text{ruling}(s)$ is the set of all parameters that rule summand $s$;
 \item $\text{source}(i, f)$ is a function that gives the destination value of a control flow parameter $f$ for a summand $i$.
 \end{itemize}
+
+\section{Example TODO}
+
+Consider the following LPE:
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int, B](x, y :: Int)
+  = A ? i [[x==0]] >-> example[A, B](1, i)
+  + A ? i [[x==1 && i==y]] >-> example[A, B](2, y)
+  + B [[x==2]] >-> example[A, B](3, y)
+  + B [[x==3]] >-> example[A, B](0, y)
+  ;
+
+//Initialization:
+example[A, B](0, 0);
+\end{lstlisting}
+
+Finding the successors of each summand is easy: each summand has exactly one successor, namely the next one, except in case of the fourth summand, where the first summand is the successor.
+
+It is also obvious that $x$ will always be in $R_s$ for each summand $s$, because each summand uses $x$ in its guard.
+
+Process parameter $y$ will always be in $R_{s_1}$, where $s_1$ is the first summand, because $y$ is used in the guard of $s_1$'s successor (the second summand).
+After a few iterations, however, $y$ is removed from $R_{s_2}$ to $R_{s_4}$.
+This means that $y$ is assigned a default value in the corresponding summands.
+Depending on the mood of the SMT solver, this could give
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A :: Int, B](x, y :: Int)
+  = A ? i [[x==0]] >-> example[A, B](1, i)
+  + A ? i [[x==1 && i==y]] >-> example[A, B](2, 0)
+  + B [[x==2]] >-> example[A, B](3, 0)
+  + B [[x==3]] >-> example[A, B](0, 0)
+  ;
+
+//Initialization:
+example[A, B](0, 0);
+\end{lstlisting}
 

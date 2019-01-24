@@ -63,7 +63,7 @@ Use the \texttt{inc} command to increase the counter (which starts at 1).
 \textbf{Operation} & \textbf{u-ioco} & \textbf{weak bis.} & \textbf{strong bis.} & \textbf{state sp. equiv.} \\ \hline
 \texttt{clean} & Yes & Yes & Yes & Yes \\ \hline
 \texttt{cstelm} & Yes & Yes & Yes & Yes\footnote{\label{statevectors}Only change is that state vectors may be smaller.} \\ \hline
-\texttt{parelm} & Yes & Yes & Yes & Yes\footnoteref{statevectors} \\ \hline
+\texttt{parelm} & Yes & Yes & Yes & No \\ \hline
 \texttt{parreset} & Yes & Yes & Yes & No \\ \hline
 \texttt{datareset} & Yes & Yes & Yes & No \\ \hline
 \texttt{confcheck} & Yes & Yes & Yes & Yes \\ \hline
@@ -71,7 +71,7 @@ Use the \texttt{inc} command to increase the counter (which starts at 1).
 \texttt{istepelm} & Yes & Yes & No & No \\ \hline
 \texttt{mcrl2} & Yes & Yes & Yes & Yes \\ \hline
 \texttt{isdet} & Yes & Yes & Yes & Yes \\ \hline
-\texttt{det} & Yes & Yes & Yes & Yes\footnote{Only change is that state vectors may be larger.} \\ \hline
+\texttt{det} & Yes & Yes & Yes & No \\ \hline
 \texttt{uguard} & Yes & No & No & No \\ \hline
 \end{tabularx}
 
