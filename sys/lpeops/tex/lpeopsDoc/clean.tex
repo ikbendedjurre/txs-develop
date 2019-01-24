@@ -2,110 +2,130 @@
 
 \section{Introduction}
 
-An LPE may contain redundant information, for example because some summands are equivalent or because some summands will never be used.
+An LPE may contain redundant information, for example because some of its summands contain all behavior of other summands or because some of its summands will never be (or become) enabled.
 Obviously, such summands can be removed without hesitation, which may result in a speedup in other computations in which the LPE is input.
 
-The \texttt{clean} command attempts to detect redundant summands and subsequently removes the ones it finds.
+The \texttt{clean} command attempts to detect redundant summands and removes the ones that it finds.
+The state space of the LPE is not affected by the changes.
 
-\section{Summand equivalence}
+\section{Formal background}
+
+\subsection{Summand containment}
 
 Consider two summands, $s_1$ and $s_2$, defined as
 
 \begin{align*}
-s_i = C_i(1) \;|\; \cdots{} \;|\; C_i(n_i) [[g_i]] \text{ \texttt{>->} } P(f_i(s)) \\
-C_i(x) = c_i(x) \text{ \texttt{?} } v_i(x,1) \cdots{} \text{ \texttt{?} } v_i(x,k_i(x))
+s_i &= C_i(1) \;|\; \cdots{} \;|\; C_i(n_i) \; [[g_i]] \text{ \texttt{>->} } P(p_1 = f_i(p_1), \cdots{}, p_m = f_i(p_m)) \\
+C_i(x) &= c_i(x) \text{ \texttt{?} } v_i(x,1) \cdots{} \text{ \texttt{?} } v_i(x,k_i(x))
 \end{align*}
 
 where
 
 \begin{itemize}
-\item $C_i(1) \;|\; \cdots{} \;|\; C_i(n_i)$ are the channel communications used in the summand;
-\item $n_i$ is the number of channels over which the summand communicates;
-\item $c_i(x)$ is the name of the $j$th channel over which the summand communicates;
-\item $v_i(x,y)$ is the variable that the summand uses to communicate the $y$th value of the $x$th channel;
-\item $k_i(x)$ is the number of variables that the summand uses to communicate the $x$th channel;
-\item $g_i$ is the guard of the summand;
-\item $P$ is the LPE;
-\item $f_i(s)$ is the next-state function of the summand applied to the current state $s$.
+\item $C_i(1) \;|\; \cdots{} \;|\; C_i(n_i)$ are the channel communications used in summand $s_i$;
+\item $n_i \geq 0$ is the number of channels over which summand $s_i$ communicates;
+\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
+\item $P$ is the LPE to which summand $s_i$ belongs;
+\item $p_1, \cdots{}, p_m$ are the parameters of the LPE, of which there are $m \geq 0$;
+\item $f_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
+\item $c_i(x)$ is the name of the $x$th channel over which summand $s_i$ communicates;
+\item $v_i(x,y)$ is the variable that summand $s_i$ uses to communicate the $y$th value of the $x$th channel;
+\item $k_i(x)$ is the number of variables that summand $s_i$ uses to communicate over the $x$th channel.
 \end{itemize}
 
-Summands $s_1$ and $s_2$ are considered \emph{equivalent} if and only if all of the following conditions hold:
+Summand $s_1$ is said to \emph{contain} $s_2$ if these two conditions hold:
 
 \begin{itemize}
-\item $n_1 = n_2$;
-\item $\forall x \in [1, \cdots{}, n_1] \;.\; c_1(x) = c_2(x)$;
-\item There exists a mapping $[v_1(x,y) \rightarrow v_2(x,y) \;|\; x \in [1, \cdots{}, n_i], y \in [1, \cdots{}, k_i(x)]]$ such that TODO
+\item $s_1$ and $s_2$ must communicate over exactly the same channels with exactly as many channel variables; that is,
+\begin{align*}
+n_1 = n_2 \land \forall x \in [1, \cdots{}, n_1] \;.\; c_1(x) = c_2(x) \land k_1(x) = k_2(x)
+\end{align*}
+
+\item Given the previous condition, define
+\begin{align*}
+n &= n_1 = n_2 \\
+k(x) &= k_1(x) = k_2(x) \text{ for all } x \in [1, \cdots{}, n]
+\end{align*}
+
+and define, in particular, the mapping
+\begin{align*}
+V = [v_2(x,y) \rightarrow v_1(x,y) \;|\; x \in [1, \cdots{}, n], y \in [1, \cdots{}, k(x)]]
+\end{align*}
+
+The following conditions must also hold:
+\begin{align*}
+g_2[V] &\rightarrow g_1 \\
+f_1(p) = f_2(p)[V] &\leftrightarrow \text{\textit{True}} \text{ for all } p \in [p_1, \cdots{}, p_m]
+\end{align*}
+
+The first condition demands that whenever $s_2$ is enabled, $s_1$ must also be enabled; consequently, $s_1$ is `always ready' to perform the same behavior as $s_2$.
+The second condition demands that the state after the application of $s_1$ is the same as the state after the application of $s_2$, regardless of the values of communication variables and LPE parameters.
 \end{itemize}
 
+Note that $s_1$ could contain all behavior of $s_2$ without these two conditions being true (we under-approximate by tolerating false negatives)!
 
-\section{Unreachable summands}
-
-
-
-The algorithm is a generalization of an existing algorithm \cite{van2009state}.
-It consists of two phases, a preparation phase and an iteration phase.
-
-\subsection{Preparation phase}
+\subsection{Summand reachability}
 
 Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $t$ be a \emph{successor} of $s$ if $s$ contains a recursive process instantiation and if the following equation is satisfiable:
+Of a given summand pair $(s, t)$, let $s$ be a \emph{possible predecessor} of $s$ if the following equation is satisfiable:
 \begin{align*}
-c_s \land {c_t}[p \rightarrow v_s(p) \;|\; p \in P]
+c_s \land {c_t}[p \rightarrow q(p) \;|\; p \in P][q(p) \rightarrow v_s(p) \;|\; p \in P]
 \end{align*}
 
 where
 
 \begin{itemize}
 \item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively;
-\item $P$ is the set of all process parameters;
-\item $v_s$ is a function that yields the expression that summand $s$ assigns to a given process parameter in its recursive process instantiation.
+\item $P$ is the set of all LPE parameters;
+\item $q(p)$ is a bijective function that relates LPE parameter $p$ to a fresh variable;
+\item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
 \end{itemize}
 
-During the preparation phase, we determine all successors of each summand of the LPE.
-This gives an overapproximation of the control flow graph of the LPE.
+The fresh variables of the bijective function $q(p)$ are necessary to distinguish LPE parameters before and after the application of summand $s$ (if $p$ is the LPE parameter before, then $q(p)$ is the LPE parameter after).
 
-\subsection{Iteration phase}
+A summand $t$ is said to be \emph{reachable} if at least one of these two condition holds:
 
-This phase follows these steps:
+\begin{itemize}
+\item Summand $t$ is enabled in the initial state of the LPE.
+Formally, if the LPE is initialized as
 
-\begin{enumerate}
-
-\item For each summand $s$, create a set $R_s$ that contains all process parameters.
-This means that, initially, we assume that all process parameters are used by one or more of the successors of $s$.
-
-\item For each summand $s$, set the value of $R_s$ to $\bigcup\limits_{t \in S_s}^{} r(t)$ where $S_s$ is the set of all successors of $s$ (as determined during the previous phase) and where $r$ is the function
 \begin{align*}
-r(t) = \left( \text{vars}(c_t) \cup \bigcup\limits_{x \in R_t}^{} \text{vars}(v_t(x)) \right) \setminus C_t
+P(p_1 = v_I(p_1), \cdots{}, p_m = v_I(p_m))
 \end{align*}
 
 where
 
 \begin{itemize}
-\item $\text{vars}(c_t)$ gives the free variables in $c_t$, the guard of summand $t$;
-\item $v_t$ is a function that yields the expression that summand $t$ assigns to a given process parameter in its recursive process instantiation;
-\item $\text{vars}(v_t)$ gives the free variables in $v_t$;
-\item $C_t$ is the set of the communication variables used by summand $t$.
+\item $P$ is the LPE to which summand $t$ belongs;
+\item $p_1, \cdots{}, p_m$ are the parameters of the LPE, of which there are $m \geq 0$;
+\item $v_I(p)$ is a closed expression that defines the initial value of LPE parameter $p$;
 \end{itemize}
 
-\item Repeat the previous step until the new value of $R_s$ is the same as before for all summands $s$.
+then
 
-\item For each summand $s$ with $R_s \subset P$, choose some $\rho = [x \rightarrow h_x \;|\; x \in P \setminus R_s]$ so that $({c_s} \land {c_t}[p \rightarrow v_s(p) \;|\; p \in P])[\rho]$ is unsatisfiable for all $t \notin S_s$, where
+\begin{align*}
+c_t[p \rightarrow v_I(p) \;|\; p \in P]
+\end{align*}
 
-\begin{itemize}
-\item $P$ is the set of all process parameters of the LPE;
-\item $h_x$ is a closed expression of the same sort as $x$;
-\item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively.
+must be satisfiable.
+
+\item There exists at least one other summand $s$ in the same LPE that is a possible predecessor of $t$.
+It is \emph{not} sufficient if the only possible predecessor of $t$ is $t$ itself!
 \end{itemize}
 
-For each process parameter $x \in P \setminus R_s$, change the recursive process instantiation of $s$ so that $x$ is assigned $v_s(x)[\rho]$.
-Note that the choice of $\rho$ ensures that the set of summands that are successors of $s$ can only decrease.
+\section{Implementation}
 
-In practice, it is expensive to generate a suitable $\rho$, and only the initial values of the parameters in $P \setminus R_s$ are tried (that is, $\rho = [x \rightarrow v_0(x) \;|\; x \in P \setminus R_s]$).
-If this does not satisfy the further requirements, the summand is left unchanged.
+The algorithm consists of 2 phases.
 
-\end{enumerate}
+In the first phase, the algorithm does a pairwise comparison of all summands of the LPE.
+If it discovers that some summand $s_1$ contains another summand $s_2$, it removes $s_2$ from the LPE.
 
-\section{Example}
+In the second phase, the algorithm starts by determining which summands are reachable in the initial state of the LPE (the first condition for reachability in the previous section).
+This becomes the initial value of the set $X$.
+Then, until a fixpoint is reached, to $X$ all summands are added of which there exists a possible predecessor in $X$.
+The output LPE of the algorithm contains all summands that are in the fixpoint of $X$.
+
+\section{Example TODO}
 
 Consider the following LPE:
 

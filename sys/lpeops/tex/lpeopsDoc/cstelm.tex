@@ -2,17 +2,15 @@
 
 \section{Introduction}
 
-A linearized process may have parameters that do not change value throughout the state space of that process.
-These parameters are essentially \emph{constants}.
+An LPE may have parameters that do not change value throughout the state space of that process.
+These parameters are essentially \emph{constant}.
+Removing constant parameters results in a smaller state vector (which may improve performance), but otherwise the state space of an LPE remains the same.
 
-Constants can be removed from a process as follows:
+Constants can be safely removed from a process as follows:
 \begin{itemize}
-\item Substitute references to a constant by the explicit value of that constant;
+\item Substitute references to a constant parameter by the initial (explicit) value of that parameter;
 \item Remove the constant from the process parameter list.
 \end{itemize}
-
-The advantages of removing constants from a process are smaller state vectors (and therefore reduced memory usage) and faster performance in general.
-These advantages may be small; however, the detection and removal of constants can be done fairly cheaply.
 
 \section{Algorithm}
 
@@ -20,24 +18,23 @@ The algorithm consists of the following steps \cite{groote2001computer}:
 
 \begin{enumerate}
 
-\item Mark all process parameters.
-(This means that, initially, we assume that all process parameters are constants.)
+\item Mark all LPE parameters as `constant'.
 
-\item Let $P$ be the set of all marked process parameters.
-Define a substitution $\rho = [p \rightarrow v_0(p) \;|\; p \in P]$, where $v_0$ is a function that gives the initial value of a given process parameter.
+\item Let $P$ be the set of all LPE parameters that are marked as `constant'.
+Define a substitution $\rho = [p \rightarrow v_I(p) \;|\; p \in P]$, where $v_I(p)$ gives the initial value of LPE parameter $p$.
 
 \item Consider each summand $s$ of the LPE.
-Construct an equation $c_s \rightarrow p = v_s(p)$ for all $p \in P$, where $c_s$ is the guard of $s$ and where $v_s$ is a function that gives the expression of which the value is assigned to the process parameter $p$ in the instantiation, and apply the substitution $\rho$ to it.
-(This gives $(c_s \rightarrow p = v_s(p))[\rho] \Leftrightarrow {c_s}[\rho] \rightarrow v_0(p) = v_s(p)[\rho]$.)
+Construct an equation $c_s \rightarrow p = v_s(p)$ for all $p \in P$, where $c_s$ is the guard of $s$ and where $v_s(p)$ is the expression that defines the value of LPE parameter $p$ after the application of summand $s$, and apply the substitution $\rho$ to it.
+(This gives $(c_s \rightarrow p = v_s(p))[\rho] \Leftrightarrow {c_s}[\rho] \rightarrow v_I(p) = v_s(p)[\rho]$.)
 
-If the obtained equation is a tautology (that is, if its negation is unsatisfiable) for all $s$, $p$ remains marked; otherwise, unmark $p$.
+If the obtained equation is a tautology (that is, if its negation is unsatisfiable) for all $s$, $p$ remains marked as `constant'; otherwise, unmark $p$.
 
-\item Repeat the previous two steps until $P$ remains constant.
-All remaining marked process parameters can be safely removed the process.
+\item Repeat the previous two steps until the fixpoint of $P$ is reached.
+Then remove all LPE parameters that are still marked as `constant' from the LPE, substituting references to those parameters by their initial values.
 
 \end{enumerate}
 
-\section{Example}
+\section{Example TOCHECK}
 
 Consider the following LPE:
 
