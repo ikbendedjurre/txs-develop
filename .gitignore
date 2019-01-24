@@ -47,3 +47,12 @@ sys/txs-sort/txs-sort.cabal
 # RPM package.
 *.rpm
 *.prof
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.toc
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.out
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.bbl
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.tps
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.pdf
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.aux
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.tcp
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.blg
+sys/lpeops/tex/lpeopsDoc/lpeopsDoc.synctex
