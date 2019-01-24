@@ -4,9 +4,9 @@
 The techniques that are described in this document require a \emph{linear process equation} (LPE) as input.
 Many, but not all models can be transformed to LPE format using the \texttt{lpe} command of \txs{}.
 
-\section{Requirements}
+\section{Components}
 
-An LPE must consist of exactly the following elements:
+An LPE must consist of exactly the following components:
 
 \begin{itemize}
 
@@ -14,38 +14,34 @@ An LPE must consist of exactly the following elements:
 This includes at least its name, its channel parameters (name and type), and its data parameters (name and type).
 
 \item An \emph{instantiation} of process $P$.
-The instantiation must be a closed expression within the context of the signature of process $P$ and a sufficient number of channels to provide channel parameter values.
-Otherwise, the process instantiation must satisfy the usual requirements of \txs{}' process instantiations.
-There are also no requirements for the channel parameters and data parameters beyond the usual requirements of \txs{}' process definitions.
+The instantiation must match the signature of process $P$, including channel parameter values and data parameter values.
+The expressions for data parameter values may \emph{not} contain any free variables!
 
-\item The \emph{definition} of process $P$ consists of one or more \emph{summands}.
+\item The \emph{body} of process $P$.
+The body consists of one or more \emph{summands}.
 In this context, a summand must contain exactly the following, in the given order:
 
 \begin{itemize}
 
-\item One or more \emph{channel communications}; that is, channel references followed by the variables that are used to communicate over those channels.
-For example, \inlinecode{OUTPUT ? x ? y}, or simply \inlinecode{OUTPUT}.
+\item Zero or more \emph{channel communications}; that is, channel references followed by the variables that are used to communicate over those channels.
+Multiple channel communications are combined with \inlinecode{|}.
+Channel variables may occur only once in the channel communications of a summand; they \emph{can} occur in the channel communications of multiple summands.
 
-Channel communications are combined with \inlinecode{|}.
-To give another example, \inlinecode{INPUT ? x | OUTPUT ? y}.
-
-The variables that are used to communicate over a channel must be \emph{fresh}.
+Examples: \inlinecode{Output}, \inlinecode{Output ? x ? y}, \inlinecode{Input ? x | Output ? y}.
 
 \item A guard, yielding a boolean value.
-The guard is not always explicitly written if it is semantically equivalent to \inlinecode{true}.
+The only free variables in the guard must be parameters of $P$ or communication variables of the same summand.
 
 \item A sequence operator, \inlinecode{>->}.
 
-\item The expression for deadlock (\inlinecode{STOP}) \emph{or} a recursive process instantiation.
-The instantiated process must use the process definition given by the LPE, which satisfies the requirements of a \txs{} process signature.
-This includes channel parameters: these must be assigned their current values of the instantiating process.
-There are no requirements for the values assigned to the data parameters beyond the usual requirements of \txs{} (such as type compatibility).
+\item A recursive process instantiation that matches the signature of process $P$.
+This includes channel parameter values and data parameter values; the only free variables in the expressions for data parameter values must be LPE parameters or communication variables of the same summand.
 
 \end{itemize}
 
 \end{itemize}
 
-\section{Example}
+\section{Example TODO}
 
 The following code snippet gives a valid example of an LPE:
 

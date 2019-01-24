@@ -4,41 +4,46 @@
 One way in which information about confluence can be used before state space generation, is by appending confluent ISTEPs to other summands.
 This has the effect that other branches that could follow those summands are ignored, reducing the size of the state space while maintaining its equivalence up to branching bisimulation.
 
-\section{Algorithm}
+\section{Theoretical background}
+
+\subsection{Definite successors}
 
 Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $t$ be a \emph{definite successor} of $s$ if $s$ contains a recursive process instantiation and if the following equation is unsatisfiable:
+Of a given summand pair $(s, t)$, let $t$ be a \emph{definite successor} of $s$ if the following equation is a tautology:
 \begin{align*}
-\neg c_s \lor \neg {c_t}[p \rightarrow v_s(p) \;|\; p \in P]
+c_s \land {c_t}[p \rightarrow q(p) \;|\; p \in P][q(p) \rightarrow v_s(p) \;|\; p \in P]
 \end{align*}
 
 where
 
 \begin{itemize}
 \item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively;
-\item $P$ is the set of all process parameters;
-\item $v_s$ is a function that yields the expression that summand $s$ assigns to a given process parameter in its recursive process instantiation.
+\item $P$ is the set of all LPE parameters;
+\item $q(p)$ is a bijective function that relates LPE parameter $p$ to a fresh variable;
+\item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
 \end{itemize}
 
-For each summand $s$, let $D_s$ be the set of all definite successors of $s$.
-$D_s$ is an underapproximation of the actual successors of $s$.
+The fresh variables of the bijective function $q(p)$ are necessary to distinguish LPE parameters before and after the application of summand $s$ (if $p$ is the LPE parameter before, then $q(p)$ is the LPE parameter after).
 
-\clearpage
+\section{Implementation}
+
+For each summand $s$, let $D_s$ be the set of all definite successors of $s$.
+$D_s$ is an under-approximation of the actual successors of $s$.
+
 The algorithm follows these steps:
 
 \begin{enumerate}
 
-\item Determine which ISTEP summands of the LPE are confluent (see Chapter~\ref{confcheck}).
+\item Determine which \istep{} summands of the LPE are confluent (see \ref{confcheck}).
+Rename the \istep{} channels in confluent \istep{} summands to \cistep{}.
 
 \item For each summand $s$, determine $D_s$.
-Check if $D_s$ contains a confluent ISTEP summand $t$.
+Check if $D_s$ contains summand $t$ with an \cistep{} channel.
 If so, let
 
 \begin{lstlisting}[mathescape]
 $s$ = $A$ ? $a_1$ ? $\cdots{}$ ? $a_m$ [[$c_s$]] >-> P($v_s(x_1)$, $\cdots{}$, $v_s(x_n)$)
 $t$ = ISTEP [[$c_t$]] >-> P($v_t(x_1)$, $\cdots{}$, $v_t(x_n)$)
-$\lor$
-$t$ = ISTEP [[$c_t$]] >-> STOP
 \end{lstlisting}
 
 where
