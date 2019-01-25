@@ -9,7 +9,7 @@ The \texttt{parreset} command tries to determine whether the value of a paramete
 If this is the case, the parameter is said to be \emph{relevant} for that summand; otherwise, the summand can `reset' the parameter, meaning that it can be assigned a default value.
 
 To determine the relevance of parameters, \texttt{parreset} analyzes the reachability of summands in a generalized, symbolic manner.
-\texttt{datareset}, serving a similar purpose, does a control-flow analysis.
+The \texttt{datareset} command, serving a similar purpose (see \ref{datareset}), does a control-flow analysis instead.
 
 \section{Formal background}
 
@@ -18,13 +18,13 @@ To determine the relevance of parameters, \texttt{parreset} analyzes the reachab
 Consider all possible pairs of summands of the LPE (including symmetric pairs).
 Of a given summand pair $(s, t)$, let $t$ be a \emph{possible successor} of $s$ if the following equation is satisfiable:
 \begin{align*}
-c_s \land {c_t}[p \rightarrow q(p) \;|\; p \in P][q(p) \rightarrow v_s(p) \;|\; p \in P]
+g_s \land {g_t}[p \rightarrow q(p) \;|\; p \in P][q(p) \rightarrow v_s(p) \;|\; p \in P]
 \end{align*}
 
 where
 
 \begin{itemize}
-\item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively;
+\item $g_s$ and $g_t$ are the guards of summands $s$ and $t$, respectively;
 \item $P$ is the set of all LPE parameters;
 \item $q(p)$ is a bijective function that relates LPE parameter $p$ to a fresh variable;
 \item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
@@ -48,13 +48,13 @@ This means that, initially, we assume that all parameters of the LPE are used by
 
 \item For each summand $s$ of the LPE, set the value of $R_s$ to $\bigcup\limits_{t \in S_s}^{} r(t)$ where $S_s$ is the set of all successors of $s$ (as determined during the preparation phase) and where $r$ is the function
 \begin{align*}
-r(t) = \left( \text{vars}(c_t) \cup \bigcup\limits_{x \in R_t}^{} \text{vars}(v_t(x)) \right) \setminus C_t
+r(t) = \left( \text{vars}(g_t) \cup \bigcup\limits_{x \in R_t}^{} \text{vars}(v_t(x)) \right) \setminus C_t
 \end{align*}
 
 where
 
 \begin{itemize}
-\item $\text{vars}(c_t)$ gives the free variables in $c_t$, the guard of summand $t$;
+\item $\text{vars}(g_t)$ gives the free variables in $g_t$, the guard of summand $t$;
 \item $v_t(p)$ is the expression that defines the value of LPE parameter $p$ after the application of summand $t$;
 \item $\text{vars}(v_t)$ gives the free variables in $v_t$;
 \item $C_t$ is the set of the communication variables used by summand $t$.

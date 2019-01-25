@@ -18,19 +18,19 @@ The algorithm consists of the following steps \cite{groote2001computer}:
 
 \begin{enumerate}
 
-\item Mark all LPE parameters as `constant'.
+\item Label all LPE parameters with `constant'.
 
-\item Let $P$ be the set of all LPE parameters that are marked as `constant'.
+\item Let $P$ be the set of all LPE parameters that are labeled with `constant'.
 Define a substitution $\rho = [p \rightarrow v_I(p) \;|\; p \in P]$, where $v_I(p)$ gives the initial value of LPE parameter $p$.
 
 \item Consider each summand $s$ of the LPE.
-Construct an equation $c_s \rightarrow p = v_s(p)$ for all $p \in P$, where $c_s$ is the guard of $s$ and where $v_s(p)$ is the expression that defines the value of LPE parameter $p$ after the application of summand $s$, and apply the substitution $\rho$ to it.
-(This gives $(c_s \rightarrow p = v_s(p))[\rho] \Leftrightarrow {c_s}[\rho] \rightarrow v_I(p) = v_s(p)[\rho]$.)
+Construct an equation $g_s \rightarrow p = v_s(p)$ for all $p \in P$, where $g_s$ is the guard of $s$ and where $v_s(p)$ is the expression that defines the value of LPE parameter $p$ after the application of summand $s$, and apply the substitution $\rho$ to it.
+(This gives $(g_s \rightarrow p = v_s(p))[\rho] \Leftrightarrow {g_s}[\rho] \rightarrow v_I(p) = v_s(p)[\rho]$.)
 
-If the obtained equation is a tautology (that is, if its negation is unsatisfiable) for all $s$, $p$ remains marked as `constant'; otherwise, unmark $p$.
+If the obtained equation is a tautology (that is, if its negation is unsatisfiable) for all $s$, $p$ remains labeled with `constant'; otherwise, remove the `constant' label from $p$.
 
 \item Repeat the previous two steps until the fixpoint of $P$ is reached.
-Then remove all LPE parameters that are still marked as `constant' from the LPE, substituting references to those parameters by their initial values.
+Then remove all LPE parameters that are still labeled as `constant' from the LPE, substituting references to those parameters by their initial values.
 
 \end{enumerate}
 

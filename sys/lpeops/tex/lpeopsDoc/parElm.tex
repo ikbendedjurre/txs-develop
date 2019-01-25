@@ -12,13 +12,13 @@ The algorithm consists of the following steps \cite{groote2001computer}:
 
 \begin{enumerate}
 
-\item Mark all parameters of the LPE as `inert'.
+\item Label all parameters of the LPE with `inert'.
 
 \item Consider the guards of all summands of the LPE.
-Unmark all LPE parameters that occur in the guard of a summand.
+Remove the `inert' label from all LPE parameters that occur in the guard of a summand.
 
-\item Let $P$ be the set of all LPE parameters that are marked as `inert', and consider all expressions $v_s(p)$ that define the value of an LPE parameter $p$ after application of a summand $s$.
-For each such expression, if $p$ is \emph{not} marked as `inert', unmark all LPE parameters that occur in $v_s(p)$.
+\item Let $P$ be the set of all LPE parameters that are labeled with `inert', and consider all expressions $v_s(p)$ that define the value of an LPE parameter $p$ after application of a summand $s$.
+For each such expression, if $p$ is \emph{not} labeled with `inert', remove the `inert' label from all LPE parameters that occur in $v_s(p)$.
 
 \item Repeat the previous step until the fixpoint of $P$ is reached.
 Then remove all LPE parameters that are still marked as `inert' from the LPE, substituting references to those parameters by their initial values.
