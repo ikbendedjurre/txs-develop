@@ -56,6 +56,8 @@ that is identified by $P$ is said to be in \emph{LPE form} if $b_\textit{LPE}$ f
 \textit{ProcInst} &::= P \; [C_1, \cdots{}, C_n] \; [\textit{VExpr}, \cdots{}, \textit{VExpr}]
 \end{align*}
 
+Note that $x_1, \cdots{}, x_m$ can occur at most once in the list of communication variables of a summand!
+
 \section{Data structure}
 
 The implementation stores a \txs{} model that is in restricted model form in a dedicated data structure before any of the techniques that are described in this document are applied.

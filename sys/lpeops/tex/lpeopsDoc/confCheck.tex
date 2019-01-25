@@ -2,40 +2,46 @@
 
 \section{Introduction}
 
-Confluence checking is the analysis of an LPE to find ISTEP summands that are \emph{confluent}.
-A confluent ISTEP summand is a summand with the property that the possible behavior of a system is the same up to branching bisimulation before and after applying that summand.
+The \texttt{confcheck} command perform a \emph{confluence analysis} on the LPE in order to determine which \istep{} summands are \emph{confluent}
+A confluent \istep{} summand is an \istep{} summand with the property that the possible behavior of a system is the same up to branching bisimulation before and after the application of that summand.
 
-If branching bisimulation is sufficient in terms of accuracy, confluence information can be used to speed up state space generation by prioritizing confluent ISTEP summands.
-Note that this means that confluence checking does not bring benefits on its own!
+The \texttt{confcheck} command will rename confluent \istep{}s to \cistep{}s.
+The \texttt{confelm} command can be used next in order to prioritize \cistep{}s, which may reduce the state space.
 
 \section{Algorithm}
 
-Consider all possible pairs of summands $(s, t)$ of the LPE where $s$ is a summand that communicates exclusively over the channel ISTEP and does a recursive process instantiation.
+Consider all possible pairs of summands $(s_1, s_2)$ of the LPE where $s_1$ is a summand that does not communicate over any channel or communicates over the channel \istep{} (these two situations are equivalent).
 Then
-
-\begin{lstlisting}[mathescape]
-$s$ = ISTEP [[$c_s$]] >-> P($v_s(x_1)$, $\cdots{}$, $v_s(x_n)$)
-$t$ = $A$ ? $a_1$ ? $\cdots{}$ ? $a_m$ [[$c_t \land a_1 = h_1 \land \cdots{} \land a_m = h_m$]]
-                      >-> P($v_t(x_1)$, $\cdots{}$, $v_t(x_n)$)
-\end{lstlisting}
+\begin{align*}
+s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
+\end{align*}
 
 where
 
 \begin{itemize}
-\item $x_1$ to $x_n$ are all process parameters of the LPE;
-\item $v_s$ and $v_t$ are functions that yield the expressions that summands $s$ and $t$, respectively, assign to a given process parameter in their recursive process instantiation.
+\item $C_1$ equals $\istep{}$;
+\item $C_2$ is the name of the channel over which summand $s_2$ communicates;
+\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
+\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
+\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
+\item $P$ is the LPE to which summand $s_i$ belongs;
+\item $p_1, \cdots{}, p_k$ are the parameters of the LPE, of which there are $k \geq 0$;
+\item $v_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$).
 \end{itemize}
 
 Furthermore, let
 \begin{align*}
-\rho_s &= [x_1 \rightarrow v_s(x_1), \cdots{}, x_n \rightarrow v_s(x_n)] \\
-\rho_t &= [x_1 \rightarrow v_t(x_1), \cdots{}, x_n \rightarrow v_t(x_n)]
+V_{1} &= [p_j \rightarrow q_{1,j} \;|\; 1 \leq j \leq k] \cup [x_1(j) \rightarrow y_1(j) \;|\; 1 \leq j \leq m_1] \\
+V_{2} &= [p_j \rightarrow q_{2,j} \;|\; 1 \leq j \leq k] \cup [x_2(j) \rightarrow y_2(j) \;|\; 1 \leq j \leq m_2] \\
+V_{12} &= [q_{1,j} \rightarrow r_j \;|\; 1 \leq j \leq k] \\
+V_{21} &= [q_{2,j} \rightarrow r_j \;|\; 1 \leq j \leq k] \\
 \end{align*}
 
 If for a particular ISTEP summand $s$ the following condition holds for all pairs $(s, t)$ such that $s \neq t$, then $s$ is confluent:
 \begin{align*}
-c_s \land c_t \rightarrow{} &c_s[\rho_t] \land c_t[\rho_s] \\
-&{} \land h_1 = h_1[\rho_s] \land \cdots{} \land h_m = h_m[\rho_s] \\
+g_1 \land g_2 &\land \bigwedge\limits_{j=1}^{m_1} x_1(j) = h_1(j) \land \bigwedge\limits_{j=1}^{m_2} x_2(j) = h_2(j) \\
+&\rightarrow{} g_1[Y_2] \land c_2[Y_1] \\
+&{} \land h_1 = x_1[Y_1] \land \cdots{} \land h_m = h_m[\rho_s] \\
 &{} \land x_1[\rho_s][\rho_t] = x_1[\rho_t][\rho_s] \land \cdots{} \land x_n[\rho_t][\rho_s] = x_n[\rho_s][\rho_t]
 \end{align*}
 
