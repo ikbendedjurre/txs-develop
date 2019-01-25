@@ -77,7 +77,7 @@ lpeParams = Map.keysSet . lpeInitEqs
 
 type LPESummands = Set.Set LPESummand
 
-data LPESummand = LPESummand { -- All local (=channel) variables, including hidden ones, which must all be fresh:
+data LPESummand = LPESummand { -- All local (=channel) variables, including hidden ones:
                                lpeSmdVars :: Set.Set VarId.VarId
                                -- Channel offers (see below):
                              , lpeSmdOffers :: LPEChanOffers

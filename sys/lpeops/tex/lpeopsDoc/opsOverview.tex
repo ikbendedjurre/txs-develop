@@ -1,5 +1,9 @@
 \chapter{LPE operations}
 
+\section{Introduction}
+
+TODO
+
 \section{Usage}
 
 The \texttt{lpeop} command has 3 space-separated arguments. In order, these arguments are:
@@ -11,11 +15,11 @@ These names are separated by the symbol \texttt{->}.
 
 LPE operations in the chain are executed from left to right, passing their output to the next LPE operation as input.
 If a problem occurs, the process ends immediately.
-Otherwise, the final LPE is saved as a new model.
+Otherwise, the final output model is saved as a new model.
 \item The name of the input model.
-The input model should be in the LPE format (obviously).
+The input model should be in restricted model form (see \ref{sec:restrictedmodelform}).
 \item A base name \textit{base} for generated output.
-The name is primarily used for the output model (if any), which is in the LPE format.
+The name is primarily used for the output model (if any), which is in restricted model form.
 However, LPE operations may adopt the name for their own purposes.
 The \texttt{export} operation, for example, will create a file by that name with the \texttt{.txs} extension.
 
@@ -26,6 +30,10 @@ Use the \texttt{inc} command to increase the counter (which starts at 1).
 
 \section{Basic operations}
 
+Table~\ref{tab:basiclpeops} gives an overview of the basic LPE operations.
+
+\begin{table}[!ht]
+\begin{center}
 \begin{tabularx}{\linewidth}{l|X|}
 \textbf{Operation} & \textbf{Description} \\ \hline
 \texttt{stop} & End the chain of operations immediately. \\ \hline
@@ -38,9 +46,35 @@ Use the \texttt{inc} command to increase the counter (which starts at 1).
 \texttt{start} & Set the location where the command chain should continue when looping. \\ \hline
 \texttt{inc} & Increase the counter that can be used in \textit{base}. \\ \hline
 \end{tabularx}
+\caption{Basic LPE operations.}
+\label{tab:basiclpeops}
+\end{center}
+\end{table}
 
-\section{Analysis and rewrite methods}
+\section{Analysis methods}
 
+Table~\ref{tab:lpeanalysisops} gives an overview of the LPE analysis operations.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabularx}{\linewidth}{l|X|}
+\textbf{Operation} & \textbf{Description} \\ \hline
+\texttt{isdet} & Return the input LPE after assessing whether it is deterministic. May yield false negatives. \\ \hline
+\texttt{mcrl2} & Convert the current LPE to an \mcrl{} specification (so that \mcrl{} can analyze it), and save it to \textit{base}\texttt{.mcrl2}. \\ \hline
+\texttt{confcheck} & Perform a confluence analysis on the input LPE, and return the input LPE in which confluent \texttt{ISTEP}s have been renamed to \texttt{CISTEP}s. \\ \hline
+\end{tabularx}
+\caption{LPE analysis operations.}
+\label{tab:lpeanalysisops}
+\end{center}
+\end{table}
+
+\section{Rewrite methods}
+
+Table~\ref{tab:lperewriteops} gives an overview of the LPE rewrite operations.
+Table~\ref{tab:lperewriteopsprops} shows which equivalence is preserved by each rewrite operation.
+
+\begin{table}[!ht]
+\begin{center}
 \begin{tabularx}{\linewidth}{l|X|}
 \textbf{Operation} & \textbf{Description} \\ \hline
 \texttt{clean} & Remove summands of which it can be established that there already exists an equivalent instance in the LPE from the input LPE; and remove summands of which it can be established via symbolic reachability that they cannot be reached from the input LPE. \\ \hline
@@ -48,30 +82,34 @@ Use the \texttt{inc} command to increase the counter (which starts at 1).
 \texttt{parelm} & Remove parameters of which it can be established that their value is never used from the input LPE. \\ \hline
 \texttt{parreset} & Set parameters of which it can be established via symbolic reachability that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
 \texttt{datareset} & Set parameters of which it can be established via control-flow analysis that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
-\texttt{confcheck} & Returns the input LPE after assessing whether it contains confluent \texttt{ISTEP} summands. \\ \hline
 \texttt{confelm} & Rewrite the input LPE so that confluent \texttt{ISTEP} summands are prioritized. \\ \hline
 \texttt{istepelm} & Rewrite the input LPE so that \texttt{ISTEP} channels no longer occur. \\ \hline
-\texttt{mcrl2} & Convert the current LPE to an \mcrl{} specification, and save it to \textit{base}\texttt{.mcrl2}. \\ \hline
-\texttt{isdet} & Return the input LPE after assessing whether it is deterministic. May yield false negatives. \\ \hline
 \texttt{det} & \textit{Experimental.} Rewrite the input LPE in an attempt to reduce non-determinism. By design, \texttt{det} does not generally remove all non-determinism in one execution because it may not terminate (so use with \texttt{loop}). \\ \hline
 \texttt{uguard} & \textit{Experimental.} Search for underspecified summands and remove them from the input LPE. \\ \hline
 \end{tabularx}
+\caption{LPE rewrite operations.}
+\label{tab:lperewriteops}
+\end{center}
+\end{table}
 
-\section{Operation properties}
-
+\begin{table}[!ht]
+\begin{center}
 \begin{tabularx}{\linewidth}{X|c|c|c|c|}
-\textbf{Operation} & \textbf{u-ioco} & \textbf{weak bis.} & \textbf{strong bis.} & \textbf{state sp. equiv.} \\ \hline
+\textbf{Operation} & \textbf{u-ioco} & \textbf{br. bis.} & \textbf{strong bis.} & \textbf{state sp. equiv.} \\ \hline
 \texttt{clean} & Yes & Yes & Yes & Yes \\ \hline
 \texttt{cstelm} & Yes & Yes & Yes & Yes\footnote{\label{statevectors}Only change is that state vectors may be smaller.} \\ \hline
 \texttt{parelm} & Yes & Yes & Yes & No \\ \hline
 \texttt{parreset} & Yes & Yes & Yes & No \\ \hline
 \texttt{datareset} & Yes & Yes & Yes & No \\ \hline
-\texttt{confcheck} & Yes & Yes & Yes & Yes \\ \hline
 \texttt{confelm} & Yes & Yes & No & No \\ \hline
 \texttt{istepelm} & Yes & Yes & No & No \\ \hline
-\texttt{mcrl2} & Yes & Yes & Yes & Yes \\ \hline
-\texttt{isdet} & Yes & Yes & Yes & Yes \\ \hline
 \texttt{det} & Yes & Yes & Yes & No \\ \hline
 \texttt{uguard} & Yes & No & No & No \\ \hline
 \end{tabularx}
+\caption{LPE rewrite operations.}
+\label{tab:lperewriteopsprops}
+\end{center}
+\end{table}
+
+
 
