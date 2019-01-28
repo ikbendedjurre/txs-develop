@@ -29,18 +29,25 @@ where
 Summand $s_1$ is said to be \emph{deterministic with} $s_2$ if one of these conditions holds:
 
 \begin{itemize}
+\item $s_1$ and $s_2$ are the same summand; that is, $s_1 = s_2$.
+
 \item $s_1$ and $s_2$ communicate over different channels:
 \begin{align*}
 C_1 \neq C_2 \land (C_1 \in \{\istep{}, \cistep{}\} \not\leftrightarrow C_2 \in \{\istep{}, \cistep{}\})
 \end{align*}
 
-\item $s_1$ and $s_2$ are never simultaneously enabled.
-This is the case if the following expression has definitely no solution:
+\item $s_1$ and $s_2$ communicate with different numbers of communication variables; that is, $m_1 \neq m_2$.
+
+\item $s_1$ and $s_2$ are never simultaneously enabled, or $s_1$ and $s_2$ always lead to the same next state.
+In order to determine this, check if
 \begin{align*}
-g_1 \land g_2[ x_2(j) \rightarrow q(x_2(j)) \;|\; 1 \leq j \leq m_2 ]
+g_1[V_2] \land g_2 \rightarrow \bigwedge\limits_{j=1}^{k} v_1(p_j)[V_2] = v_2(p_j)
 \end{align*}
 
-where $q(x)$ is a surjective function that yields fresh variables.
+is a tautology, where $V_2$ is defined as
+\begin{align*}
+V_{2} &= [x_1(j) \rightarrow x_2(j) \;|\; 1 \leq j \leq \text{min}(m_1, m_2)]
+\end{align*}
 \end{itemize}
 
 Note that this approach is \emph{not} guaranteed to correctly recognize that two summands are deterministic (false negatives are tolerated)!
@@ -70,38 +77,45 @@ Consider the following LPE:
 \begin{lstlisting}
 //Process definition:
 PROCDEF example[A :: Int, B](x, y :: Int)
-  = A ? i [[x==0]] >-> example[A, B](1, i)
-  + A ? i [[x==1 && i==y]] >-> example[A, B](2, y)
-  + B [[x==2]] >-> example[A, B](3, y)
-  + B [[x==3]] >-> example[A, B](0, y)
+  = A ? i [[x==0 /\ i>=0 /\ i<=5]] >-> example[A, B](1, 0)
+  + A ? i [[y==0 /\ i>=5 /\ i<=9]] >-> example[A, B](0, 1)
   ;
 
 //Initialization:
-example[A, B](0, 0);
+example[A, B](0, 1);
 \end{lstlisting}
 
-Finding the successors of each summand is easy: each summand has exactly one successor, namely the next one, except in case of the fourth summand, where the first summand is the successor.
+Consider the two summands, calling the first $s_1$ and the second $s_2$.
 
-It is also obvious that $x$ will always be in $R_s$ for each summand $s$, because each summand uses $x$ in its guard.
+The first three conditions for detecting determinism are false.
 
-Process parameter $y$ will always be in $R_{s_1}$, where $s_1$ is the first summand, because $y$ is used in the guard of $s_1$'s successor (the second summand).
-After a few iterations, however, $y$ is removed from $R_{s_2}$ to $R_{s_4}$.
-This means that $y$ is assigned a default value in the corresponding summands.
-Depending on the mood of the SMT solver, this could give
+For the fourth condition, the antecedent is
+\begin{align*}
+g_1[V_2] \land g_2 &\Leftrightarrow (\texttt{x} = 0 \land \texttt{i} \geq 0 \land \texttt{i} \leq 5)[\texttt{i} \rightarrow \texttt{i}] \land (\texttt{y} = 0 \land \texttt{i} \geq 5 \land \texttt{i} \leq 9) \\
+&\Leftrightarrow \texttt{x} = 0 \land \texttt{y} = 0 \land \texttt{i} = 5
+\end{align*}
+
+Given the antecedent, the conclusion must hold.
+This is not the case:
+\begin{align*}
+v_1(\texttt{x})[V_2] = 1[\texttt{i} \rightarrow \texttt{i}] = 1 \neq 0 = v_2(\texttt{x}) \\
+v_1(\texttt{y})[V_2] = 0[\texttt{i} \rightarrow \texttt{i}] = 0 \neq 1 = v_2(\texttt{y}) \\
+\end{align*}
+
+$s_1$ is therefore \emph{not} deterministic with $s_2$.
+
+Changing the LPE to
 
 \begin{lstlisting}
 //Process definition:
 PROCDEF example[A :: Int, B](x, y :: Int)
-  = A ? i [[x==0]] >-> example[A, B](1, i)
-  + A ? i [[x==1 && i==y]] >-> example[A, B](2, 0)
-  + B [[x==2]] >-> example[A, B](3, 0)
-  + B [[x==3]] >-> example[A, B](0, 0)
+  = A ? i [[x==0 /\ i>=0 /\ i<=4]] >-> example[A, B](1, 0)
+  + A ? i [[y==0 /\ i>=5 /\ i<=9]] >-> example[A, B](0, 1)
   ;
 
 //Initialization:
-example[A, B](0, 0);
+example[A, B](0, 1);
 \end{lstlisting}
 
-
-
+will result in an antecedent that is false; consequently, $s_1$ is deterministic with $s_2$.
 

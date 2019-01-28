@@ -82,27 +82,27 @@ Consider the following example:
 //Process definition:
 PROCDEF example[A :: Int](x, y :: Int)
   = A >-> example[A]((x+1) mod 3, y)
-  + ISTEP >-> example[A](x, (y+1) mod 4)
+  + CISTEP >-> example[A](x, (y+1) mod 4)
   ;
 
 //Initialization:
 example[A](0, 0);
 \end{lstlisting}
 
-The second summand is a confluent ISTEP summand.
+The second summand is a \cistep{} summand.
 It is also a definite successor of the first summand.
-This means that the second summand can be appended to the first summand.
+This means that the second summand will be appended to the first summand.
 
 The second summand is also a definite successor of itself.
-This means that the second summand can also be appended to itself.
+This means that the second summand will also be appended to itself.
 
-Therefore, the original process can be changed to
+Therefore, the original process is changed to
 
 \begin{lstlisting}
 //Process definition:
 PROCDEF example[A :: Int](x, y :: Int)
   = A >-> example[A]((x+1) mod 3, (y+1) mod 4)
-  + ISTEP >-> example[A](x, (((y+1) mod 4)+1) mod 4)
+  + CISTEP >-> example[A](x, (((y+1) mod 4)+1) mod 4)
   ;
 
 //Initialization:

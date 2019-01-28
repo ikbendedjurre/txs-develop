@@ -57,7 +57,7 @@ PROCDEF example[A :: Int, B](x, z :: Int)
   = A ? i [[x==0]] >-> example[A, B](i, z)
   + A ? i [[x==1]] >-> example[A, B](0, z)
   + B [[x==2]] >-> example[A, B](0, z)
-  + B >-> example[A, B](z, x)
+  + B [[true]] >-> example[A, B](z, x)
   ;
 
 //Initialization:

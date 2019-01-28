@@ -72,18 +72,28 @@ example[A](0, 0);
 Let $s_1$ be the first and $s_2$ the second summand.
 Is $s_2$ confluent?
 
-Since $\{ x_1(1), \cdots{} x_1(m_1) \} \cap \{ x_2(1), \cdots{} x_2(m_2) \} = \emptyset{}$, $X$ can be ignored.
+First, since $\{ x_1(1), \cdots{} x_1(m_1) \} \cap \{ x_2(1), \cdots{} x_2(m_2) \} = \emptyset{}$, $X$ can be ignored.
 
-If $g_1 \land g_2$ holds, then $g_1[V_2] \land g_2[V_1]$ holds as well.
-Also,
+Second, if
+\begin{align*}
+g_1 \land g_2 \Leftrightarrow (x \leq 9 \land x=i) \land (y \leq 9)
+\end{align*}
+
+holds, then
+\begin{align*}
+g_1[V_2] \land g_2[V_1] &\Leftrightarrow (x \leq 9 \land x=i)[ y \rightarrow y+1 ] \land (y \leq 9)[ x \rightarrow y+1 ] \\
+&\Leftrightarrow (x \leq 9 \land x=i) \land (y \leq 9)
+\end{align*}
+
+holds as well.
+
+Third, it is the case that
 \begin{align*}
 x[V_1][V_2] = x+1 = x[V_2][V_1] \\
 y[V_1][V_2] = y+1 = y[V_2][V_1]
 \end{align*}
 
-and therefore the confluence condition holds.
-
-So yes, the second summand is confluent.
+Therefore the confluence condition holds, which means that $s_2$ is confluent.
 
 To store the new information about the second summand, the channel is renamed to \cistep{}:
 
