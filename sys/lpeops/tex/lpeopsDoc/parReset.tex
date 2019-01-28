@@ -29,8 +29,6 @@ where
 \item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
 \end{itemize}
 
-The fresh variables of the bijective function $q(p)$ are necessary to distinguish LPE parameters before and after the application of summand $s$ (if $p$ is the LPE parameter before, then $q(p)$ is the LPE parameter after).
-
 \section{Implementation}
 
 The algorithm is a generalization of an existing algorithm \cite{van2009state}.
@@ -65,7 +63,7 @@ where
 
 \end{enumerate}
 
-\section{Example TOCHECK}
+\section{Example}
 
 Consider the following LPE:
 
@@ -89,7 +87,7 @@ It is also obvious that $x$ will always be in $R_s$ for each summand $s$, becaus
 Process parameter $y$ will always be in $R_{s_1}$, where $s_1$ is the first summand, because $y$ is used in the guard of $s_1$'s successor (the second summand).
 After a few iterations, however, $y$ is removed from $R_{s_2}$ to $R_{s_4}$.
 This means that $y$ is assigned a default value in the corresponding summands.
-Depending on the mood of the SMT solver, this could give
+Choosing the initial value of $y$ as its default value gives
 
 \begin{lstlisting}
 //Process definition:

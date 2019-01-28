@@ -34,7 +34,7 @@ Then remove all LPE parameters that are still labeled as `constant' from the LPE
 
 \end{enumerate}
 
-\section{Example TOCHECK}
+\section{Example}
 
 Consider the following LPE:
 
@@ -66,7 +66,7 @@ We must check the following equations:
 (z = z+1)[\rho] &\Leftrightarrow (2 = 2+1) \Leftrightarrow \textit{false} \\
 \end{align*}
 
-The last equation is not a tautology, and so $z$ is unmarked.
+The last equation is not a tautology, and the `constant' label is therefore removed from $z$.
 
 The new value of $\rho$ is $[ x \rightarrow 1, y \rightarrow 1 ]$.
 
@@ -82,15 +82,15 @@ The equations are now the following:
 (y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
 \end{align*}
 
-All of the equations above are tautologies, and so $x$ and $y$ remain marked.
-Removing the marked parameters from the LPE gives
+All of the equations above are tautologies, and so $x$ and $y$ remain labeled with `constant'.
+A fixpoint has been reached; removing $x$ and $y$ from the LPE gives
 
 \begin{lstlisting}
 //Process definition:
 PROCDEF example[A](z :: Int)
   = A [[z==2]] >-> example[A](2)
-  + A >-> example[A](2)
-  + A >-> example[A](z+1)
+  + A [[true]] >-> example[A](2)
+  + A [[true]] >-> example[A](z+1)
   ;
 
 //Initialization:
@@ -98,4 +98,16 @@ example[A](2);
 \end{lstlisting}
 
 Obviously, more simplification is possible.
+Applying the \texttt{clean} command (see \ref{clean}) gives
+
+\begin{lstlisting}
+//Process definition:
+PROCDEF example[A](z :: Int)
+  = A [[true]] >-> example[A](2)
+  + A [[true]] >-> example[A](z+1)
+  ;
+
+//Initialization:
+example[A](2);
+\end{lstlisting}
 

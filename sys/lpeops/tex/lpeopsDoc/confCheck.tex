@@ -54,14 +54,14 @@ g_1 \land g_2[X] \rightarrow g_1[V_2] \land g_2[X][V_1] \land \bigwedge\limits_{
 
 Note that this approach does \emph{not} yield all confluent \istep{} summands (it is an under-approximation).
 
-\section{Example TOCHECK}
+\section{Example}
 
 Consider the following example:
 
 \begin{lstlisting}
 //Process definition:
 PROCDEF example[A :: Int](x, y :: Int)
-  = A ? i [[x<=9 && x==i]] >-> example[A](x+1, y)
+  = A ? i [[x<=9 /\ x==i]] >-> example[A](x+1, y)
   + ISTEP [[y<=9]] >-> example[A](x, y+1)
   ;
 
@@ -69,26 +69,28 @@ PROCDEF example[A :: Int](x, y :: Int)
 example[A](0, 0);
 \end{lstlisting}
 
-Is the second summand confluent?
+Let $s_1$ be the first and $s_2$ the second summand.
+Is $s_2$ confluent?
 
-If $c_s \land c_t$ holds, then $c_s[\rho_t] \land c_t[\rho_s]$ holds as well.
-Since $h_i$ does not use $y$, it is unaffected by $\rho_s$.
-Finally,
+Since $\{ x_1(1), \cdots{} x_1(m_1) \} \cap \{ x_2(1), \cdots{} x_2(m_2) \} = \emptyset{}$, $X$ can be ignored.
+
+If $g_1 \land g_2$ holds, then $g_1[V_2] \land g_2[V_1]$ holds as well.
+Also,
 \begin{align*}
-x[\rho_s][\rho_t] = x[\rho_t][\rho_s] = x+1 \\
-y[\rho_s][\rho_t] = y[\rho_t][\rho_s] = y+1
+x[V_1][V_2] = x+1 = x[V_2][V_1] \\
+y[V_1][V_2] = y+1 = y[V_2][V_1]
 \end{align*}
 
 and therefore the confluence condition holds.
 
 So yes, the second summand is confluent.
 
-To store the new information about the second summand, the channel is renamed to CISTEP:
+To store the new information about the second summand, the channel is renamed to \cistep{}:
 
 \begin{lstlisting}
 //Process definition:
 PROCDEF example[A :: Int](x, y :: Int)
-  = A ? i [[x<=9 && x==i]] >-> example[A](x+1, y)
+  = A ? i [[x<=9 /\ x==i]] >-> example[A](x+1, y)
   + CISTEP [[y<=9]] >-> example[A](x, y+1)
   ;
 

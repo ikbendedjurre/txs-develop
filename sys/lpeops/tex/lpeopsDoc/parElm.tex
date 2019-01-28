@@ -26,7 +26,7 @@ Then remove all LPE parameters that are still marked as `inert' from the LPE, su
 \end{enumerate}
 
 \clearpage
-\section{Example TOCHECK}
+\section{Example}
 
 Consider the following LPE:
 
@@ -36,19 +36,19 @@ PROCDEF example[A :: Int, B](x, y, z :: Int)
   = A ? i [[x==0]] >-> example[A, B](i, y, z)
   + A ? i [[x==1]] >-> example[A, B](0, i, z)
   + B [[x==2]] >-> example[A, B](0, y, z)
-  + B >-> example[A, B](z, y, x)
+  + B [[true]] >-> example[A, B](z, y, x)
   ;
 
 //Initialization:
 example[A, B](0, 0, 0);
 \end{lstlisting}
 
-First, $x$ is unmarked, because it occurs in the guards of the first three summands.
+First, the `inert' label is removed from $x$ because $x$ occurs in the guards of the first three summands.
 
 In the fourth summand, $z$ is used in the expression of which the value is assigned to $x$.
-Therefore $z$ must also be unmarked.
+Therefore $z$ is also no longer labeled with `inert'.
 
-$y$ remains marked: it does not occur in a guard, nor is it used in the assignment to a process parameter other than itself.
+$y$ remains labeled with `inert': it does not occur in a guard, nor is it used in the assignment to a process parameter other than itself.
 Removing $y$ gives
 
 \begin{lstlisting}
