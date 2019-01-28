@@ -13,7 +13,7 @@ The \texttt{confelm} command can be used next in order to prioritize \cistep{}s,
 Consider all possible pairs of summands $(s_1, s_2)$ of the LPE where $s_1$ is a summand that does not communicate over any channel or communicates over the channel \istep{} (these two situations are equivalent).
 Then
 \begin{align*}
-s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
+s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \; \texttt{>->} \; P(v_i(p_1), \cdots{}, v_i(p_k))
 \end{align*}
 
 where
@@ -29,21 +29,30 @@ where
 \item $v_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$).
 \end{itemize}
 
-Furthermore, let
+Since it cannot be assumed that
 \begin{align*}
-V_{1} &= [p_j \rightarrow q_{1,j} \;|\; 1 \leq j \leq k] \cup [x_1(j) \rightarrow y_1(j) \;|\; 1 \leq j \leq m_1] \\
-V_{2} &= [p_j \rightarrow q_{2,j} \;|\; 1 \leq j \leq k] \cup [x_2(j) \rightarrow y_2(j) \;|\; 1 \leq j \leq m_2] \\
-V_{12} &= [q_{1,j} \rightarrow r_j \;|\; 1 \leq j \leq k] \\
-V_{21} &= [q_{2,j} \rightarrow r_j \;|\; 1 \leq j \leq k] \\
+\{ x_1(1), \cdots{} x_1(m_1) \} \cap \{ x_2(1), \cdots{} x_2(m_2) \} = \emptyset{}
 \end{align*}
 
-If for a particular ISTEP summand $s$ the following condition holds for all pairs $(s, t)$ such that $s \neq t$, then $s$ is confluent:
+a substitution $X$ is introduced such that
 \begin{align*}
-g_1 \land g_2 &\land \bigwedge\limits_{j=1}^{m_1} x_1(j) = h_1(j) \land \bigwedge\limits_{j=1}^{m_2} x_2(j) = h_2(j) \\
-&\rightarrow{} g_1[Y_2] \land c_2[Y_1] \\
-&{} \land h_1 = x_1[Y_1] \land \cdots{} \land h_m = h_m[\rho_s] \\
-&{} \land x_1[\rho_s][\rho_t] = x_1[\rho_t][\rho_s] \land \cdots{} \land x_n[\rho_t][\rho_s] = x_n[\rho_s][\rho_t]
+X = [ x_2(j) \rightarrow q(x_2(j)) \;|\; 1 \leq j \leq m_2 ]
 \end{align*}
+
+where $q(x)$ is a surjective function that yields fresh variables.
+
+We also define
+\begin{align*}
+V_{1} &= [p_j \rightarrow v_1(p_j) \;|\; 1 \leq j \leq k] \\
+V_{2} &= [p_j \rightarrow v_2(p_j)[X] \;|\; 1 \leq j \leq k]
+\end{align*}
+
+Using the definitions above, a particular \istep{} summand $s_1$ is confluent if the following expression is a tautology for all pairs $(s_1, s_2)$ such that $s_2 \neq s_1$:
+\begin{align*}
+g_1 \land g_2[X] \rightarrow g_1[V_2] \land g_2[X][V_1] \land \bigwedge\limits_{j=1}^{k} p_j[V_2][V_1] = p_j[V_1][V_2]
+\end{align*}
+
+Note that this approach does \emph{not} yield all confluent \istep{} summands (it is an under-approximation).
 
 \section{Example TOCHECK}
 

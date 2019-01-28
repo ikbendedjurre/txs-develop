@@ -16,9 +16,9 @@ The \texttt{datareset} command, serving a similar purpose (see \ref{datareset}),
 \subsection{Possible successors}
 
 Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $t$ be a \emph{possible successor} of $s$ if the following equation is satisfiable:
+Of a given summand pair $(s, t)$, let $t$ be a \emph{possible successor} of $s$ if the following expression is satisfiable:
 \begin{align*}
-g_s \land {g_t}[p \rightarrow q(p) \;|\; p \in P][q(p) \rightarrow v_s(p) \;|\; p \in P]
+g_s \land {g_t}[p \rightarrow v_s(p) \;|\; p \in P]
 \end{align*}
 
 where
@@ -26,7 +26,6 @@ where
 \begin{itemize}
 \item $g_s$ and $g_t$ are the guards of summands $s$ and $t$, respectively;
 \item $P$ is the set of all LPE parameters;
-\item $q(p)$ is a bijective function that relates LPE parameter $p$ to a fresh variable;
 \item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
 \end{itemize}
 

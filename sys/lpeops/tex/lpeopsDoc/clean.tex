@@ -54,9 +54,9 @@ Note that $s_1$ could contain all behavior of $s_2$ without these two conditions
 \subsection{Summand reachability}
 
 Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $s$ be a \emph{possible predecessor} of $s$ if the following equation is satisfiable:
+Of a given summand pair $(s, t)$, let $s$ be a \emph{possible predecessor} of $s$ if the following expression is satisfiable:
 \begin{align*}
-g_s \land {g_t}[p \rightarrow q(p) \;|\; p \in P][q(p) \rightarrow v_s(p) \;|\; p \in P]
+g_s \land {g_t}[p \rightarrow v_s(p) \;|\; p \in P]
 \end{align*}
 
 where
@@ -64,11 +64,8 @@ where
 \begin{itemize}
 \item $g_s$ and $g_t$ are the guards of summands $s$ and $t$, respectively;
 \item $P$ is the set of all LPE parameters;
-\item $q(p)$ is a bijective function that relates LPE parameter $p$ to a fresh variable;
 \item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
 \end{itemize}
-
-The fresh variables of the bijective function $q(p)$ are necessary to distinguish LPE parameters before and after the application of summand $s$ (if $p$ is the LPE parameter before, then $q(p)$ is the LPE parameter after).
 
 A summand $t$ is said to be \emph{reachable} if at least one of these two condition holds:
 

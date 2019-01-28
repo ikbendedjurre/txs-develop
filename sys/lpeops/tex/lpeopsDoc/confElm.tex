@@ -9,9 +9,9 @@ This has the effect that other branches that could follow those summands are ign
 \subsection{Definite successors}
 
 Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $t$ be a \emph{definite successor} of $s$ if the following equation is a tautology:
+Of a given summand pair $(s, t)$, let $t$ be a \emph{definite successor} of $s$ if the following expression is a tautology:
 \begin{align*}
-c_s \land {c_t}[p \rightarrow q(p) \;|\; p \in P][q(p) \rightarrow v_s(p) \;|\; p \in P]
+c_s \land {c_t}[p \rightarrow v_s(p) \;|\; p \in P]
 \end{align*}
 
 where
@@ -19,16 +19,13 @@ where
 \begin{itemize}
 \item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively;
 \item $P$ is the set of all LPE parameters;
-\item $q(p)$ is a bijective function that relates LPE parameter $p$ to a fresh variable;
 \item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
 \end{itemize}
 
-The fresh variables of the bijective function $q(p)$ are necessary to distinguish LPE parameters before and after the application of summand $s$ (if $p$ is the LPE parameter before, then $q(p)$ is the LPE parameter after).
-
 \section{Implementation}
 
-For each summand $s$, let $D_s$ be the set of all definite successors of $s$.
-$D_s$ is an under-approximation of the actual successors of $s$.
+For each summand $s$, let $D(s)$ be the set of all definite successors of $s$.
+By definition, $D(s)$ is an under-approximation of the actual successors of $s$.
 
 The algorithm follows these steps:
 
@@ -37,29 +34,42 @@ The algorithm follows these steps:
 \item Determine which \istep{} summands of the LPE are confluent (see \ref{confcheck}).
 Rename the \istep{} channels in confluent \istep{} summands to \cistep{}.
 
-\item For each summand $s$, determine $D_s$.
-Check if $D_s$ contains summand $t$ with an \cistep{} channel.
+\item For each summand $s_1$, determine $D(s_1)$.
+Check if there exists a summand $s_2 \in D(s_1)$ such that $s_2$ communicates over the \cistep{} channel.
 If so, let
-
-\begin{lstlisting}[mathescape]
-$s$ = $A$ ? $a_1$ ? $\cdots{}$ ? $a_m$ [[$c_s$]] >-> P($v_s(x_1)$, $\cdots{}$, $v_s(x_n)$)
-$t$ = ISTEP [[$c_t$]] >-> P($v_t(x_1)$, $\cdots{}$, $v_t(x_n)$)
-\end{lstlisting}
+\begin{align*}
+s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \; \texttt{>->} \; P(v_i(p_1), \cdots{}, v_i(p_k))
+\end{align*}
 
 where
 
 \begin{itemize}
-\item $x_1$ to $x_n$ are all process parameters of the LPE;
-\item $v_s$ and $v_t$ are functions that yield the expressions that summands $s$ and $t$, respectively, assign to a given process parameter in their recursive process instantiation.
+\item $C_1$ is the name of the channel over which summand $s_1$ communicates;
+\item $C_2$ equals $\cistep{}$;
+\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
+\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
+\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
+\item $P$ is the LPE to which summand $s_i$ belongs;
+\item $p_1, \cdots{}, p_k$ are the parameters of the LPE, of which there are $k \geq 0$;
+\item $v_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$).
 \end{itemize}
 
-Furthermore, let $\rho_s = [x_1 \rightarrow v_s(x_1), \cdots{}, x_n \rightarrow v_s(x_n)]$.
+Furthermore, let
+\begin{align*}
+X = [ x_2(j) \rightarrow q(x_2(j)) \;|\; 1 \leq j \leq m_2 ]
+\end{align*}
 
-Replace $s$ by $s'$:
+where $q(x)$ is a surjective function that yields fresh variables, and let
+\begin{align*}
+V_{1} &= [p_j \rightarrow v_1(p_j) \;|\; 1 \leq j \leq k]
+\end{align*}
 
-\begin{lstlisting}[mathescape]
-$s'$ = $A$ ? $a_1$ ? $\cdots{}$ ? $a_m$ [[$c_s$]] >-> P($v_t(x_1)[\rho_s]$, $\cdots{}$, $v_t(x_n)[\rho_s]$)
-\end{lstlisting}
+\item Replace $s_1$ by ${s_1}'$, which is defined as
+\begin{align*}
+{s_1}' = C_1 \; &\texttt{?} \; x_1(1) \; \cdots{} \; \texttt{?} \; x_1(m_1) \\
+&\texttt{?} \; x_2(1)[X] \; \cdots{} \; \texttt{?} \; x_2(m_2)[X] \\
+&[[g_1]] \; \texttt{>->} \; P(v_2(p_1)[X][V_1], \cdots{}, v_2(p_k)[X][V_1])
+\end{align*}
 
 \end{enumerate}
 
