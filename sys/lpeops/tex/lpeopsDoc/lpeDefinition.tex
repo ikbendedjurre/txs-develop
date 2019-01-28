@@ -53,7 +53,7 @@ that is identified by $P$ is said to be in \emph{LPE form} if $b_\textit{LPE}$ f
 \textit{ActionSummand} &::= \texttt{ActionPref} \; \textit{ActOffer} \; \textit{ProcInst} \\
 \textit{ActOffer} &::= \texttt{ActOffer} \; \textit{ActChan} \; [\texttt{Quest} \; x_1, \cdots{}, \texttt{Quest} \; x_m] \; \textit{VExpr} \\
 \textit{ActChan} &::= [\;] \;|\; [C_1 \;| \cdots{} |\; C_n \;|\; \texttt{ISTEP} \;|\; \texttt{CISTEP}] \\
-\textit{ProcInst} &::= P \; [C_1, \cdots{}, C_n] \; [ \textit{VExpr}, \cdots{}, \textit{VExpr} ]
+\textit{ProcInst} &::= P \; [C_1, \cdots{}, C_n] \; [\!\textit{VExpr}, \cdots{}, \textit{VExpr} ]
 \end{align*}
 
 Note that each of $x_1, \cdots{}, x_m$ can occur at most once in the list of communication variables of a summand!

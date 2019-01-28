@@ -71,10 +71,11 @@ V_{1} &= [p_j \rightarrow v_1(p_j) \;|\; 1 \leq j \leq k]
 &[[g_1]] \; \texttt{>->} \; P(v_2(p_1)[X][V_1], \cdots{}, v_2(p_k)[X][V_1])
 \end{align*}
 
+\item Replace all occurrences of \cistep{} channels with \istep{} channels.
 \end{enumerate}
 
 \clearpage
-\section{Example TOCHECK}
+\section{Example}
 
 Consider the following example:
 
@@ -102,7 +103,7 @@ Therefore, the original process is changed to
 //Process definition:
 PROCDEF example[A :: Int](x, y :: Int)
   = A >-> example[A]((x+1) mod 3, (y+1) mod 4)
-  + CISTEP >-> example[A](x, (((y+1) mod 4)+1) mod 4)
+  + ISTEP >-> example[A](x, (((y+1) mod 4)+1) mod 4)
   ;
 
 //Initialization:
