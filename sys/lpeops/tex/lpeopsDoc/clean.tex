@@ -12,44 +12,29 @@ The state space of the LPE is not affected by the changes.
 
 \subsection{Summand containment}
 
-Consider two summands, $s_1$ and $s_2$, defined as
-\begin{align*}
-s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
-\end{align*}
+Consider two summands, $s_\alpha$ and $s_\beta$, and reference their elements conform \ref{summandelements}.
 
-where
+Summand $s_\alpha$ is said to \emph{contain} $s_\beta$ if these two conditions hold:
 
 \begin{itemize}
-\item $C_i$ is the name of the channel over which summand $s_i$ communicates;
-\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
-\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
-\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
-\item $P$ is the LPE to which summand $s_i$ belongs;
-\item $p_1, \cdots{}, p_k$ are the parameters of the LPE, of which there are $k \geq 0$;
-\item $v_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
-\end{itemize}
+\item $s_\alpha$ and $s_\beta$ must communicate over the exact same channel with exactly as many channel variables; that is, $C_\alpha = C_\beta \land m_\alpha = m_\beta$.
 
-Summand $s_1$ is said to \emph{contain} $s_2$ if these two conditions hold:
-
-\begin{itemize}
-\item $s_1$ and $s_2$ must communicate over the exact same channel with exactly as many channel variables; that is, $C_1 = C_2 \land m_1 = m_2$.
-
-\item Given the previous condition, define $m = m_1 = m_2$ and, in particular, the mapping
+\item Given the previous condition, define $m = m_\alpha = m_\beta$ and, in particular, the mapping
 \begin{align*}
-V = [x_2(j) \rightarrow x_1(j) \;|\; 1 \leq j \leq m]
+X_\alpha = [x_\beta(j) \rightarrow x_\alpha(j) \;|\; 1 \leq j \leq m]
 \end{align*}
 
 The following conditions must also hold:
 \begin{align*}
-g_2[V] &\rightarrow g_1 \\
-v_1(p) = v_2(p)[V] &\leftrightarrow \text{\textit{True}} \text{ for all } p \in [p_1, \cdots{}, p_k]
+g_\beta[X_\alpha] &\rightarrow g_\alpha \\
+v_\alpha(p) = v_\beta(p)[X_\alpha] &\leftrightarrow \text{\textit{True}} \text{ for all } p \in [p_1, \cdots{}, p_k]
 \end{align*}
 
-The first condition demands that whenever $s_2$ is enabled, $s_1$ must also be enabled; consequently, $s_1$ is `always ready' to perform the same behavior as $s_2$.
-The second condition demands that the state after the application of $s_1$ is the same as the state after the application of $s_2$, regardless of the values of communication variables and LPE parameters.
+The first condition demands that whenever $s_\beta$ is enabled, $s_\alpha$ must also be enabled; consequently, $s_\alpha$ is `always ready' to perform the same behavior as $s_\beta$.
+The second condition demands that the state after the application of $s_\alpha$ is the same as the state after the application of $s_\beta$, regardless of the values of communication variables and LPE parameters.
 \end{itemize}
 
-Note that $s_1$ could contain all behavior of $s_2$ without these two conditions being true (we under-approximate by tolerating false negatives)!
+Note that $s_\alpha$ could contain all behavior of $s_\beta$ without these two conditions being true (we under-approximate by tolerating false negatives)!
 
 \subsection{Summand reachability}
 

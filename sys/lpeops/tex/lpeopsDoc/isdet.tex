@@ -7,46 +7,31 @@ The command may yield false negatives.
 
 \section{Background theory}
 
-\subsection{Summand non-determinism}
+\subsection{Summand determinism}
 
-Consider two summands, $s_1$ and $s_2$, defined as
-\begin{align*}
-s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \; \texttt{>->} \; P(v_i(p_1), \cdots{}, v_i(p_k))
-\end{align*}
+Consider two summands, $s_\alpha$ and $s_\beta$, and reference their elements conform \ref{summandelements}.
 
-where
+Summands $s_\alpha$ and $s_\beta$ are said to be \emph{deterministic} if one of these conditions holds:
 
 \begin{itemize}
-\item $C_i$ is the name of the channel over which summand $s_i$ communicates;
-\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
-\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
-\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
-\item $P$ is the LPE to which summand $s_i$ belongs;
-\item $p_1, \cdots{}, p_k$ are the parameters of the LPE, of which there are $k \geq 0$;
-\item $v_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$).
-\end{itemize}
+\item $s_\alpha$ and $s_\beta$ are the same summand; that is, $s_\alpha = s_\beta$.
 
-Summand $s_1$ is said to be \emph{deterministic with} $s_2$ if one of these conditions holds:
-
-\begin{itemize}
-\item $s_1$ and $s_2$ are the same summand; that is, $s_1 = s_2$.
-
-\item $s_1$ and $s_2$ communicate over different channels:
+\item $s_\alpha$ and $s_\beta$ communicate over different channels:
 \begin{align*}
-C_1 \neq C_2 \land (C_1 \in \{\istep{}, \cistep{}\} \not\leftrightarrow C_2 \in \{\istep{}, \cistep{}\})
+C_\alpha \neq C_\beta \land (C_\alpha \in \{\istep{}, \cistep{}\} \not\leftrightarrow C_\beta \in \{\istep{}, \cistep{}\})
 \end{align*}
 
-\item $s_1$ and $s_2$ communicate with different numbers of communication variables; that is, $m_1 \neq m_2$.
+\item $s_\alpha$ and $s_\beta$ communicate with different numbers of communication variables; that is, $m_\alpha \neq m_\beta$.
 
-\item $s_1$ and $s_2$ are never simultaneously enabled, or $s_1$ and $s_2$ always lead to the same next state.
+\item $s_\alpha$ and $s_\beta$ are never simultaneously enabled, or $s_\alpha$ and $s_\beta$ always lead to the same next state.
 In order to determine this, check if
 \begin{align*}
-g_1[V_2] \land g_2 \rightarrow \bigwedge\limits_{j=1}^{k} v_1(p_j)[V_2] = v_2(p_j)
+g_\alpha[X_\beta] \land g_\beta \rightarrow \bigwedge\limits_{j=1}^{k} v_\alpha(p_j)[X_\beta] = v_\beta(p_j)
 \end{align*}
 
-is a tautology, where $V_2$ is defined as
+is a tautology, where $X_\beta$ is defined as
 \begin{align*}
-V_{2} &= [x_1(j) \rightarrow x_2(j) \;|\; 1 \leq j \leq \text{min}(m_1, m_2)]
+X_{\beta} &= [x_\alpha(j) \rightarrow x_\beta(j) \;|\; 1 \leq j \leq \text{min}(m_\alpha, m_\beta)]
 \end{align*}
 \end{itemize}
 
@@ -78,15 +63,15 @@ The first three conditions for detecting determinism are false.
 
 For the fourth condition, the antecedent is
 \begin{align*}
-g_1[V_2] \land g_2 &\Leftrightarrow (\texttt{x} = 0 \land \texttt{i} \geq 0 \land \texttt{i} \leq 5)[\texttt{i} \rightarrow \texttt{i}] \land (\texttt{y} = 0 \land \texttt{i} \geq 5 \land \texttt{i} \leq 9) \\
+g_1[X_2] \land g_2 &\Leftrightarrow (\texttt{x} = 0 \land \texttt{i} \geq 0 \land \texttt{i} \leq 5)[\texttt{i} \rightarrow \texttt{i}] \land (\texttt{y} = 0 \land \texttt{i} \geq 5 \land \texttt{i} \leq 9) \\
 &\Leftrightarrow \texttt{x} = 0 \land \texttt{y} = 0 \land \texttt{i} = 5
 \end{align*}
 
 Given the antecedent, the conclusion must hold.
 This is not the case:
 \begin{align*}
-v_1(\texttt{x})[V_2] = 1[\texttt{i} \rightarrow \texttt{i}] = 1 \neq 0 = v_2(\texttt{x}) \\
-v_1(\texttt{y})[V_2] = 0[\texttt{i} \rightarrow \texttt{i}] = 0 \neq 1 = v_2(\texttt{y}) \\
+v_1(\texttt{x})[X_2] = 1[\texttt{i} \rightarrow \texttt{i}] = 1 \neq 0 = v_2(\texttt{x}) \\
+v_1(\texttt{y})[X_2] = 0[\texttt{i} \rightarrow \texttt{i}] = 0 \neq 1 = v_2(\texttt{y}) \\
 \end{align*}
 
 $s_1$ is therefore \emph{not} deterministic with $s_2$.

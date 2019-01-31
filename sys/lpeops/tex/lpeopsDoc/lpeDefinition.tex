@@ -96,7 +96,7 @@ s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i
 where
 
 \begin{itemize}
-\item $C_i$ is the name of the channel over which summand $s_i$ communicates;
+\item $C_i$ is the name of the channel over which summand $s_i$ communicates (if there is no such channel, \istep{} or \cistep{} is used);
 \item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
 \item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
 \item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$ or communication variables of summand $s_i$);
