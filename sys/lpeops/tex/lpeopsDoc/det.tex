@@ -6,60 +6,74 @@ Non-determinism in an LPE can have a strong impact on the performance of explori
 Preferably, an LPE should therefore be completely deterministic.
 Unfortunately, there are no determinization methods known for symbolic models such as LPEs.
 
-The \texttt{det} command described in this section is only a naive attempt at LPE determinization: it looks for two summands that are non-deterministic (see \ref{isdet}), and then rewrites the LPE so that these summands are deterministic.
+The \texttt{det} command described in this section is only a naive attempt at LPE determinization: it looks for two summands that are non-deterministic (see \ref{isdet}), and then rewrites the LPE so that these summands have become deterministic.
 This may mean that the entire LPE has become deterministic, but more typically the non-determinism will have moved to a different part of the LPE.
 
 The \texttt{det} command is intended to be repeated in the hope that non-determinism eventually disappears from the LPE.
-This may never happen!
-
-It is advised to symbolically reduce the LPE using other LPE operations after each application of \texttt{det}.
+It is definitely possible that this may never happen!
+It is also likely that the LPE will grow very large; it is therefore advised to symbolically reduce the LPE using other LPE operations after each application of \texttt{det}.
 
 \section{Algorithm}
 
-Consider an LPE of which two summands, $s_1$ and $s_2$, are non-deterministic (see \ref{isdet}).
-Define $s_1$ and $s_2$ such that
+Let the input LPE model be $M$ and the underlying LPE be $P$, and let two summands of $P$, $s_\alpha$ and $s_\beta$, be non-deterministic (see \ref{isdet}).
+Elements of $s_\alpha$ and $s_\beta$ are referenced conform \ref{summandelements}.
+Define
 \begin{align*}
-s_i = C \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
+C_{\alpha,\beta} &= C_\alpha = C_\beta \\
+m_{\alpha,\beta} &= m_\alpha = m_\beta \\
+X_\alpha &= [ x_\beta(j) \rightarrow x_\alpha(j) \;|\; 1 \leq j \leq m_{\alpha,\beta} ] \\
+X_\beta &= [ x_\alpha(j) \rightarrow x_\beta(j) \;|\; 1 \leq j \leq m_{\alpha,\beta} ]
+\end{align*}
+
+and let $y(j)$ be a bijective function that yields fresh variables for $1 \leq j \leq m_{\alpha,\beta}$.
+
+The \texttt{det} algorithm follows these steps:
+
+\begin{enumerate}
+\item Create a new LPE $P'$ with the same parameters as $P$, but without any summands.
+Create a new LPE model $M'$ that has the same definition as $M$, except that its references to $P$ have been replaced by references to $P'$.
+
+\item Add a new, fresh parameter $f$ of type \texttt{Bool} to $P'$.
+Where $M'$ instantiates $P'$, initialize $f$ with $\textbf{false}$.
+
+\item Add a new, fresh parameter $Y$ to $P'$, which is a substitution from variables to values -- in practice, this is implemented with multiple parameters and/or a data hierarchy.
+Where $M'$ instantiates $P'$, initialize $Y$ with $[]$.
+
+\item Add to $P'$ each summand $s_i, i \neq \alpha, \beta$ of $P$ after changing the guard of $s_i$ from $g_i$ to $\neg f \land g_i$.
+
+\item Add to $P'$ two new summands ${s_\alpha}'$ and ${s_\beta}'$ that are defined as
+\begin{align*}
+{s_\alpha}' = C_{\alpha,\beta} \; \texttt{?} \; x_\alpha(1) \; &\cdots{} \; \texttt{?} \; x_\alpha(m_{\alpha,\beta}) \; [[\neg f \land g_\alpha \land \neg g_\beta[X_\alpha]]] \\
+&\texttt{>->} \; P(v_\alpha(p_\alpha), \cdots{}, v_\alpha(p_k), \textbf{false}, []) \\
+{s_\beta}' = C_{\alpha,\beta} \; \texttt{?} \; x_\beta(1) \; &\cdots{} \; \texttt{?} \; x_\beta(m_{\alpha,\beta}) \; [[\neg f \land \neg g_\alpha[X_\beta] \land g_\beta]] \\
+&\texttt{>->} \; P(v_\beta(p_\alpha), \cdots{}, v_\beta(p_k), \textbf{false}, [])
+\end{align*}
+
+\item Add to $P'$ a new summand ${s_\gamma}'$ that is defined as
+\begin{align*}
+{s_\gamma}' &= C_{\alpha,\beta} \; \texttt{?} \; x_\alpha(1) \; \cdots{} \; \texttt{?} \; x_\alpha(m_{\alpha,\beta}) \; [[\neg f \land g_\alpha \land g_\beta[X_\alpha]]] \\
+&\texttt{>->} \; P(p_1, \cdots{}, p_k, \textbf{true}, [y(1) \rightarrow x_\alpha(1), \cdots{}, y(m_{\alpha,\beta}) \rightarrow x_\alpha(m_{\alpha,\beta})])
+\end{align*}
+
+\item For $i \in \{\alpha, \beta\}$ and for each possible successor $s_\epsilon$ of $s_i$ (see \ref{possiblesuccessors}), add to $P'$ a new summand ${s_\epsilon}'$ that is defined as
+\begin{align*}
+{s_\epsilon}' = C_\epsilon \; \texttt{?} \; x_\epsilon(1) \; &\cdots{} \; \texttt{?} \; x_\epsilon(m_\epsilon) \; [[f \land g_\epsilon[Y_i]]] \\
+&\texttt{>->} \; P(v_\epsilon(p_1)[Y_i], \cdots{}, v_\epsilon(p_k)[Y_i], \textbf{false}, [])
 \end{align*}
 
 where
-
-\begin{itemize}
-\item $C$ is the name of the channel over which summands $s_1$ and $s_2$ communicate;
-\item $m \geq 0$ is the number of variables that summands $s_1$ and $s_2$ use to communicate over channel $C$;
-\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C$;
-\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
-\item $P$ is the LPE to which summand $s_i$ belongs;
-\item $p_1, \cdots{}, p_k$ are the parameters of the LPE, of which there are $k \geq 0$;
-\item $v_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
-\end{itemize}
-
-\begin{enumerate}
-\item Remove $s_1$ and $s_2$ from the LPE.
-
-\item Change the guard of each remaining summand in the LPE from $g$ to $\neg f \land g$.
-
-\item Add two new summands ${s_1}'$ and ${s_2}'$ to the LPE, which are defined as
 \begin{align*}
-{s_1}' = C \; \texttt{?} \; x_1(1) \; &\cdots{} \; \texttt{?} \; x_1(m) \; [[\neg f \land g_1 \land \neg g_2[X_1]]] \\
-&\texttt{>->} \; P(v_1(p_1), \cdots{}, v_1(p_k), \textbf{false}, []) \\
-{s_2}' = C \; \texttt{?} \; x_2(1) \; &\cdots{} \; \texttt{?} \; x_2(m) \; [[\neg f \land \neg g_1[X_2] \land g_2]] \\
-&\texttt{>->} \; P(v_2(p_1), \cdots{}, v_2(p_k), \textbf{false}, [])
-\end{align*}
-
-\item Add a new summand $s_3$ to the LPE, which is defined as
-\begin{align*}
-s_3 = C \; \texttt{?} \; x_3(1) \; &\cdots{} \; \texttt{?} \; x_3(m) \; [[\neg f \land g_1[X_3] \land g_2[X_3]]] \\
-&\texttt{>->} \; P(p_1, \cdots{}, p_k, \textbf{true}, [x_3(1), \cdots{}, x_3(m)])
-\end{align*}
-
-\item For each possible successor $t$ of $s_i$, add the following summand to the LPE:
-\begin{align*}
-t = C_t \; \texttt{?} \; x_t(1) \; &\cdots{} \; \texttt{?} \; x_t(m_t) \; [[f \land g_t[V_i]]] \\
-&\texttt{>->} \; P(v_t(p_1)[V_i], \cdots{}, v_t(p_k)[V_i], \textbf{false}, [])
+Y_i &= [ p_j \rightarrow v_i(p_j)[\overline{Y_i}][Y] \;|\; 1 \leq j \leq k ] \\
+\overline{Y_i} &= [x_i(1) \rightarrow y(1), \cdots{}, x_i(m_{\alpha,\beta}) \rightarrow y(m_{\alpha,\beta})]
 \end{align*}
 
 \end{enumerate}
+
+Intuitively, the specific non-deterministic behavior of summands $s_\alpha$ and $s_\beta$ is preserved by summand ${s_\gamma}'$, while summands ${s_\alpha}'$ and ${s_\beta}'$ cover the deterministic behavior.
+The $f$ parameter indicates that the process has just taken the non-deterministic action of ${s_\gamma}'$, and the $Y$ parameter contains the exact communication values of that action.
+
+If $f$ is \textbf{false}, $P'$ has the same behavior as $P$ because the summands that are created in steps 4 to 6.
+If $f$ is \textbf{true}, $P'$ also has the same behavior as $P$, but in such a way that the changes of summands $s_\alpha$ and $s_\beta$ are applied retroactively.
 
 \section{Example}
 

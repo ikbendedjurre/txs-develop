@@ -86,6 +86,24 @@ These objects correspond with the \textit{ActionSummand} rule in the grammar.
 One of the parts of the \texttt{LPESummand} data type is \texttt{lpeSmdVars}, which contains all variables that the summand uses besides LPE parameters.
 These variables can be used in the channel offer, \texttt{lpeSmdOffer}, as communication variables (in a specific order); in the guard of the summand, \texttt{lpeSmdGuard}, an expression of sort \texttt{Bool}; and in the expressions that define the value of LPE parameters after the application of the summand, which are values in the \texttt{lpeSmdEqs} map.
 
+\section{Summand elements} \label{summandelements}
+
+To formally reference the elements of $s_i$ -- the $i$th summand of LPE $P$ -- the following definition is used:
+\begin{align*}
+s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
+\end{align*}
+
+where
+
+\begin{itemize}
+\item $C_i$ is the name of the channel over which summand $s_i$ communicates;
+\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
+\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
+\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$ or communication variables of summand $s_i$);
+\item $p_1, \cdots{}, p_k$ are the parameters of $P$, of which there are $k \geq 0$;
+\item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$).
+\end{itemize}
+
 \section{Example TODO}
 
 The following code snippet gives a valid example of an LPE:
