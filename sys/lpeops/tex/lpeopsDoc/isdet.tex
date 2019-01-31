@@ -57,32 +57,19 @@ Note that this approach is \emph{not} guaranteed to correctly recognize that two
 The algorithm invoked by the \texttt{isdet} command checks for all pairs of different summands whether the first summand is deterministic with the second summand (see the previous section).
 The algorithm yields \textbf{true} if and only if this is the case for all summand pairs.
 
-%\begin{lstlisting}
-%//Process definition:
-%PROCDEF counterexample[A :: Int](x :: Int)
-  %= A ? i [[x mod 2 == 0 && i mod 2 == 0]] >-> example[A](i + 1)
-  %+ A ? i [[x == 11 && i == 11]] >-> example[A](11)
-  %+ A ? i [[x == 13 && i == 13]] >-> example[A](13)
-  %+ A ? i [[x == 17 && i == 17]] >-> example[A](17)
-  %;
-%
-%//Initialization:
-%example[A, B](0, 0);
-%\end{lstlisting}
-
-\section{Example TODO}
+\section{Example}
 
 Consider the following LPE:
 
 \begin{lstlisting}
 //Process definition:
-PROCDEF example[A :: Int, B](x, y :: Int)
-  = A ? i [[x==0 /\ i>=0 /\ i<=5]] >-> example[A, B](1, 0)
-  + A ? i [[y==0 /\ i>=5 /\ i<=9]] >-> example[A, B](0, 1)
+PROCDEF example[A :: Int](x, y :: Int)
+  = A ? i [[x==0 /\ i>=0 /\ i<=5]] >-> example[A](1, 0)
+  + A ? i [[y==0 /\ i>=5 /\ i<=9]] >-> example[A](0, 1)
   ;
 
 //Initialization:
-example[A, B](0, 1);
+example[A](0, 1);
 \end{lstlisting}
 
 Consider the two summands, calling the first $s_1$ and the second $s_2$.
@@ -108,14 +95,14 @@ Changing the LPE to
 
 \begin{lstlisting}
 //Process definition:
-PROCDEF example[A :: Int, B](x, y :: Int)
-  = A ? i [[x==0 /\ i>=0 /\ i<=4]] >-> example[A, B](1, 0)
-  + A ? i [[y==0 /\ i>=5 /\ i<=9]] >-> example[A, B](0, 1)
+PROCDEF example[A :: Int](x, y :: Int)
+  = A ? i [[x==0 /\ i>=0 /\ i<=4]] >-> example[A](1, 0)
+  + A ? i [[y==0 /\ i>=5 /\ i<=9]] >-> example[A](0, 1)
   ;
 
 //Initialization:
-example[A, B](0, 1);
+example[A](0, 1);
 \end{lstlisting}
 
-will result in an antecedent that is false; consequently, $s_1$ is deterministic with $s_2$.
+will result in an antecedent that is false; therefore, $s_1$ is deterministic with $s_2$.
 

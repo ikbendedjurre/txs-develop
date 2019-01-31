@@ -49,16 +49,16 @@ Where $M'$ instantiates $P'$, initialize $Y$ with $[]$.
 &\texttt{>->} \; P(v_\beta(p_\alpha), \cdots{}, v_\beta(p_k), \textbf{false}, [])
 \end{align*}
 
-\item Add to $P'$ a new summand ${s_\gamma}'$ that is defined as
+\item Add to $P'$ a new summand ${s_{\alpha,\beta}}'$ that is defined as
 \begin{align*}
-{s_\gamma}' &= C_{\alpha,\beta} \; \texttt{?} \; x_\alpha(1) \; \cdots{} \; \texttt{?} \; x_\alpha(m_{\alpha,\beta}) \; [[\neg f \land g_\alpha \land g_\beta[X_\alpha]]] \\
+{s_{\alpha,\beta}}' &= C_{\alpha,\beta} \; \texttt{?} \; x_\alpha(1) \; \cdots{} \; \texttt{?} \; x_\alpha(m_{\alpha,\beta}) \; [[\neg f \land g_\alpha \land g_\beta[X_\alpha]]] \\
 &\texttt{>->} \; P(p_1, \cdots{}, p_k, \textbf{true}, [y(1) \rightarrow x_\alpha(1), \cdots{}, y(m_{\alpha,\beta}) \rightarrow x_\alpha(m_{\alpha,\beta})])
 \end{align*}
 
-\item For $i \in \{\alpha, \beta\}$ and for each possible successor $s_\epsilon$ of $s_i$ (see \ref{possiblesuccessors}), add to $P'$ a new summand ${s_\epsilon}'$ that is defined as
+\item For $i \in \{\alpha, \beta\}$ and for each possible successor $s_\gamma$ of $s_i$ (see \ref{possiblesuccessors}) in $P$, add to $P'$ a new summand ${s_\gamma}'$ that is defined as
 \begin{align*}
-{s_\epsilon}' = C_\epsilon \; \texttt{?} \; x_\epsilon(1) \; &\cdots{} \; \texttt{?} \; x_\epsilon(m_\epsilon) \; [[f \land g_\epsilon[Y_i]]] \\
-&\texttt{>->} \; P(v_\epsilon(p_1)[Y_i], \cdots{}, v_\epsilon(p_k)[Y_i], \textbf{false}, [])
+{s_\gamma}' = C_\gamma \; \texttt{?} \; x_\gamma(1) \; &\cdots{} \; \texttt{?} \; x_\gamma(m_\gamma) \; [[f \land g_\gamma[Y_i]]] \\
+&\texttt{>->} \; P(v_\gamma(p_1)[Y_i], \cdots{}, v_\gamma(p_k)[Y_i], \textbf{false}, [])
 \end{align*}
 
 where
@@ -69,7 +69,7 @@ Y_i &= [ p_j \rightarrow v_i(p_j)[\overline{Y_i}][Y] \;|\; 1 \leq j \leq k ] \\
 
 \end{enumerate}
 
-Intuitively, the specific non-deterministic behavior of summands $s_\alpha$ and $s_\beta$ is preserved by summand ${s_\gamma}'$, while summands ${s_\alpha}'$ and ${s_\beta}'$ cover the deterministic behavior.
+Intuitively, the specific non-deterministic behavior of summands $s_\alpha$ and $s_\beta$ is preserved by summand ${s_{\alpha,\beta}}'$, while summands ${s_\alpha}'$ and ${s_\beta}'$ cover the deterministic behavior.
 The $f$ parameter indicates that the process has just taken the non-deterministic action of ${s_\gamma}'$, and the $Y$ parameter contains the exact communication values of that action.
 
 If $f$ is \textbf{false}, $P'$ has the same behavior as $P$ because the summands that are created in steps 4 to 6.
@@ -81,16 +81,70 @@ Consider the following LPE:
 
 \begin{lstlisting}
 //Process definition:
-PROCDEF example[A :: Int, B](x, y :: Int)
-  = A ? i [[x==0]] >-> example[A, B](1, i)
-  + A ? i [[x==1 && i==y]] >-> example[A, B](2, y)
-  + B [[x==2]] >-> example[A, B](3, y)
-  + B [[x==3]] >-> example[A, B](0, y)
+PROCDEF example[A :: Int, B, C](x, y :: Int)
+  = A ? i [[x==0 /\ i>=0 /\ i<=5]] >-> example[A, B, C](1, i+1)
+  + A ? i [[x==0 /\ i>=5 /\ i<=9]] >-> example[A, B, C](1, i-1)
+  + B [[x==1 /\ y<=4]] >-> example[A, B, C](0, 0)
+  + C [[x==1 /\ y>=5]] >-> example[A, B, C](0, 0)
   ;
 
 //Initialization:
-example[A, B](0, 0);
+example[A, B, C](0, 0);
 \end{lstlisting}
 
-TODO
+Consider the first two summands, calling the first $s_1$ and the second $s_2$.
+These summands are non-deterministic.
+
+Applying the steps of the \texttt{det} algorithm causes the following changes:
+
+\begin{enumerate}
+\item A new LPE model $M'$ and new LPE $P'$ are created.
+\item $P'$ is extended with a new parameter $\texttt{f}$.
+\item $P'$ is extended with a new parameter $\texttt{z}$ (a singleton substitution).
+\item The \texttt{B} and \texttt{C} summands of the input LPE are added with modified guards.
+\item Based on $s_1$ and $s_2$, summands ${s_1}'$ and ${s_2}'$ are created and added.
+\item Based on $s_1$ and $s_2$, summand ${s_{1, 2}}'$ is created and added.
+\item The possible successors of $s_1$ and $s_2$ are the \texttt{B} and \texttt{C} summands of the input LPE, which results in 2 new \texttt{B} summands and 2 new \texttt{C} summands.
+\end{enumerate}
+
+This gives the following output LPE:
+
+\begin{lstlisting}
+PROCDEF example'[A :: Int, B, C](x, y :: Int, f: Bool, z: Int)
+  = B [[not(f) /\ x==1 /\ y<=4]]
+          >-> example'[A, B, C](0, 0, false, 0)
+  + C [[not(f) /\ x==1 /\ y>=5]]
+          >-> example'[A, B, C](0, 0, false, 0)
+  + A ? i [[not(f) /\ x==0 /\ i>=0 /\ i<5]]
+          >-> example'[A, B, C](1, i, false, 0)
+  + A ? i [[not(f) /\ x==0 /\ i>5 /\ i<=9]]
+          >-> example'[A, B, C](1, i, false, 0)
+  + A ? i [[not(f) /\ x==0 /\ i==5]]
+          >-> example'[A, B, C](x, y, true, i)
+  + B [[f /\ z+1<=4]] >-> example[A, B, C](0, 0, false, 0)
+  + B [[f /\ z-1<=4]] >-> example[A, B, C](0, 0, false, 0)
+  + C [[f /\ z+1>=5]] >-> example[A, B, C](0, 0, false, 0)
+  + C [[f /\ z-1>=5]] >-> example[A, B, C](0, 0, false, 0)
+  ;
+
+//Initialization:
+example'[A, B, C](0, 0, false, 0);
+\end{lstlisting}
+
+The non-determinism has moved to the \texttt{B} and \texttt{C} summands at the bottom.
+A subsequent application of the \texttt{clean} command removes one of the \texttt{B} summands at the bottom (because
+\begin{align*}
+z+1<=4 \rightarrow z-1<=4
+\end{align*}
+
+the second \texttt{B} summand \emph{contains} the first) and one of the \texttt{C} summands at the bottom (because
+\begin{align*}
+z-1>=5 \rightarrow z+1>=5
+\end{align*}
+
+the first \texttt{C} summand \emph{contains} the second).
+Afterwards, the LPE is completely deterministic.
+
+
+
 
