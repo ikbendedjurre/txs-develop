@@ -112,5 +112,50 @@ $^{*}$ State vectors may be smaller.
 \end{center}
 \end{table}
 
+\section{Installation}
 
+\begin{enumerate}
+\item Download \texttt{stack} from
+\begin{align*}
+\texttt{https://docs.haskellstack.org/en/stable/README/}
+\end{align*}
+
+and install it.
+
+\item Download and install an SMT solver such as
+\begin{itemize}
+\item Z3 version 4.8.3 - 64 bit - build hashcode cf4bf7b591b6
+\item CVC4 version 1.6 [git - f8d6bd36]
+\end{itemize}
+\item Clone the \texttt{develop} branch from
+\begin{align*}
+\texttt{https://github.com/TorXakis/TorXakis}
+\end{align*}
+\item Navigate to the repository directory and run
+\begin{itemize}
+\item \texttt{stack setup}
+\item \texttt{stack -v --profile build}
+\end{itemize}
+\item The \txs{} binaries can be found in
+\begin{align*}
+\texttt{/.stack-work/install/23f9efff/bin}
+\end{align*}
+
+in the repository directory.
+\end{enumerate}
+
+\section{Unit tests}
+
+\begin{enumerate}
+\item Navigate to the repository directory.
+\item Execute \texttt{stack -v --profile test lpeops}.
+\end{enumerate}
+
+\section{Benchmarks}
+
+\begin{enumerate}
+\item Navigate to \texttt{/test/sqatt} in the repository directory.
+\item Execute \texttt{stack -v --profile bench --ba "--output data.html"}.
+\item The benchmark results are exported to \texttt{data.html}.
+\end{enumerate}
 

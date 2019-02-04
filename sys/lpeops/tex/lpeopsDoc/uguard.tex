@@ -20,9 +20,9 @@ Summand $s_\alpha$ is said to \emph{imply} $s_\beta$ if these two conditions hol
 \begin{itemize}
 \item $s_\alpha$ and $s_\beta$ must communicate over the exact same channel with exactly as many channel variables; that is, $C_\alpha = C_\beta \land m_\alpha = m_\beta$.
 
-\item Given the previous condition, define $m = m_\alpha = m_\beta$ and, in particular, the mapping
+\item Define the mapping
 \begin{align*}
-X_\beta = [x_\alpha(j) \rightarrow x_\beta(j) \;|\; 1 \leq j \leq m]
+X_\beta = [x_\alpha(j) \rightarrow x_\beta(j) \;|\; 1 \leq j \leq \text{min}(m_1, m_2)]
 \end{align*}
 
 The following condition must be a tautology:
@@ -31,18 +31,18 @@ g_\alpha[X_\beta] \rightarrow g_\beta
 \end{align*}
 \end{itemize}
 
-\subsection{Possible successors}
+\subsection{Possible input-successors}
 
 Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
-Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
+Summand $s_\beta$ is said to be a \emph{possible input-successor} of $s_\alpha$ if $C_\beta$ is an input channel and if the following expression is satisfiable:
 \begin{align*}
 g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
 
-\subsection{Definite successors}
+\subsection{Definite input-successors}
 
 Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
-Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
+Summand $s_\beta$ is said to be a \emph{definite input-successor} of $s_\alpha$ if $C_\beta$ is an input channel and if the following expression is a tautology:
 \begin{align*}
 g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
@@ -53,10 +53,12 @@ Let the input LPE model be $M$ and the underlying LPE be $P$.
 The \texttt{uguard} algorithm follows these steps for all summand pairs $(s_\alpha, s_\beta)$ such that $s_\alpha$ implies $s_\beta$:
 
 \begin{enumerate}
-\item Compute $\Delta = D_\beta \setminus D_\alpha$ where
+\item Compute $\Delta = (D_\beta \setminus P_\alpha) \cup (D_\alpha \setminus P_\beta)$ where
 \begin{itemize}
-\item $D_\alpha$ is the set of all possible successors of $s_\alpha$; and
-\item $D_\beta$ is the set of all definite successors of $s_\beta$.
+\item $P_\alpha$ is the set of all possible input-successors of $s_\alpha$;
+\item $P_\beta$ is the set of all possible input-successors of $s_\beta$;
+\item $D_\alpha$ is the set of all definite input-successors of $s_\alpha$; and
+\item $D_\beta$ is the set of all definite input-successors of $s_\beta$.
 \end{itemize}
 
 If $\Delta = \emptyset{}$, the \texttt{uguard} algorithm does not make any changes and stops. Otherwise, its continues.
@@ -67,7 +69,7 @@ Create a new LPE model $M'$ that has the same definition as $M$, except that its
 \item Add a new, fresh parameter $f$ of type \texttt{Bool} to $P'$.
 Where $M'$ instantiates $P'$, initialize $f$ with $\textbf{true}$.
 
-\item For each summand $s_i \notin \Delta$ of $P$ -- referencing its elements conform \ref{summandelements} -- add to $P'$ a new summand ${s_i}'$ that is defined as
+\item For each summand $s_i$ of $P$ -- referencing its elements conform \ref{summandelements} -- add to $P'$ a new summand ${s_i}'$ that is defined as
 \begin{align*}
 {s_i}' = C_i \; \texttt{?} \; x_i(1) \; &\cdots{} \; \texttt{?} \; x_i(m_i) \; [[\Gamma(s_i) \land g_i]] \\
 &\texttt{>->} \; P(v_i(p_1), \cdots{}, v_i(p_k), \Upsilon(s_i))

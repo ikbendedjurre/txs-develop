@@ -120,22 +120,3 @@ where
 \item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters, communication variables of summand $s_i$, or hidden variables of summand $s_i$).
 \end{itemize}
 
-\section{Example TODO}
-
-The following code snippet gives a valid example of an LPE:
-
-\begin{lstlisting}
-//Process definition:
-PROCDEF example[A :: Int, B](state, curr, prev :: Int)
-  = A ? i [[state==0]] >-> example[A, B](2, i, prev)
-  + A ? i [[state==1 && i!=prev]] >-> example[A, B](2, i, prev)
-  + A ? i [[state==2 && i==curr]] >-> example[A, B](1, curr, curr)
-  + B >-> STOP
-  ;
-
-//Initialization:
-example[A, B](0, 0, 0);
-\end{lstlisting}
-
-The process only accepts input sequences in which every number is repeated exactly once.
-The process terminates non-deterministically.

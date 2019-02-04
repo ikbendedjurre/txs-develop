@@ -9,12 +9,12 @@ This has the effect that other branches that could follow those summands are ign
 \subsection{Definite successors}
 
 Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
-Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
+Summand $s_\beta$ is said to be a \emph{definite successor} of $s_\alpha$ if the following expression is a tautology:
 \begin{align*}
 g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
 
-\section{Implementation}
+\section{Algorithm}
 
 For each summand $s$, let $D(s)$ be the set of all definite successors of $s$.
 By definition, $D(s)$ is an under-approximation of the actual successors of $s$.

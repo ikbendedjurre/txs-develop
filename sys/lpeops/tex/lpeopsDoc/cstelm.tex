@@ -7,12 +7,12 @@ These parameters are essentially \emph{constant}.
 Removing constant parameters results in a smaller state vector (which may improve performance), but otherwise the state space of an LPE remains the same.
 
 Constants can be safely removed from a process as follows:
-\begin{itemize}
+\begin{enumerate}
 \item Substitute references to a constant parameter by the initial (explicit) value of that parameter;
 \item Remove the constant from the process parameter list.
-\end{itemize}
+\end{enumerate}
 
-\section{Implementation}
+\section{Algorithm}
 
 The algorithm consists of the following steps \cite{groote2001computer}:
 

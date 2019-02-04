@@ -19,9 +19,9 @@ Summand $s_\alpha$ is said to \emph{contain} $s_\beta$ if these two conditions h
 \begin{itemize}
 \item $s_\alpha$ and $s_\beta$ must communicate over the exact same channel with exactly as many channel variables; that is, $C_\alpha = C_\beta \land m_\alpha = m_\beta$.
 
-\item Given the previous condition, define $m = m_\alpha = m_\beta$ and, in particular, the mapping
+\item Define the mapping
 \begin{align*}
-X_\alpha = [x_\beta(j) \rightarrow x_\alpha(j) \;|\; 1 \leq j \leq m]
+X_\alpha = [x_\beta(j) \rightarrow x_\alpha(j) \;|\; 1 \leq j \leq \text{min}(m_1, m_2)]
 \end{align*}
 
 The following conditions must also hold:
@@ -67,9 +67,7 @@ It is \emph{not} sufficient if the only possible predecessor of $s_\beta$ is $s_
 Summand reachability is \emph{over-approximated}.
 For example, if it is uncertain whether a summand is enabled in the initial state, the summand is considered to be reachable.
 
-\section{Implementation}
-
-\subsection{Algorithm}
+\section{Algorithm}
 
 The algorithm consists of 2 phases.
 
@@ -80,10 +78,6 @@ In the second phase, the algorithm starts by determining which summands are reac
 This becomes the initial value of the set $X$.
 Then, until a fixpoint is reached, to $X$ all summands are added of which there exists a possible predecessor in $X$.
 The output LPE of the algorithm contains all summands that are in the fixpoint of $X$.
-
-\subsection{Complexity}
-
-The complexity of the algorithm is $O(n^2)$, where $n$ is the number of summands of the input LPE.
 
 \section{Example}
 

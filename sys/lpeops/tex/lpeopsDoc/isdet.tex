@@ -37,7 +37,7 @@ X_{\beta} &= [x_\alpha(j) \rightarrow x_\beta(j) \;|\; 1 \leq j \leq \text{min}(
 
 Note that this approach is \emph{not} guaranteed to correctly recognize that two summands are deterministic (false negatives are tolerated)!
 
-\section{Implementation}
+\section{Algorithm}
 
 The algorithm invoked by the \texttt{isdet} command checks for all pairs of different summands whether the first summand is deterministic with the second summand (see the previous section).
 The algorithm yields \textbf{true} if and only if this is the case for all summand pairs.
