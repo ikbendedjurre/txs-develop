@@ -39,7 +39,7 @@
 %----------------------------------------------------------
 \usepackage{url}
 \usepackage{tabularx}
-\usepackage{tablefootnote}
+%\usepackage{tablefootnote}
 \usepackage[square,sort,comma,numbers]{natbib}
 \usepackage{chapterbib}
 \usepackage{hyperref}
@@ -90,12 +90,15 @@
 \newcommand{\cistep}{\texttt{CISTEP}}
 \newcommand{\true}{\textbf{true}}
 \newcommand{\false}{\textbf{false}}
+\newcommand{\labeledas}[1]{labeled as `#1'}
+\newcommand{\labeledaseither}[2]{labeled as `#1' or `#2'}
+\newcommand{\removelabelfrom}[1]{remove the label `#1' from}
 %----------------------------------------------------------
 \setlength\parindent{0pt}
 %----------------------------------------------------------
-\makeatletter
-\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref*{#1}}\@footnotemark}
-\makeatother
+%\makeatletter
+%\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref*{#1}}\@footnotemark}
+%\makeatother
 %----------------------------------------------------------
 \newtheorem{theorem}{Theorem}
 \newtheorem{acknowledgement}[theorem]{Acknowledgement}

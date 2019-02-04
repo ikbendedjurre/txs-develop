@@ -4,23 +4,15 @@
 One way in which information about confluence can be used before state space generation, is by appending confluent ISTEPs to other summands.
 This has the effect that other branches that could follow those summands are ignored, reducing the size of the state space while maintaining its equivalence up to branching bisimulation.
 
-\section{Theoretical background}
+\section{Formal background}
 
 \subsection{Definite successors}
 
-Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $t$ be a \emph{definite successor} of $s$ if the following expression is a tautology:
+Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
 \begin{align*}
-c_s \land {c_t}[p \rightarrow v_s(p) \;|\; p \in P]
+g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
-
-where
-
-\begin{itemize}
-\item $c_s$ and $c_t$ are the guards of summands $s$ and $t$, respectively;
-\item $P$ is the set of all LPE parameters;
-\item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
-\end{itemize}
 
 \section{Implementation}
 
@@ -34,47 +26,29 @@ The algorithm follows these steps:
 \item Determine which \istep{} summands of the LPE are confluent (see \ref{confcheck}).
 Rename the \istep{} channels in confluent \istep{} summands to \cistep{}.
 
-\item For each summand $s_1$, determine $D(s_1)$.
-Check if there exists a summand $s_2 \in D(s_1)$ such that $s_2$ communicates over the \cistep{} channel.
-If so, let
+\item For each summand $s_\alpha$, determine $D(s_\alpha)$.
+Consider all possible pairs of summands $(s_\alpha, s_\beta)$ such that $s_\beta \in D(s_\alpha)$, and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+
+Let
 \begin{align*}
-s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \; \texttt{>->} \; P(v_i(p_1), \cdots{}, v_i(p_k))
-\end{align*}
-
-where
-
-\begin{itemize}
-\item $C_1$ is the name of the channel over which summand $s_1$ communicates;
-\item $C_2$ equals $\cistep{}$;
-\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
-\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
-\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$);
-\item $P$ is the LPE to which summand $s_i$ belongs;
-\item $p_1, \cdots{}, p_k$ are the parameters of the LPE, of which there are $k \geq 0$;
-\item $v_i(p)$ is an expression that defines the new value of LPE parameter $p$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$).
-\end{itemize}
-
-Furthermore, let
-\begin{align*}
-X = [ x_2(j) \rightarrow q(x_2(j)) \;|\; 1 \leq j \leq m_2 ]
+X = [ x_\beta(j) \rightarrow q(x_\beta(j)) \;|\; 1 \leq j \leq m_\beta ]
 \end{align*}
 
 where $q(x)$ is a surjective function that yields fresh variables, and let
 \begin{align*}
-V_{1} &= [p_j \rightarrow v_1(p_j) \;|\; 1 \leq j \leq k]
+V_\alpha &= [p_j \rightarrow v_\alpha(p_j) \;|\; 1 \leq j \leq k]
 \end{align*}
 
-\item Replace $s_1$ by ${s_1}'$, which is defined as
+Replace $s_\alpha$ by ${s_\alpha}'$, which is defined as
 \begin{align*}
-{s_1}' = C_1 \; &\texttt{?} \; x_1(1) \; \cdots{} \; \texttt{?} \; x_1(m_1) \\
-&\texttt{?} \; x_2(1)[X] \; \cdots{} \; \texttt{?} \; x_2(m_2)[X] \\
-&[[g_1]] \; \texttt{>->} \; P(v_2(p_1)[X][V_1], \cdots{}, v_2(p_k)[X][V_1])
+{s_\alpha}' = C_\alpha \; &\texttt{?} \; x_\alpha(1) \; \cdots{} \; \texttt{?} \; x_\alpha(m_\alpha) \\
+&\texttt{?} \; x_\beta(1)[X] \; \cdots{} \; \texttt{?} \; x_\beta(m_\beta)[X] \\
+&[[g_\alpha]] \; \texttt{>->} \; P(v_\beta(p_1)[X][V_1], \cdots{}, v_2(p_k)[X][V_\alpha])
 \end{align*}
 
 \item Replace all occurrences of \cistep{} channels with \istep{} channels.
 \end{enumerate}
 
-\clearpage
 \section{Example}
 
 Consider the following example:

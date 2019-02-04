@@ -15,19 +15,11 @@ The \texttt{datareset} command, serving a similar purpose (see \ref{datareset}),
 
 \subsection{Possible successors} \label{possiblesuccessors}
 
-Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $t$ be a \emph{possible successor} of $s$ if the following expression is satisfiable:
+Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
 \begin{align*}
-g_s \land {g_t}[p \rightarrow v_s(p) \;|\; p \in P]
+g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
-
-where
-
-\begin{itemize}
-\item $g_s$ and $g_t$ are the guards of summands $s$ and $t$, respectively;
-\item $P$ is the set of all LPE parameters;
-\item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
-\end{itemize}
 
 \section{Implementation}
 
@@ -40,26 +32,17 @@ The second phase (the iteration phase) follows these steps:
 
 \begin{enumerate}
 
-\item For each summand $s$ of the LPE, create a set $R_s$ that contains all parameters of the LPE.
-This means that, initially, we assume that all parameters of the LPE are used by one or more of the successors of $s$; that is, \emph{relevant} to $s$.
+\item For each summand $s_\alpha$ of the LPE, create a set $R_\alpha$ that contains all parameters of the LPE.
+This means that, initially, we assume that all parameters of the LPE are used by one or more of the successors of $s_\alpha$; that is, \emph{relevant} to $s_\alpha$.
 
-\item For each summand $s$ of the LPE, set the value of $R_s$ to $\bigcup\limits_{t \in S_s}^{} r(t)$ where $S_s$ is the set of all successors of $s$ (as determined during the preparation phase) and where $r$ is the function
+\item For each summand $s_\alpha$ of the LPE, set the value of $R_\alpha$ to $\bigcup\limits_{s_\beta \in S_\alpha}^{} r(s_\beta)$ where $S_\alpha$ is the set of all successors of $s_\alpha$ (as determined during the preparation phase) and where $r$ is the function
 \begin{align*}
-r(t) = \left( \text{vars}(g_t) \cup \bigcup\limits_{x \in R_t}^{} \text{vars}(v_t(x)) \right) \setminus C_t
+r(s_\beta) = \left( \text{vars}(g_\beta) \cup \bigcup\limits_{x \in R_\beta}^{} \text{vars}(v_\beta(x)) \right) \setminus C_\beta
 \end{align*}
 
-where
+\item Repeat the previous step until the fixpoint of $R_\alpha$ is reached for each summand $s_\alpha$ of the LPE.
 
-\begin{itemize}
-\item $\text{vars}(g_t)$ gives the free variables in $g_t$, the guard of summand $t$;
-\item $v_t(p)$ is the expression that defines the value of LPE parameter $p$ after the application of summand $t$;
-\item $\text{vars}(v_t)$ gives the free variables in $v_t$;
-\item $C_t$ is the set of the communication variables used by summand $t$.
-\end{itemize}
-
-\item Repeat the previous step until the fixpoint of $R_s$ is reached for each summand $s$ of the LPE.
-
-\item For each summand $s$ and for all $p \in P \setminus R_s$, change the expression $v_s(p)$ (which defines the value of LPE parameter $p$ after the application of $s$) to $v_I(p)$, the value of $p$ in this initial state of the LPE.
+\item For each summand $s_\alpha$ and for all $p \in P \setminus R_\alpha$, change the expression $v_\alpha(p)$ (which defines the value of LPE parameter $p$ after the application of $s$) to $v_I(p)$, the value of $p$ in this initial state of the LPE.
 
 \end{enumerate}
 
@@ -80,13 +63,15 @@ PROCDEF example[A :: Int, B](x, y :: Int)
 example[A, B](0, 0);
 \end{lstlisting}
 
-Finding the successors of each summand is easy: each summand has exactly one successor, namely the next one, except in case of the fourth summand, where the first summand is the successor.
+Let the summands be represented by $s_1$ from $s_4$ (from top to bottom).
 
-It is also obvious that $x$ will always be in $R_s$ for each summand $s$, because each summand uses $x$ in its guard.
+Finding the successors of each summand is easy: each summand has exactly one successor, namely the next one, except in case of $s_4$, where the $s_1$ is the successor.
 
-Process parameter $y$ will always be in $R_{s_1}$, where $s_1$ is the first summand, because $y$ is used in the guard of $s_1$'s successor (the second summand).
-After a few iterations, however, $y$ is removed from $R_{s_2}$ to $R_{s_4}$.
-This means that $y$ is assigned a default value in the corresponding summands.
+It is also obvious that $x$ will always be in $R_\alpha$ for each summand $s_\alpha$, because each summand $s_\alpha$ uses $x$ in its guard.
+
+Process parameter $y$ will always be in $R_1$ because $y$ is used in the guard of $s_1$'s successor, $s_2$.
+After a few iterations, however, $y$ is removed from $R_2$, $R_3$, and $R_4$.
+This means that $y$ is assigned a default value in $s_2$, $s_3$, and $s_4$.
 Choosing the initial value of $y$ as its default value gives
 
 \begin{lstlisting}

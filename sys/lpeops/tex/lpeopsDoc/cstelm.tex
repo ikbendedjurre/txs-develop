@@ -18,19 +18,19 @@ The algorithm consists of the following steps \cite{groote2001computer}:
 
 \begin{enumerate}
 
-\item Label all LPE parameters with `constant'.
+\item Make it so that all LPE parameters are \labeledas{constant}.
 
-\item Let $P$ be the set of all LPE parameters that are labeled with `constant'.
-Define a substitution $\rho = [p \rightarrow v_I(p) \;|\; p \in P]$, where $v_I(p)$ gives the initial value of LPE parameter $p$.
+\item Let $X$ be the set of all LPE parameters that are \labeledas{constant}.
+Define a substitution $V = [p \rightarrow v_I(p) \;|\; p \in X]$, where $v_I(p)$ gives the initial value of LPE parameter $p$.
 
 \item Consider each summand $s$ of the LPE.
-Construct an equation $g_s \rightarrow p = v_s(p)$ for all $p \in P$, where $g_s$ is the guard of $s$ and where $v_s(p)$ is the expression that defines the value of LPE parameter $p$ after the application of summand $s$, and apply the substitution $\rho$ to it.
-(This gives $(g_s \rightarrow p = v_s(p))[\rho] \Leftrightarrow {g_s}[\rho] \rightarrow v_I(p) = v_s(p)[\rho]$.)
+Construct an equation $g_s \rightarrow p = v_s(p)$ for all $p \in X$, where $g_s$ is the guard of $s$ and where $v_s(p)$ is the expression that defines the value of LPE parameter $p$ after the application of summand $s$, and apply the substitution $V$ to it.
+(This gives $(g_s \rightarrow p = v_s(p))[V] \Leftrightarrow {g_s}[V] \rightarrow v_I(p) = v_s(p)[V]$.)
 
-If the obtained equation is a tautology (that is, if its negation is unsatisfiable) for all $s$, $p$ remains labeled with `constant'; otherwise, remove the `constant' label from $p$.
+If the obtained equation is a tautology (that is, if its negation is unsatisfiable) for all $s$, $p$ remains \labeledas{constant}; otherwise, \removelabelfrom{constant} $p$.
 
-\item Repeat the previous two steps until the fixpoint of $P$ is reached.
-Then remove all LPE parameters that are still labeled as `constant' from the LPE, substituting references to those parameters by their initial values.
+\item Repeat the previous two steps until the fixpoint of $X$ is reached.
+Then remove all LPE parameters that are still \labeledas{constant} from the LPE, substituting references to those parameters by their initial values.
 
 \end{enumerate}
 
@@ -50,36 +50,36 @@ PROCDEF example[A](x, y, z :: Int)
 example[A](1, 1, 2);
 \end{lstlisting}
 
-First, $\rho = [ x \rightarrow 1, y \rightarrow 1, z \rightarrow 2 ]$.
+First, $V = [ x \rightarrow 1, y \rightarrow 1, z \rightarrow 2 ]$.
 
 We must check the following equations:
 
 \begin{align*}
-(z = 2 \rightarrow x = z-1)[\rho] &\Leftrightarrow (2 = 2 \rightarrow 1 = 2-1) \Leftrightarrow \textit{true} \\
-(z = 2 \rightarrow y = 1)[\rho] &\Leftrightarrow (2 = 2 \rightarrow 1 = 1) \Leftrightarrow \textit{true} \\
-(z = 2 \rightarrow z = 2)[\rho] &\Leftrightarrow (2 = 2 \rightarrow 2 = 2) \Leftrightarrow \textit{true} \\
-(x = y)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
-(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
-(z = x+y)[\rho] &\Leftrightarrow (2 = 1+1) \Leftrightarrow \textit{true} \\
-(x = 1)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
-(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
-(z = z+1)[\rho] &\Leftrightarrow (2 = 2+1) \Leftrightarrow \textit{false} \\
+(z = 2 \rightarrow x = z-1)[V] &\Leftrightarrow (2 = 2 \rightarrow 1 = 2-1) \Leftrightarrow \textit{true} \\
+(z = 2 \rightarrow y = 1)[V] &\Leftrightarrow (2 = 2 \rightarrow 1 = 1) \Leftrightarrow \textit{true} \\
+(z = 2 \rightarrow z = 2)[V] &\Leftrightarrow (2 = 2 \rightarrow 2 = 2) \Leftrightarrow \textit{true} \\
+(x = y)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(z = x+y)[V] &\Leftrightarrow (2 = 1+1) \Leftrightarrow \textit{true} \\
+(x = 1)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(z = z+1)[V] &\Leftrightarrow (2 = 2+1) \Leftrightarrow \textit{false} \\
 \end{align*}
 
 The last equation is not a tautology, and the `constant' label is therefore removed from $z$.
 
-The new value of $\rho$ is $[ x \rightarrow 1, y \rightarrow 1 ]$.
+The new value of $V$ is $[ x \rightarrow 1, y \rightarrow 1 ]$.
 
 \clearpage
 The equations are now the following:
 
 \begin{align*}
-(z = 2 \rightarrow x = z-1)[\rho] &\Leftrightarrow (z = 2 \rightarrow 1 = z-1) \Leftrightarrow \textit{true} \\
-(z = 2 \rightarrow y = 1)[\rho] &\Leftrightarrow (z = 2 \rightarrow 1 = 1) \Leftrightarrow \textit{true} \\
-(x = y)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
-(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
-(x = 1)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
-(y = x)[\rho] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(z = 2 \rightarrow x = z-1)[V] &\Leftrightarrow (z = 2 \rightarrow 1 = z-1) \Leftrightarrow \textit{true} \\
+(z = 2 \rightarrow y = 1)[V] &\Leftrightarrow (z = 2 \rightarrow 1 = 1) \Leftrightarrow \textit{true} \\
+(x = y)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(x = 1)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
+(y = x)[V] &\Leftrightarrow (1 = 1) \Leftrightarrow \textit{true} \\
 \end{align*}
 
 All of the equations above are tautologies, and so $x$ and $y$ remain labeled with `constant'.

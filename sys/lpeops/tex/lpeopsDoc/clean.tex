@@ -38,47 +38,34 @@ Note that $s_\alpha$ could contain all behavior of $s_\beta$ without these two c
 
 \subsection{Summand reachability}
 
-Consider all possible pairs of summands of the LPE (including symmetric pairs).
-Of a given summand pair $(s, t)$, let $s$ be a \emph{possible predecessor} of $s$ if the following expression is satisfiable:
+Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Summand $s_\alpha$ is said to be a \emph{possible predecessor} of $s_\beta$ if the following expression is satisfiable:
 \begin{align*}
-g_s \land {g_t}[p \rightarrow v_s(p) \;|\; p \in P]
+g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
 
-where
+A summand $s_\beta$ is said to be \emph{reachable} if at least one of these conditions holds:
 
 \begin{itemize}
-\item $g_s$ and $g_t$ are the guards of summands $s$ and $t$, respectively;
-\item $P$ is the set of all LPE parameters;
-\item $v_s(p)$ is the expression that defines the new value of LPE parameter $p$ after the application of summand $s$.
-\end{itemize}
-
-A summand $t$ is said to be \emph{reachable} if at least one of these two condition holds:
-
-\begin{itemize}
-\item Summand $t$ is enabled in the initial state of the LPE.
+\item It is possible that summand $s_\beta$ is enabled in the initial state of the LPE.
 Formally, if the LPE is initialized as
 \begin{align*}
 P(v_I(p_1), \cdots{}, v_I(p_m))
 \end{align*}
 
-where
-
-\begin{itemize}
-\item $P$ is the LPE to which summand $t$ belongs;
-\item $p_1, \cdots{}, p_m$ are the parameters of the LPE, of which there are $m \geq 0$;
-\item $v_I(p)$ is a closed expression that defines the initial value of LPE parameter $p$;
-\end{itemize}
-
 then
 \begin{align*}
-g_t[p \rightarrow v_I(p) \;|\; p \in P]
+g_\beta[p \rightarrow v_I(p) \;|\; p \in P]
 \end{align*}
 
-must be satisfiable.
+must \emph{not} be \emph{un}satisfiable.
 
-\item There exists at least one other summand $s$ in the same LPE that is a possible predecessor of $t$.
-It is \emph{not} sufficient if the only possible predecessor of $t$ is $t$ itself!
+\item There exists at least one other summand $s_\alpha$ in the same LPE that is a possible predecessor of $s_\beta$.
+It is \emph{not} sufficient if the only possible predecessor of $s_\beta$ is $s_\beta$ itself!
 \end{itemize}
+
+Summand reachability is \emph{over-approximated}.
+For example, if it is uncertain whether a summand is enabled in the initial state, the summand is considered to be reachable.
 
 \section{Implementation}
 

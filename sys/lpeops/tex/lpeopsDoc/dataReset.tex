@@ -44,7 +44,7 @@ Then $p$ is called a \emph{ruling parameter}, and $p$ is said to `rule' summand 
 
 \subsection{Control-flow graphs}
 
-A parameter of the LPE is a \emph{control-flow parameter} of the LPE if for all summands it is either a ruling parameter or not labeled as `changed' (or both).
+A parameter of the LPE is a \emph{control-flow parameter} of the LPE if for all summands it is either a ruling parameter or not \labeledas{changed} (or both).
 A parameter that is not a control-flow parameter is defined as a \emph{data parameter}.
 
 \vspace{1mm}
@@ -67,7 +67,7 @@ where
 
 \begin{itemize}
 \item $F$ is the set of all control-flow parameters;
-\item $S$ is the set of all summands in which $d$ is labeled as `changed' or `used';
+\item $S$ is the set of all summands in which $d$ is \labeledaseither{changed}{used};
 \item $\text{ruling}(s)$ is the set of all parameters that rule summand $s$.
 \end{itemize}
 
@@ -96,12 +96,12 @@ where
 
 \begin{itemize}
 \item $S$ is the set of all summands;
-\item $\text{directlyUsed}(i)$ is a function that gives the set of all parameters that are labeled as `directly used' in a summand $i$;
+\item $\text{directlyUsed}(i)$ is a function that gives the set of all parameters that are \labeledas{directly used} in a summand $i$;
 \item $\text{source}(i, f)$ is a function that gives the source value of a control-flow parameter $f$ for a summand $i$.
 \end{itemize}
 
 Each iteration can be split into two steps.
-The first step checks for control-flow graphs in which a data parameter $d$ has already been labeled as `relevant' whether this implies that $d$ is also relevant in preceding states (of the same control-flow graph).
+The first step checks for control-flow graphs in which a data parameter $d$ has already been \labeledas{relevant} whether this implies that $d$ is also relevant in preceding states (of the same control-flow graph).
 If so, the appropriate triples are added to $R$:
 \begin{align*}
 R_{n}{'} = R_{n-1} \cup \bigcup\limits_{\substack{i \in S}}^{} \;\left\{\; (d_k, d_j, s) \;\middle|\; \substack{(d_l, d_j, t) \in R_{n-1} \\ d_j \in b(d_k) \\ d_k \in \text{vars}(v_i(d_l)) \\ (s, i, t) \in E_{d_j}} \;\right\}

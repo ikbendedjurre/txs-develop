@@ -85,7 +85,6 @@ Table~\ref{tab:lperewriteopsprops} shows which equivalence is preserved by each 
 \texttt{parreset} & Set parameters of which it can be established via symbolic reachability that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
 \texttt{datareset} & Set parameters of which it can be established via control-flow analysis that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
 \texttt{confelm} & Rewrite the input LPE so that confluent \texttt{ISTEP} summands are prioritized. \\ \hline
-\texttt{istepelm} & Rewrite the input LPE so that \texttt{ISTEP} channels no longer occur. \\ \hline
 \texttt{det} & \textit{Experimental.} Rewrite the input LPE in an attempt to reduce non-determinism. By design, \texttt{det} does not generally remove all non-determinism in one execution because it may not terminate (so use with \texttt{loop}). \\ \hline
 \texttt{uguard} & \textit{Experimental.} Search for underspecified summands and remove them from the input LPE. \\ \hline
 \end{tabularx}
@@ -99,16 +98,16 @@ Table~\ref{tab:lperewriteopsprops} shows which equivalence is preserved by each 
 \begin{tabularx}{\linewidth}{X|c|c|c|c|}
 \textbf{Operation} & \textbf{u-ioco} & \textbf{br. bis.} & \textbf{strong bis.} & \textbf{state sp. equiv.} \\ \hline
 \texttt{clean} & Yes & Yes & Yes & Yes \\ \hline
-\texttt{cstelm} & Yes & Yes & Yes & Yes\footnote{\label{statevectors}Only change is that state vectors may be smaller.} \\ \hline
+\texttt{cstelm} & Yes & Yes & Yes & Yes$^{*}$ \\ \hline
 \texttt{parelm} & Yes & Yes & Yes & No \\ \hline
 \texttt{parreset} & Yes & Yes & Yes & No \\ \hline
 \texttt{datareset} & Yes & Yes & Yes & No \\ \hline
 \texttt{confelm} & Yes & Yes & No & No \\ \hline
-\texttt{istepelm} & Yes & Yes & No & No \\ \hline
 \texttt{det} & Yes & Yes & Yes & No \\ \hline
 \texttt{uguard} & Yes & No & No & No \\ \hline
 \end{tabularx}
 \caption{LPE rewrite operations.}
+$^{*}$ State vectors may be smaller.
 \label{tab:lperewriteopsprops}
 \end{center}
 \end{table}

@@ -33,9 +33,14 @@ and
 
 \item the \txs{} process that is identified by $P$ is
 \begin{align*}
-\texttt{ProcDef} \; [C_1, \cdots{}, C_{m+n}] \; [p_1 :: T_1, \cdots{}, p_k :: T_k] \; b_\textit{LPE}
+\texttt{ProcDef} \; [C_1 :: K_1, \cdots{}, C_{m+n} :: K_{m+n}] \; [p_1 :: T_1, \cdots{}, p_k :: T_k] \; b_\textit{LPE}
 \end{align*}
-such that $\text{type}(v_I(p_i)) = T_i$ for all $i \in [1, \cdots{}, k]$; and
+such that
+\begin{align*}
+\text{type}(C_i) = K_i &\text{ for all } i \in [1, \cdots{}, m+n] \\
+\text{type}(v_I(p_i)) = T_i &\text{ for all } i \in [1, \cdots{}, k]
+\end{align*}
+
 \item the \txs{} process that is identified by $P$ is in LPE form (see \ref{sec:lpeform}).
 \end{itemize}
 
@@ -43,20 +48,31 @@ such that $\text{type}(v_I(p_i)) = T_i$ for all $i \in [1, \cdots{}, k]$; and
 
 A \txs{} process
 \begin{align*}
-\texttt{ProcDef} \; [C_1, \cdots{}, C_n] \; [p_1 :: T_1, \cdots{}, p_k :: T_k] \; b_\textit{LPE}
+\texttt{ProcDef} \; [C_1 :: K_1, \cdots{}, C_n :: K_n] \; [p_1 :: T_1, \cdots{}, p_k :: T_k] \; b_\textit{LPE}
 \end{align*}
 
 that is identified by $P$ is said to be in \emph{LPE form} if $b_\textit{LPE}$ follows the grammar of $\textit{LPEBody}$ below:
 \begin{align*}
-\textit{LPEBody} &::= \textit{ChoiceSummand} \;|\; \textit{ActionSummand} \\
-\textit{ChoiceSummand} &::= \texttt{Choice} \; [ \textit{LPEBody} ] \\
+\textit{LPEBody} &::= \textit{ChoiceSummand} \; \;|\; \textit{ActionSummand} \\
+\textit{ChoiceSummand} &::= \texttt{Choice} \; [ \;\! \textit{LPEBody}, \cdots{}, \textit{LPEBody} \; ] \\
 \textit{ActionSummand} &::= \texttt{ActionPref} \; \textit{ActOffer} \; \textit{ProcInst} \\
-\textit{ActOffer} &::= \texttt{ActOffer} \; \textit{ActChan} \; [\texttt{Quest} \; x_1, \cdots{}, \texttt{Quest} \; x_m] \; \textit{VExpr} \\
-\textit{ActChan} &::= [\;] \;|\; [C_1 \;| \cdots{} |\; C_n \;|\; \texttt{ISTEP} \;|\; \texttt{CISTEP}] \\
-\textit{ProcInst} &::= P \; [C_1, \cdots{}, C_n] \; [\!\textit{VExpr}, \cdots{}, \textit{VExpr} ]
+\textit{ActOffer} &::= \texttt{ActOffer} \; [ \;\! \textit{ChanId} \; ] \; \textit{ChanOffers}\; \; [h_1, \cdots{}, h_z] \; \textit{VExpr} \\
+\textit{ChanId} &::= C_1 \;| \cdots{} |\; C_n \;|\; \texttt{ISTEP} \\
+\textit{ChanOffers} &::= [\texttt{Quest} \; x_1, \cdots{}, \texttt{Quest} \; x_m] \\
+\textit{ProcInst} &::= \texttt{ProcInst} \; P \; \; [ \;\! C_1, \cdots{}, C_n \; ] \; [\;\!\textit{VExpr}, \cdots{}, \textit{VExpr} \; ]
 \end{align*}
 
-Note that each of $x_1, \cdots{}, x_m$ can occur at most once in the list of communication variables of a summand!
+Note that
+\begin{itemize}
+\item $b_\textit{LPE}$ should comply with traditional \txs{} requirements.
+In particular, the communication variables $\{ x_1, \cdots{}, x_m \}$ must match the signature of the channel that is used in the same summand; and the number of \textit{VExpr}s in the \textit{ProcInst} rule must be equal to $k$ and their sorts must match $[T_1, \cdots{}, T_k]$.
+\item the \textit{ActOffer} rule contains exactly one \textit{ChanId}, even though its list can contain several;
+\item per summand, it must be the case that
+\begin{align*}
+|\; \{ h_1, \cdots{}, h_z \} \cup \{ x_1, \cdots{}, x_m \} \; | &= z + m \\
+(\{ h_1, \cdots{}, h_z \} \cup \{ x_1, \cdots{}, x_m \}) \cap \{ p_1, \cdots{}, p_k \} &= \emptyset{}
+\end{align*}
+\end{itemize}
 
 \section{Data structure}
 
@@ -97,11 +113,11 @@ where
 
 \begin{itemize}
 \item $C_i$ is the name of the channel over which summand $s_i$ communicates (if there is no such channel, \istep{} or \cistep{} is used);
-\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
-\item $x_i(j)$ is the variable that summand $s_i$ uses to communicate the $j$th value of channel $C_i$;
-\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$ or communication variables of summand $s_i$);
+\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses locally, such as communication variables and hidden variables;
+\item $x_i(j)$ is the $j$th variable that summand $s_i$ uses locally (communication variables first, followed by hidden variables);
+\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$, communication variables of summand $s_i$, or hidden variables of summand $s_i$);
 \item $p_1, \cdots{}, p_k$ are the parameters of $P$, of which there are $k \geq 0$;
-\item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters or communication variables of summand $s_i$).
+\item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters, communication variables of summand $s_i$, or hidden variables of summand $s_i$).
 \end{itemize}
 
 \section{Example TODO}

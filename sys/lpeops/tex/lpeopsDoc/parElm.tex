@@ -12,16 +12,15 @@ The algorithm consists of the following steps \cite{groote2001computer}:
 
 \begin{enumerate}
 
-\item Label all parameters of the LPE with `inert'.
+\item Make it so that all parameters of the LPE are \labeledas{inert}.
 
-\item Consider the guards of all summands of the LPE.
-Remove the `inert' label from all LPE parameters that occur in the guard of a summand.
+\item Consider the guards of all summands of the LPE, and \removelabelfrom{inert} from all LPE parameters that occur in the guard of a summand.
 
-\item Let $P$ be the set of all LPE parameters that are labeled with `inert', and consider all expressions $v_s(p)$ that define the value of an LPE parameter $p$ after application of a summand $s$.
-For each such expression, if $p$ is \emph{not} labeled with `inert', remove the `inert' label from all LPE parameters that occur in $v_s(p)$.
+\item Let $X$ be the set of all LPE parameters that are \labeledas{inert}, and consider all expressions $v_s(p)$ that define the value of an LPE parameter $p$ after application of a summand $s$.
+For each such expression, if $p$ is \emph{not} \labeledas{inert}, \removelabelfrom{inert} all LPE parameters that occur in $v_s(p)$.
 
-\item Repeat the previous step until the fixpoint of $P$ is reached.
-Then remove all LPE parameters that are still marked as `inert' from the LPE, substituting references to those parameters by their initial values.
+\item Repeat the previous step until the fixpoint of $X$ is reached.
+Then remove all LPE parameters that are still \labeledas{inert} from the LPE, substituting references to those parameters by their initial values.
 
 \end{enumerate}
 
@@ -46,7 +45,7 @@ example[A, B](0, 0, 0);
 First, the `inert' label is removed from $x$ because $x$ occurs in the guards of the first three summands.
 
 In the fourth summand, $z$ is used in the expression of which the value is assigned to $x$.
-Therefore $z$ is also no longer labeled with `inert'.
+Therefore $z$ is also no longer \labeledas{inert}.
 
 $y$ remains labeled with `inert': it does not occur in a guard, nor is it used in the assignment to a process parameter other than itself.
 Removing $y$ gives
