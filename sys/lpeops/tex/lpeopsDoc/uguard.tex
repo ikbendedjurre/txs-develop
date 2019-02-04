@@ -4,9 +4,86 @@
 
 TODO
 
+\section{Formal background}
+
+\subsection{Summand implication}
+
+Consider two summands, $s_\alpha$ and $s_\beta$, and reference their elements conform \ref{summandelements}.
+
+Summand $s_\alpha$ is said to \emph{imply} $s_\beta$ if these two conditions hold:
+
+\begin{itemize}
+\item $s_\alpha$ and $s_\beta$ must communicate over the exact same channel with exactly as many channel variables; that is, $C_\alpha = C_\beta \land m_\alpha = m_\beta$.
+
+\item Given the previous condition, define $m = m_\alpha = m_\beta$ and, in particular, the mapping
+\begin{align*}
+X_\beta = [x_\alpha(j) \rightarrow x_\beta(j) \;|\; 1 \leq j \leq m]
+\end{align*}
+
+The following condition must be a tautology:
+\begin{align*}
+g_\alpha[X_\beta] \rightarrow g_\beta
+\end{align*}
+\end{itemize}
+
+\subsection{Possible successors}
+
+Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
+\begin{align*}
+g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
+\end{align*}
+
+\subsection{Definite successors}
+
+Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
+\begin{align*}
+g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
+\end{align*}
+
 \section{Algorithm}
 
-TODO
+Let the input LPE model be $M$ and the underlying LPE be $P$.
+The \texttt{uguard} algorithm follows these steps when applied to $M$:
+
+\begin{enumerate}
+\item Find two summands $s_\alpha$ and $s_\beta$ such that $s_\alpha$ implies $s_\beta$.
+\item Determine $D_\alpha$, the possible successors of $s_\alpha$.
+\item Determine $D_\beta$, the definite successors of $s_\beta$.
+\item For each summand $s_\delta \in D_\beta$ such that $s_\delta \notin D_\alpha$, do the following:
+\begin{enumerate}
+\item Create a new LPE $P'$ with the same parameters as $P$, but without any summands.
+Create a new LPE model $M'$ that has the same definition as $M$, except that its references to $P$ have been replaced by references to $P'$.
+
+\item Add a new, fresh parameter $f$ of type \texttt{Bool} to $P'$.
+Where $M'$ instantiates $P'$, initialize $f$ with $\textbf{true}$.
+
+\item Consider each summand $s_i \notin D_\beta$ of $P$, and reference its elements conform \ref{summandelements}.
+For each summand $s_i$, add to $P'$ a new summand ${s_i}'$ that is defined as
+\begin{align*}
+{s_i}' = C_i \; \texttt{?} \; x_i(1) \; &\cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \\
+&\texttt{>->} \; P(v_i(p_1), \cdots{}, v_i(p_k), \Gamma(s_i))
+\end{align*}
+
+where
+\begin{align*}
+\Gamma(s) = \begin{cases}
+\textbf{true} \text{ if } s \neq s_\alpha \land s \neq s_\beta \\
+\textbf{false} \text{ if } s = s_\alpha \lor s = s_\beta
+\end{cases}
+\end{align*}
+
+\item Consider each summand $s_i \in D_\beta$ of $P$, and reference its elements conform \ref{summandelements}.
+For each summand $s_i$, add to $P'$ a new summand ${s_i}'$ that is defined as
+\begin{align*}
+{s_i}' = C_i \; \texttt{?} \; x_i(1) \; &\cdots{} \; \texttt{?} \; x_i(m_i) \; [[f \land g_i]] \\
+&\texttt{>->} \; P(v_i(p_1), \cdots{}, v_i(p_k), \Gamma(s_i))
+\end{align*}
+
+with the same $\Gamma$ function as before.
+\end{enumerate}
+\end{enumerate}
 
 \section{Example}
 
