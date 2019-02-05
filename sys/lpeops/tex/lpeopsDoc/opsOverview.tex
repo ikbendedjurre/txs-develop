@@ -1,38 +1,19 @@
-\chapter{LPE operations}
+\chapter{LPE operations} \label{lpeoperations}
 
 \section{Introduction}
 
-This section gives an overview of the available LPE operations in \txs{} and how they are used.
-
-\section{Usage}
-
-The \texttt{lpeop} command has 3 space-separated arguments. In order, these arguments are:
+Techniques that symbolically manipulate \txs{} models are applied via \emph{LPE operations}.
+LPE operations are divided into 3 categories:
 
 \begin{itemize}
-\item A chain of LPE operations.
-LPE operations are represented by their name, such as \texttt{cstelm} or \texttt{loop}.
-These names are separated by the symbol \texttt{->}.
-
-LPE operations in the chain are executed from left to right, passing their output to the next LPE operation as input.
-If a problem occurs, the process ends immediately.
-Otherwise, the final output model is saved as a new model.
-\item The name of the input model.
-The input model should be in restricted model form (see \ref{sec:restrictedmodelform}).
-\item A base name \textit{base} for generated output.
-The name is primarily used for the output model (if any), which is in restricted model form.
-However, LPE operations may adopt the name for their own purposes.
-The \texttt{export} operation, for example, will create a file by that name with the \texttt{.txs} extension.
-
-It is possible to use the \texttt{\%i} token in the base name.
-This will insert the current counter value into the name.
-Use the \texttt{inc} command to increase the counter (which starts at 1).
+\item Basic operations, which make it possible for the user to chain LPE operations together in a convenient manner;
+\item Analysis operations, which give information about their input LPE; and
+\item Rewrite operations, which may significantly change the input LPE.
 \end{itemize}
 
-\section{Operations}
+\section{Basic operations}
 
-\subsection{Basic operations}
-
-Table~\ref{tab:basiclpeops} gives an overview of the basic LPE operations.
+Table~\ref{basiclpeops:table} gives an overview of the basic LPE operations.
 
 \begin{table}[!ht]
 \begin{center}
@@ -49,13 +30,13 @@ Table~\ref{tab:basiclpeops} gives an overview of the basic LPE operations.
 \texttt{inc} & Increase the counter that can be used in \textit{base}. \\ \hline
 \end{tabularx}
 \caption{Basic LPE operations.}
-\label{tab:basiclpeops}
+\label{basiclpeops:table}
 \end{center}
 \end{table}
 
-\subsection{Analysis operations}
+\section{Analysis operations}
 
-Table~\ref{tab:lpeanalysisops} gives an overview of the LPE analysis operations.
+Table~\ref{lpeanalysisops:table} gives an overview of the LPE analysis operations.
 
 \begin{table}[!ht]
 \begin{center}
@@ -66,20 +47,26 @@ Table~\ref{tab:lpeanalysisops} gives an overview of the LPE analysis operations.
 \texttt{confcheck} & Perform a confluence analysis on the input LPE, and return the input LPE in which confluent \texttt{ISTEP}s have been renamed to \texttt{CISTEP}s. \\ \hline
 \end{tabularx}
 \caption{LPE analysis operations.}
-\label{tab:lpeanalysisops}
+\label{lpeanalysisops:table}
 \end{center}
 \end{table}
 
-\subsection{Rewrite operations}
+\section{Rewrite operations}
 
-Table~\ref{tab:lperewriteops} gives an overview of the LPE rewrite operations.
-Table~\ref{tab:lperewriteopsprops} shows which equivalence is preserved by each rewrite operation.
+Table~\ref{lperewriteops:table} gives an overview of the LPE rewrite operations.
+Table~\ref{lperewriteopsprops:table} shows the equivalence that is preserved by each rewrite operation:
+\begin{itemize}
+\item \textbf{u-ioco}: Underspecified input-output conformance.
+\item \textbf{br. bis.}: Branching bisimulation.
+\item \textbf{strong bis.}: Strong bisimulation.
+\item \textbf{state sp. equiv.}: State space equivalence.
+\end{itemize}
 
 \begin{table}[!ht]
 \begin{center}
 \begin{tabularx}{\linewidth}{l|X|}
 \textbf{Operation} & \textbf{Description} \\ \hline
-\texttt{clean} & Remove summands of which it can be established that there already exists an equivalent instance in the LPE from the input LPE; and remove summands of which it can be established via symbolic reachability that they cannot be reached from the input LPE. \\ \hline
+\texttt{clean} & Remove summands of which it can be established that its behavior is also part of another summand in the same LPE; and remove summands of which it can be established via symbolic reachability that they cannot be reached from the input LPE. \\ \hline
 \texttt{cstelm} & Remove parameters of which it can be established that their value never changes from the input LPE. \\ \hline
 \texttt{parelm} & Remove parameters of which it can be established that their value is never used from the input LPE. \\ \hline
 \texttt{parreset} & Set parameters of which it can be established via symbolic reachability that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
@@ -89,7 +76,7 @@ Table~\ref{tab:lperewriteopsprops} shows which equivalence is preserved by each 
 \texttt{uguard} & \textit{Experimental.} Search for underspecified summands and remove them from the input LPE. \\ \hline
 \end{tabularx}
 \caption{LPE rewrite operations.}
-\label{tab:lperewriteops}
+\label{lperewriteops:table}
 \end{center}
 \end{table}
 
@@ -108,54 +95,9 @@ Table~\ref{tab:lperewriteopsprops} shows which equivalence is preserved by each 
 \end{tabularx}
 \caption{LPE rewrite operations.}
 $^{*}$ State vectors may be smaller.
-\label{tab:lperewriteopsprops}
+\label{lperewriteopsprops:table}
 \end{center}
 \end{table}
 
-\section{Installation}
 
-\begin{enumerate}
-\item Download \texttt{stack} from
-\begin{align*}
-\texttt{https://docs.haskellstack.org/en/stable/README/}
-\end{align*}
-
-and install it.
-
-\item Download and install an SMT solver such as
-\begin{itemize}
-\item Z3 version 4.8.3 - 64 bit - build hashcode cf4bf7b591b6
-\item CVC4 version 1.6 [git - f8d6bd36]
-\end{itemize}
-\item Clone the \texttt{develop} branch from
-\begin{align*}
-\texttt{https://github.com/TorXakis/TorXakis}
-\end{align*}
-\item Navigate to the repository directory and run
-\begin{itemize}
-\item \texttt{stack setup}
-\item \texttt{stack -v --profile build}
-\end{itemize}
-\item The \txs{} binaries can be found in
-\begin{align*}
-\texttt{/.stack-work/install/23f9efff/bin}
-\end{align*}
-
-in the repository directory.
-\end{enumerate}
-
-\section{Unit tests}
-
-\begin{enumerate}
-\item Navigate to the repository directory.
-\item Execute \texttt{stack -v --profile test lpeops}.
-\end{enumerate}
-
-\section{Benchmarks}
-
-\begin{enumerate}
-\item Navigate to \texttt{/test/sqatt} in the repository directory.
-\item Execute \texttt{stack -v --profile bench --ba "--output data.html"}.
-\item The benchmark results are exported to \texttt{data.html}.
-\end{enumerate}
 

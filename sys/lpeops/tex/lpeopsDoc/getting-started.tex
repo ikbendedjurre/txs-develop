@@ -1,0 +1,109 @@
+\chapter{Getting started}
+
+\section{Introduction}
+
+\txs{} offers several techniques to symbolically manipulate \txs{} models.
+This section gives an overview of how to get started with these techniques.
+
+\section{Installation}
+
+\begin{enumerate}
+\item Download \texttt{stack} from
+\begin{align*}
+\texttt{https://docs.haskellstack.org/en/stable/README/}
+\end{align*}
+
+and install it.
+
+\item Download and install an SMT solver such as
+\begin{align*}
+\texttt{Z3 version 4.8.3 - 64 bit - build hashcode cf4bf7b591b6}
+\end{align*}
+
+If not the case, add the SMT solver to \texttt{PATH}.
+\item Clone the \texttt{develop} branch from
+\begin{align*}
+\texttt{https://github.com/TorXakis/TorXakis}
+\end{align*}
+\item In a terminal, navigate to the repository directory and run
+\begin{itemize}
+\item \texttt{stack setup}
+\item \texttt{stack -v --profile build}
+\end{itemize}
+\item The \txs{} binaries can be found in
+\begin{align*}
+\texttt{/.stack-work/install/23f9efff/bin}
+\end{align*}
+
+in the repository directory.
+Add them to \texttt{PATH}.
+\end{enumerate}
+
+\section{Starting \txs{}} \label{starttxs}
+
+\begin{enumerate}
+\item Make it so that \texttt{txsserver.exe} and \texttt{torxakis.exe} are in \texttt{PATH}.
+\item Start two terminals, one for the \txs{} server and one for the \txs{} client -- this has the advantage of any errors that occur on the server-side to be visible.
+\item In both terminals, navigate to the directory with a \txs{} specification file (such as \texttt{example.txs}).
+\item In one terminal, run \texttt{txsserver --no-smt-log 50001} where the number \texttt{50001} is the port number that the \txs{} server will listen for clients.
+\item In the other terminal, run \texttt{torxakis 50001 example.txs}.
+\end{enumerate}
+
+\section{Model linearization} \label{modellinearization}
+
+The symbolic manipulation of \txs{} models requires those models to be in \emph{LPE form} (see \ref{modellpeform}).
+To make a \txs{} model linear, do the following:
+
+\begin{enumerate}
+\item Start \txs{} (see \ref{starttxs}).
+\item Run \texttt{lpe Model} in the client terminal, where \texttt{Model} is the name of the model in the \txs{} specification file.
+
+Note that not all \txs{} models are linearizable.
+In those cases, the \texttt{lpe} command will fail, with an error reported in the server terminal.
+\item If successful, the \texttt{lpe} command prints the name of a new \txs{} model that was created.
+This model can be manipulated symbolically (see \ref{modelmanipulation}).
+\end{enumerate}
+
+\section{Model manipulation} \label{modelmanipulation}
+
+After \ref{starttxs} and \ref{modellinearization}, symbolic manipulation of a \txs{} model can begin.
+To do this, use the \texttt{lpeop} command in the client terminal.
+
+The \texttt{lpeop} command has 3 space-separated arguments. In order, these arguments are:
+
+\begin{itemize}
+\item A chain of LPE operations.
+LPE operations are represented by their name, such as \texttt{cstelm} or \texttt{loop} (see \ref{lpeoperations}).
+These names are separated by the symbol \texttt{->}.
+
+LPE operations in the chain are executed from left to right, passing their output to the next LPE operation as input.
+If a problem occurs, the process ends immediately.
+Otherwise, the final output model is saved as a new model.
+\item The name of the input model.
+The input model should be in LPE form (see \ref{modellpeform}).
+\item A base name \textit{base} for generated output.
+The name is primarily used for the output model (if any), which is in LPE form.
+However, LPE operations may adopt the name for their own purposes.
+The \texttt{export} operation, for example, will create a file by that name with the \texttt{.txs} extension.
+
+It is possible to use the \texttt{\%i} token in the base name.
+This will insert the current counter value into the name.
+Use the \texttt{inc} command to increase the counter (which starts at 1).
+\end{itemize}
+
+\section{Unit tests}
+
+\begin{enumerate}
+\item In a terminal, navigate to the repository directory.
+\item Execute \texttt{stack -v --profile test lpeops}.
+\end{enumerate}
+
+\section{Benchmarks}
+
+\begin{enumerate}
+\item In a terminal, navigate to \texttt{/test/sqatt} in the repository directory.
+\item Execute \texttt{stack -v --profile bench --ba "--output data.html"}.
+\item Wait for the benchmark to finish.
+If there are no failures, the benchmark results will be exported to \texttt{data.html}.
+\end{enumerate}
+

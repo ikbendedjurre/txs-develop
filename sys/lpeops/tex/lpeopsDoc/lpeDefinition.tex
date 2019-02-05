@@ -1,17 +1,17 @@
 \chapter{LPE structure}
 
 \section{Introduction}
-The techniques that are described in this document require a \txs{} model as input that is in \emph{restricted model form}.
-This form is a model-level version of the \emph{linear process equation} (LPE) form to which many, but not all \txs{} processes can be transformed using the \texttt{lpe} command of \txs{}.
+The techniques that are described in this document require a \txs{} model as input that is in \emph{LPE form}.
+This form is a model-level version of the \emph{linear process equation form} to which many, but not all \txs{} processes can be transformed using the \texttt{lpe} command of \txs{}.
 
-\section{Restricted model form} \label{sec:restrictedmodelform}
+\section{Models in LPE form} \label{modellpeform}
 
 A \txs{} model
 \begin{align*}
 \texttt{ModelDef} \; [I_1, \cdots{}, I_m] \; [O_1, \cdots{}, O_n] \; b_\textit{inst}
 \end{align*}
 
-is said to be in \emph{restricted model form} if
+is said to be in \emph{LPE form} if
 
 \begin{itemize}
 \item $I_1, \cdots{}, I_m$ are all single input channels;
@@ -41,17 +41,17 @@ such that
 \text{type}(v_I(p_i)) = T_i &\text{ for all } i \in [1, \cdots{}, k]
 \end{align*}
 
-\item the \txs{} process that is identified by $P$ is in LPE form (see \ref{sec:lpeform}).
+\item the \txs{} process that is identified by $P$ is in LPE form conform \ref{processlpeform}.
 \end{itemize}
 
-\section{LPE form} \label{sec:lpeform}
+\section{Processes in LPE form} \label{processlpeform}
 
 A \txs{} process
 \begin{align*}
 \texttt{ProcDef} \; [C_1 :: K_1, \cdots{}, C_n :: K_n] \; [p_1 :: T_1, \cdots{}, p_k :: T_k] \; b_\textit{LPE}
 \end{align*}
 
-that is identified by $P$ is said to be in \emph{LPE form} if $b_\textit{LPE}$ follows the grammar of $\textit{LPEBody}$ below:
+that is identified by $P$ is said to be a in \emph{LPE form} if $b_\textit{LPE}$ follows the grammar of $\textit{LPEBody}$ below:
 \begin{align*}
 \textit{LPEBody} &::= \textit{ChoiceSummand} \; \;|\; \textit{ActionSummand} \\
 \textit{ChoiceSummand} &::= \texttt{Choice} \; [ \;\! \textit{LPEBody}, \cdots{}, \textit{LPEBody} \; ] \\
@@ -76,14 +76,14 @@ In particular, the communication variables $\{ x_1, \cdots{}, x_m \}$ must match
 
 \section{Data structure}
 
-The implementation stores a \txs{} model that is in restricted model form in a dedicated data structure before any of the techniques that are described in this document are applied.
-An overview of this data structure can be found in Figure~\ref{fig:lpedatastructure}.
+The implementation stores a \txs{} model that is in LPE form in a dedicated data structure before any of the techniques that are described in this document are applied.
+An overview of this data structure can be found in Figure~\ref{lpedatastructure:fig}.
 
 \begin{figure}[!ht]
 \begin{center}
 \includegraphics[width=0.7\linewidth]{images/lpe-types}
 \caption{LPE data structure.}
-\label{fig:lpedatastructure}
+\label{lpedatastructure:fig}
 \end{center}
 \end{figure}
 
@@ -96,7 +96,7 @@ The main data type is \texttt{LPE}, which is not a completely accurate name sinc
 \item \texttt{lpeInitEqs}, which maps the data parameters of $P$ to their initial values.
 \end{itemize}
 
-The tree structure of summands that was allowed by the grammar of LPEs (see \ref{sec:lpeform}) has been flattened in the new data structure, resulting in a set of \texttt{LPESummand} objects that is part of the \texttt{LPE} data type.
+The tree structure of summands that was allowed by the grammar of LPEs (see \ref{processlpeform}) has been flattened in the new data structure, resulting in a set of \texttt{LPESummand} objects that is part of the \texttt{LPE} data type.
 These objects correspond with the \textit{ActionSummand} rule in the grammar.
 
 One of the parts of the \texttt{LPESummand} data type is \texttt{lpeSmdVars}, which contains all variables that the summand uses besides LPE parameters.
