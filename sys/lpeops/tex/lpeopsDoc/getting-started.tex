@@ -20,7 +20,7 @@ and install it.
 \texttt{Z3 version 4.8.3 - 64 bit - build hashcode cf4bf7b591b6}
 \end{align*}
 
-If not the case, add the SMT solver to \texttt{PATH}.
+Add the binaries of the SMT solver to \texttt{PATH}.
 \item Clone the \texttt{develop} branch from
 \begin{align*}
 \texttt{https://github.com/TorXakis/TorXakis}
@@ -35,8 +35,9 @@ If not the case, add the SMT solver to \texttt{PATH}.
 \texttt{/.stack-work/install/23f9efff/bin}
 \end{align*}
 
-in the repository directory.
-Add them to \texttt{PATH}.
+in the repository directory (the \texttt{23f9efff} hash is build-dependent).
+
+Add the binaries to \texttt{PATH}.
 \end{enumerate}
 
 \section{Starting \txs{}} \label{starttxs}
@@ -49,24 +50,25 @@ Add them to \texttt{PATH}.
 \item In the other terminal, run \texttt{torxakis 50001 example.txs}.
 \end{enumerate}
 
-\section{Model linearization} \label{modellinearization}
+\section{Process linearization} \label{processlinearization}
 
-The symbolic manipulation of \txs{} models requires those models to be in \emph{LPE form} (see \ref{modellpeform}).
-To make a \txs{} model linear, do the following:
+The symbolic manipulation of \txs{} models requires the processes that underlie those models to be in \emph{LPE form} (see \ref{processlpeform}).
+To make a \txs{} process linear in practice, do the following:
 
 \begin{enumerate}
 \item Start \txs{} (see \ref{starttxs}).
 \item Run \texttt{lpe Model} in the client terminal, where \texttt{Model} is the name of the model in the \txs{} specification file.
+\txs{} will attempt to linearize the processes that underlie that model.
 
 Note that not all \txs{} models are linearizable.
-In those cases, the \texttt{lpe} command will fail, with an error reported in the server terminal.
+For those models, the \texttt{lpe} command will fail, with an error reported in the server terminal.
 \item If successful, the \texttt{lpe} command prints the name of a new \txs{} model that was created.
 This model can be manipulated symbolically (see \ref{modelmanipulation}).
 \end{enumerate}
 
 \section{Model manipulation} \label{modelmanipulation}
 
-After \ref{starttxs} and \ref{modellinearization}, symbolic manipulation of a \txs{} model can begin.
+After \ref{starttxs} and \ref{processlinearization}, symbolic manipulation of a \txs{} model can begin.
 To do this, use the \texttt{lpeop} command in the client terminal.
 
 The \texttt{lpeop} command has 3 space-separated arguments. In order, these arguments are:
