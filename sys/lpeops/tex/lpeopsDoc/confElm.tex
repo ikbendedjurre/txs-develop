@@ -8,11 +8,13 @@ This has the effect that other branches that could follow those summands are ign
 
 \subsection{Definite successors}
 
-Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Consider a summand pair $(s_\alpha, s_\beta)$, referencing the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
 Summand $s_\beta$ is said to be a \emph{definite successor} of $s_\alpha$ if the following expression is a tautology:
 \begin{align*}
-g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
+g_\alpha \rightarrow {g_\beta}[v \mapsto q(v) \;|\; v \in \varsof{g_\beta} \setminus P][p \mapsto v_\alpha(p) \;|\; p \in P]
 \end{align*}
+
+where $q(v)$ is a bijective function that relates variable $v$ to a fresh variable.
 
 \section{Algorithm}
 
@@ -27,16 +29,16 @@ The algorithm follows these steps:
 Rename the \istep{} channels in confluent \istep{} summands to \cistep{}.
 
 \item For each summand $s_\alpha$, determine $D(s_\alpha)$.
-Consider all possible pairs of summands $(s_\alpha, s_\beta)$ such that $s_\beta \in D(s_\alpha)$, and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Consider all possible pairs of summands $(s_\alpha, s_\beta)$ such that $s_\beta \in D(s_\alpha)$ contains a \cistep{} channel, and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
 
 Let
 \begin{align*}
-X = [ x_\beta(j) \rightarrow q(x_\beta(j)) \;|\; 1 \leq j \leq m_\beta ]
+X = [ x_\beta(j) \mapsto q(x_\beta(j)) \;|\; 1 \leq j \leq m_\beta ]
 \end{align*}
 
 where $q(x)$ is a surjective function that yields fresh variables, and let
 \begin{align*}
-V_\alpha &= [p_j \rightarrow v_\alpha(p_j) \;|\; 1 \leq j \leq k]
+V_\alpha &= [p_j \mapsto v_\alpha(p_j) \;|\; 1 \leq j \leq k]
 \end{align*}
 
 Replace $s_\alpha$ by ${s_\alpha}'$, which is defined as

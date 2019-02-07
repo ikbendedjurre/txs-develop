@@ -15,11 +15,13 @@ The \texttt{datareset} command, serving a similar purpose (see \ref{datareset}),
 
 \subsection{Possible successors} \label{possiblesuccessors}
 
-Consider all possible pairs of summands $(s_\alpha, s_\beta)$ of the LPE (including symmetric pairs), and reference the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
+Consider a summand pair $(s_\alpha, s_\beta)$, referencing the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
 Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
 \begin{align*}
-g_\alpha \land {g_\beta}[p \rightarrow v_\alpha(p) \;|\; p \in P]
+g_\alpha \land {g_\beta}[v \rightarrow q(v) \;|\; v \in \varsof{g_\beta} \setminus P][p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
+
+where $q(v)$ is a bijective function that relates variable $v$ to a fresh variable.
 
 \section{Algorithm}
 
