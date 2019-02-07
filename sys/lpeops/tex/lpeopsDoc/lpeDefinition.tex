@@ -1,10 +1,10 @@
 \chapter{LPE structure}
 
 \section{Introduction}
-The techniques that are described in this document require a \txs{} model as input of which the process is in \emph{linear process equation} (LPE) \emph{form}.
+The LPE operations that are described in this document (see \ref{lpeoperations}) require a \txs{} model as input of which the process is in \emph{linear process equation} (LPE) \emph{form}.
 Many, but not all \txs{} processes can be transformed to LPE form using the \texttt{lpe} command of \txs{}.
 
-\section{Processes in LPE form} \label{processlpeform}
+\section{LPE form} \label{lpeform}
 
 A \txs{} process
 \begin{align*}
@@ -13,9 +13,9 @@ A \txs{} process
 
 that is identified by $P$ is said to be a in \emph{LPE form} if $b_\textit{LPE}$ follows the grammar of $\textit{LPEBody}$ below:
 \begin{align*}
-\textit{LPEBody} &::= \textit{ChoiceSummand} \; \;|\; \textit{ActionSummand} \\
-\textit{ChoiceSummand} &::= \texttt{Choice} \; [ \;\! \textit{LPEBody}, \cdots{}, \textit{LPEBody} \; ] \\
-\textit{ActionSummand} &::= \texttt{ActionPref} \; \textit{ActOffer} \; \textit{ProcInst} \\
+\textit{LPEBody} &::= \textit{ChoiceSmd} \\
+\textit{ChoiceSmd} &::= \texttt{Choice} \; [ \;\! \textit{ActionSmd}, \cdots{}, \textit{ActionSmd} \; ] \\
+\textit{ActionSmd} &::= \texttt{ActionPref} \; \textit{ActOffer} \; \textit{ProcInst} \\
 \textit{ActOffer} &::= \texttt{ActOffer} \; \textit{ChanOffers} \;\; [ \; h_1, \cdots{}, h_z \; ] \; \textit{VExpr} \\
 \textit{ChanOffers} &::= [ \;\! \textit{ChanOffer}, \cdots{}, \textit{ChanOffer} \; ] \\
 \textit{ChanOffer} &::= \textit{ChanId} \;\; [\texttt{Quest} \; x_1, \cdots{}, \texttt{Quest} \; x_m] \\
@@ -27,6 +27,7 @@ Note that
 \begin{itemize}
 \item $b_\textit{LPE}$ should comply with traditional \txs{} requirements.
 More precisely, the communication variables $\{ x_1, \cdots{}, x_m \}$ must match the signature of the \textit{ChanId} channel that occurs in the same rule; and the number of \textit{VExpr}s in the \textit{ProcInst} rule must be equal to $k$ and their sorts must match $[T_1, \cdots{}, T_k]$.
+\item it must be the case that the channels that are used in a summand are either all input channels or all output channels.
 \item per summand, it must be the case that
 \begin{align*}
 |\; \{ h_1, \cdots{}, h_z \} \cup \{ x_1, \cdots{}, x_m \} \; | &= z + m \\
@@ -34,17 +35,26 @@ More precisely, the communication variables $\{ x_1, \cdots{}, x_m \}$ must matc
 \end{align*}
 \end{itemize}
 
-\section{Models in LPE form} \label{modellpeform}
+\section{Restricted LPE form} \label{restrictedlpeform}
 
-In actuality, it is convenient that not just process that underlies a model is in LPE form, but that the entire model has a specific form.
-Just like the specific form for processes, this form is also referred to as \emph{LPE form} because it has the same goal, namely enabling symbolic manipulation of a model.
+In actuality, it is convenient that processes have a form that is even more restrictive than the LPE form discussed in \ref{lpeform}.
+The form is the same as before, except for the \textit{ActOffer} and \textit{ChanOffers} rules, which change to
+\begin{align*}
+\textit{ActOffer} &::= \texttt{ActOffer} \; \textit{ChanOffers} \;\; [\;] \; \textit{VExpr} \\
+\textit{ChanOffers} &::= [ \;\! \textit{ChanOffer} \; ]
+\end{align*}
 
-A \txs{} model
+In short, hidden variables are no longer permitted, and there must be exactly one \textit{ChanOffer} per summand.
+
+A process that is in LPE form can be converted to restricted LPE form in a way that is reversible.
+First, a more precise definition of the format of \txs{} models is required.
+
+Let the form of a \txs{} model $M$ be
 \begin{align*}
 \texttt{ModelDef} \; [I_1, \cdots{}, I_m] \; [O_1, \cdots{}, O_n] \; b_\textit{inst}
 \end{align*}
 
-is said to be in \emph{LPE form} if
+where
 
 \begin{itemize}
 \item $I_1, \cdots{}, I_m$ are all single input channels;
@@ -70,82 +80,88 @@ and
 \end{align*}
 such that
 \begin{align*}
-\text{type}(C_i) = \text{type}(D_i) = K_i &\text{ for all } i \in [1, \cdots{}, m+n] \\
-\text{type}(v_I(p_i)) = T_i &\text{ for all } i \in [1, \cdots{}, k]
+\sortof{C_i} = \sortof{D_i} = K_i &\text{ for all } i \in [1, \cdots{}, m+n] \\
+\sortof{v_I(p_i)} = T_i &\text{ for all } i \in [1, \cdots{}, k]
 \end{align*}
 
-\item the \txs{} process that is identified by $P$ is in LPE form conform \ref{processlpeform}.
-\end{itemize}
-
-\section{Model linearization}
-
-A model can be converted to LPE form in a way that is reversible.
-
-Let the input LPE model be $M$ and the underlying LPE be $P$.
-Let the form of the $i$th summand of LPE $P$ be defined by 
+and such that $b_\textit{LPE}$ follows the parametrized grammar of $\textit{LPEBody}$ below:
 \begin{align*}
-s_i = \Gamma_i(1) \; \texttt{|} \; &\cdots{} \; \texttt{|} \; \Gamma_i(m_i) \; H_i \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k)) \\
-\Gamma_i(j) &= c_i(j) \; \texttt{?} \; x_{i,j}(1) \; \cdots{} \; \texttt{?} \; x_{i,j}(n_{i,j}) \\
-H_i &= \texttt{?} \; h_{i}(1) \; \cdots{} \; \texttt{?} \; h_{i}(z_{i})
+\textit{LPEBody} &::= \textit{ChoiceSmd} \\
+\textit{ChoiceSmd} &::= \texttt{Choice} \; [ \;\! \textit{ActionSmd}(1), \cdots{}, \textit{ActionSmd}(s) \; ] \\
+\textit{ActionSmd}(i) &::= \texttt{ActionPref} \; \textit{ActOffer}(i) \; \textit{ProcInst}(i) \\
+\textit{ActOffer}(i) &::= \texttt{ActOffer} \; \textit{ChanOffers}(i) \; [ \; h_i(1), \cdots{}, h_i(z_i) \; ] \; g_i \\
+\textit{ChanOffers}(i) &::= [ \;\! \textit{ChanOffer}_i(1), \cdots{}, \textit{ChanOffer}_i(m_i) \; ] \\
+\textit{ChanOffer}_i(j) &::= c_i(j) \;\; [\texttt{Quest} \; x_{i,j}(1), \cdots{}, \texttt{Quest} \; x_{i,j}(|\flsortof{c_i(j)}|)] \\
+\textit{ProcInst}_i(j) &::= \texttt{ProcInst} \; P \; \; [ \; C_1, \cdots{}, C_{m+n} \; ] \; [\;\!v_i(p_1), \cdots{}, v_i(p_k) \; ]
 \end{align*}
 
 where
 
 \begin{itemize}
-\item $\Gamma_i(1) \; \texttt{|} \; \cdots{} \; \texttt{|} \; \Gamma_i(m_i)$ are the \textit{ChanOffers} of summand $s_i$, of which there are $m_i \geq 0$;
-\item $c_i(j)$ is the channel name of the $j$th \textit{ChanOffer} of summand $s_i$;
-\item $x_{i,j}(e)$ is the $e$th communication variable of the $j$th \textit{ChanOffer} of summand $s_i$;
-\item $n_{i,j}$ is the number of communication variables of the $j$th \textit{ChanOffer} of summand $s_i$;
-\item $H_i$ are the hidden variables of summand $s_i$, of which there are $z_i$;
-\item $h_i(e)$ is the $e$th hidden variable of summand $s_i$;
-\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$, communication variables of summand $s_i$, or hidden variables of summand $s_i$);
-\item $p_1, \cdots{}, p_k$ are the parameters of $P$, of which there are $k \geq 0$;
-\item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters, communication variables of summand $s_i$, or hidden variables of summand $s_i$).
+\item $s$ is the number of summands of $P$;
+\item $h_i(j)$ is the $j$th hidden variable of the $i$th summand of $P$;
+\item $z_i \geq 0$ is the number of hidden variables of the $i$th summand of $P$;
+\item $g_i$ is the guard of the $i$th summand of $P$;
+\item $m_i \geq 0$ is the number of channels over which the $i$th summand of $P$ communicates;
+\item $c_i(j)$ is the $j$th channel over which the $i$th summand of $P$ communicates;
+\item $\text{fl}(S_1 \; \texttt{\#\#} \cdots{} \texttt{\#\#} \; S_q) = [S_1, \cdots{}, S_q]$ for some $q > 0$;
+\item $x_{i,j}(e)$ is the $e$th parameter that the $i$th summand of $P$ uses to communicate over channel $c_i(j)$;
+\item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$.
+\end{itemize}
 \end{itemize}
 
-Define a \emph{channel signature} as a pair $(C, S)$ where $C$ is an ordered list of channels and $S$ is an ordered list of sorts, and define a function $\tau$ that yields the channel signature of a summand $s_i$:
+Define a \emph{channel signature} as a pair $(C, S)$ where $C$ is an ordered list of channels and $S$ is an ordered list of sorts, and define a function $\tau$ that yields the channel signature of the $i$th summand of $P$, namely $s_i$:
 \begin{align*}
 \tau(s_i) = (&[ c_i(1), \cdots{}, c_i(m_i)], \\
 &[\flsortof{c_i(1)}, \cdots{}, \flsortof{c_i(m_i)}, \sortof{h_i(1)}, \cdots{}, \sortof{h_i(z_i)}])
 \end{align*}
 
-where $\text{flsort} = \text{flatten} \circ{} \text{sort}$ and
+Also define an injective function $\theta(T)$ that maps channel signatures of the form
 \begin{align*}
-\text{flatten}(k_1 \; \texttt{\#\#} \cdots{} \texttt{\#\#} \; k_q) = [k_1, \cdots{}, k_q]
+T = (C, [S_1, \cdots{}, S_{m_i+z_i}])
 \end{align*}
 
-for some $q > 0$.
-
-Define an injective function $\theta(T)$ that maps channel signature
-\begin{align*}
-T = (C, [s_1, \cdots{}, s_{m_i+z_i}])
-\end{align*}
-
-to a fresh, uniquely named channel with sort $s_1 \; \texttt{\#\#} \cdots{} \texttt{\#\#} \; s_{m_i+z_i}$.
+to a fresh, uniquely named channel with sort $S_1 \; \texttt{\#\#} \cdots{} \texttt{\#\#} \; S_{m_i+z_i}$.
 
 Given these definitions, do the following:
 
 \begin{enumerate}
 \item For each summand $s_i$, compute $\tau(s_i)$.
-Add the results to a set $\Sigma$.
+Add the result to a set $\Sigma_I$ if summand $s_i$ contains input actions, or add the result to a set $\Sigma_O$ if summand $s_i$ contains output actions (only one of these can be true).
 
-\item Compute $\Omega = \{ (\sigma, \theta(\sigma)) \;|\; \sigma \in \Sigma \}$.
+\item Compute $\Omega_I = \{ \; (\sigma, \theta(\sigma)) \;|\; \sigma \in \Sigma_I \; \}$ and $\Omega_O = \{ \; (\sigma, \theta(\sigma)) \;|\; \sigma \in \Sigma_O \; \}$.
 
-\item For each summand $s_i$, look up a pair $(a, b) \in \Omega$ so that $a = \tau(s_i)$.
-There is only one such pair.
-Change the action offer of $s_i$ to
+\item Compute $\Theta = [ \; \Theta_1, \cdots{}, \Theta_t \; ] = [ \; b \;|\; (a, b) \in \Omega_I \cup \Omega_O \; ]$.
+
+\item For each summand $s_i$, look up a pair $(a, b) \in \Omega_I \cup \Omega_O$ so that $a = \tau(s_i)$.
+There is exactly one such pair.
+Change the form of $s_i$ to
 \begin{align*}
-a \; {\Gamma_i(1)}' \; &\cdots{} \; {\Gamma_i(m_i)}' \; H_i \\
-{\Gamma_i(j)}' &= \texttt{?} \; x_{i,j}(1) \; \cdots{} \; \texttt{?} \; x_{i,j}(n_{i,j})
+\textit{ActionSmd}(i) &::= \texttt{ActionPref} \; \textit{ActOffer}(i) \; \textit{ProcInst}(i) \\
+\textit{ActOffer}(i) &::= \texttt{ActOffer} \; \textit{ChanOffers}(i) \;\; [ \; ] \;\; g_i \\
+\textit{ChanOffers}_i &::= [ \; b \;\; [ \;\! \textit{ChanOffer}_i(1), \cdots{}, \textit{ChanOffer}_i(m_i), \\
+&\qquad \qquad \qquad \texttt{Quest} \; h_i(1), \cdots{}, \texttt{Quest} \; h_i(z_i) \; ] \; ] \\
+\textit{ChanOffer}_i(j) &::= \texttt{Quest} \; x_{i,j}(1), \cdots{}, \texttt{Quest} \; x_{i,j}(|\flsortof{c_i(j)}|) \\
+\textit{ProcInst}_i(j) &::= \texttt{ProcInst} \; P \; \; [ \; \Theta_1, \cdots{}, \Theta_t \; ] \; [\;\!v_i(p_1), \cdots{}, v_i(p_k) \; ]
 \end{align*}
 
-\item Compute $\Theta = \{ b \;|\; (a, b) \in \Omega \}$.
+\item Change the definition of $P$ to
+\begin{align*}
+\texttt{ProcDef} \; [\Theta_1 :: \sortof{\Theta_1}, \cdots{}, \Theta_t :: \sortof{\Theta_t}] \; [p_1 :: T_1, \cdots{}, p_k :: T_k] \; b_\textit{LPE}
+\end{align*}
 
-\item Update $M$ and $P$ so that $P$ has access to the channels in $\Theta$.
-Be consistent in the order of channel parameter values when instantiating $P$!
+\item Change the definition of $M$ to
+\begin{align*}
+\texttt{ModelDef} \; [ \; b \;|\; (a, b) \in \Omega_I \; ] \; [ \; b \;|\; (a, b) \in \Omega_O \; ] \; b_\textit{inst}
+\end{align*}
+
+where
+\begin{align*}
+b_\textit{inst} = \texttt{ProcInst} \; P \; [\Theta_1, \cdots{}, \Theta_t] \; [v_I(p_1), \cdots{}, v_I(p_k)]
+\end{align*}
 \end{enumerate}
 
-Given $\Omega$, how to reverse the procedure above should be obvious.
+Given $\Omega_I$ and $\Omega_O$, how to reverse the conversion above should be obvious.
 
 \section{Data structure}
 
@@ -161,16 +177,16 @@ A visual representation of this data structure can be found in Figure~\ref{lpeda
 \end{figure}
 
 The main data type is \texttt{LPE}.
-This type primarily contains information about the \txs{} process in LPE form:
+This type primarily contains information about the \txs{} process in restricted LPE form (see \ref{restrictedlpeform}):
 \begin{itemize}
 \item The name of the LPE process is \texttt{lpeName};
-\item The tree structure of \textit{ActionSummand}s that was allowed by the grammar of LPEs (see \ref{processlpeform}) has been flattened in the new data structure, resulting in a set of \texttt{LPESummand} objects; and
+\item The summands that form the body of the LPE process; and
 \item The sorts of the data parameters of the LPE process are contained in \texttt{lpeInitEqs} as well as how each data parameter is initialized.
 \end{itemize}
 
 Because the LPE process is always instantiated with the same channels in the same order, the \texttt{LPE} type only has to track which channels are input channels (\texttt{lpeInChans}) and which channels are output channels (\texttt{lpeOutChans}).
-Note, however, that these are single channel identifiers that may have been freshly generated from multi-channel summands or from summands with hidden variables (see \ref{modellinearization}).
-The \texttt{lpeChanMap} defines how channels in the LPE data structure are converted back to the original channels.
+Note that these are single channel identifiers that may have been freshly generated from multi-channel summands or from summands with hidden variables in order to obtain restricted LPE form (see \ref{restrictedlpeform}).
+The \texttt{lpeChanMap} defines how channels in the LPE data structure are converted back to the original channels; it is therefore the implementation of $\Omega_I$ and $\Omega_O$.
 
 The \texttt{LPE} type also stores some circumstantial information in \texttt{lpeContext}.
 This is a library of \txs{} type and function definitions that has been copied directly from the original \txs{} model specification.
@@ -178,23 +194,9 @@ It is used to validate instances of the \texttt{LPE} type, to generate default v
 
 Finally, the \texttt{LPESummand} type only contains information about a specific summand: \texttt{lpeSmdChan} is the channel over which it communicates; \texttt{lpeSmdOffers} are the communication variables (including variables that originally were hidden variables); and the \texttt{lpeSmdEqs} map defines which expressions are used to assign new values to the parameters of the LPE after the application of the summand.
 
-\section{Model linearization} \label{modellinearization}
-
-The previous section briefly touched on how models are converted to LPE form.
-This section goes into more detail on this subject.
-
-Converting a model to LPE form requires the creation of a mapping from multi-channels to fresh, single channels.
-For example,
-
-TODO
-
-Every scenario where summands have hidden variables ($h_1, \cdots{}, h_z$) also requires a dedicated channel definition.
-
-TODO
-
 \section{Summand elements} \label{summandelements}
 
-To formally reference the elements of $s_i$ -- the $i$th summand of LPE $P$ -- the following definition is used:
+To formally reference the elements of $s_i$ -- the $i$th summand of restricted LPE $P$ -- the following definition is used:
 \begin{align*}
 s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
 \end{align*}
@@ -202,8 +204,8 @@ s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i
 where
 
 \begin{itemize}
-\item $C_i$ is the name of the channel over which summand $s_i$ communicates (if there is no such channel, \istep{} or \cistep{} is used);
-\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses locally, such as communication variables and hidden variables;
+\item $C_i$ is the name of the channel over which summand $s_i$ communicates;
+\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
 \item $x_i(j)$ is the $j$th variable that summand $s_i$ uses locally (communication variables first, followed by hidden variables);
 \item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$, communication variables of summand $s_i$, or hidden variables of summand $s_i$);
 \item $p_1, \cdots{}, p_k$ are the parameters of $P$, of which there are $k \geq 0$;

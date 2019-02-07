@@ -52,7 +52,7 @@ Add the binaries to \texttt{PATH}.
 
 \section{Process linearization} \label{processlinearization}
 
-The symbolic manipulation of \txs{} models requires the processes that underlie those models to be in \emph{LPE form} (see \ref{processlpeform}).
+The symbolic manipulation of \txs{} models requires the processes that underlie those models to be in \emph{LPE form} (see \ref{lpeform}).
 To make a \txs{} process linear in practice, do the following:
 
 \begin{enumerate}
@@ -82,9 +82,9 @@ LPE operations in the chain are executed from left to right, passing their outpu
 If a problem occurs, the process ends immediately.
 Otherwise, the final output model is saved as a new model.
 \item The name of the input model.
-The input model should be in LPE form (see \ref{modellpeform}).
+The process that underlies the input model should be in LPE form (see \ref{lpeform}).
 \item A base name \textit{base} for generated output.
-The name is primarily used for the output model (if any), which is in LPE form.
+The name is primarily used for the output model (if any), the underlying process of which is in LPE form.
 However, LPE operations may adopt the name for their own purposes.
 The \texttt{export} operation, for example, will create a file by that name with the \texttt{.txs} extension.
 
