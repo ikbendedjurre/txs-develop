@@ -34,18 +34,18 @@ import qualified Text.Read as Read
 import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
-import qualified LPEClean
-import qualified LPEConstElm
-import qualified LPEParElm
-import qualified LPEIStepElm
-import qualified LPEDataReset
-import qualified LPEParReset
-import qualified LPEConfCheck
-import qualified LPEIsDet
-import qualified LPEDeterminize
-import qualified LPEAngelic
-import qualified LPEUGuards
-import qualified LPE2MCRL2
+-- import qualified LPEClean
+-- import qualified LPEConstElm
+-- import qualified LPEParElm
+-- import qualified LPEIStepElm
+-- import qualified LPEDataReset
+-- import qualified LPEParReset
+-- import qualified LPEConfCheck
+-- import qualified LPEIsDet
+-- import qualified LPEDeterminize
+-- import qualified LPEAngelic
+-- import qualified LPEUGuards
+-- import qualified LPE2MCRL2
 import           LPEPrettyPrint
 import           LPEConversion
 import           LPEValidity
@@ -159,18 +159,18 @@ getLPEOperation opName = case opName of
                            'l':'o':'o':'p':'*':xs -> case Read.readMaybe xs of
                                                        Just n -> Right (LPEOps.LPEOpLoop n)
                                                        Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")
-                           "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
-                           "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)
-                           "parelm" -> Right (LPEOps.LPEOp LPEParElm.parElm)
-                           "istepelm" -> Right (LPEOps.LPEOp LPEIStepElm.iStepElm)
-                           "datareset" -> Right (LPEOps.LPEOp LPEDataReset.dataReset)
-                           "parreset" -> Right (LPEOps.LPEOp LPEParReset.parReset)
-                           "isdet" -> Right (LPEOps.LPEOp LPEIsDet.isDeterministicLPE)
-                           "det" -> Right (LPEOps.LPEOp LPEDeterminize.determinizeLPE)
-                           "angelic" -> Right (LPEOps.LPEOp LPEAngelic.makeInputEnabledLPE)
-                           "uguard" -> Right (LPEOps.LPEOp LPEUGuards.addUGuardsToLPE)
-                           "confelm" -> Right (LPEOps.LPEOp LPEConfCheck.confElm)
-                           "mcrl2" -> Right (LPEOps.LPEOp LPE2MCRL2.lpe2mcrl2)
+                           -- "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
+                           -- "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)
+                           -- "parelm" -> Right (LPEOps.LPEOp LPEParElm.parElm)
+                           -- "istepelm" -> Right (LPEOps.LPEOp LPEIStepElm.iStepElm)
+                           -- "datareset" -> Right (LPEOps.LPEOp LPEDataReset.dataReset)
+                           -- "parreset" -> Right (LPEOps.LPEOp LPEParReset.parReset)
+                           -- "isdet" -> Right (LPEOps.LPEOp LPEIsDet.isDeterministicLPE)
+                           -- "det" -> Right (LPEOps.LPEOp LPEDeterminize.determinizeLPE)
+                           -- "angelic" -> Right (LPEOps.LPEOp LPEAngelic.makeInputEnabledLPE)
+                           -- "uguard" -> Right (LPEOps.LPEOp LPEUGuards.addUGuardsToLPE)
+                           -- "confelm" -> Right (LPEOps.LPEOp LPEConfCheck.confElm)
+                           -- "mcrl2" -> Right (LPEOps.LPEOp LPE2MCRL2.lpe2mcrl2)
                            _ -> Left ("Unknown LPE operation (" ++ opName ++ ")!")
 -- getLPEOperation
 

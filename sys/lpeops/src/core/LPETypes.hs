@@ -16,13 +16,13 @@ See LICENSE at root directory of this repository.
 
 module LPETypes (
 LPE(..),
+lpeChanParams,
 emptyLPE,
 lpeParams,
 LPESummands,
 LPESummand(..),
+lpeSmdVarSet,
 emptyLPESummand,
-LPEChanOffer,
-LPEChanOffers,
 LPEParamEqs,
 LPEOperation,
 paramEqsLookup,
@@ -43,17 +43,19 @@ import qualified VarId
 import qualified ValExpr
 import qualified Constant
 import ValFactory
+import LPEChanMap
 
 data LPE = LPE { -- [optional] Definitions that surrounded the original TorXakis model:
                  lpeContext :: TxsDefs.TxsDefs
-                 -- [optional] Which (sets of) channels are input channels?
-               , lpeInChans :: Set.Set (Set.Set TxsDefs.ChanId)
-                 -- [optional] Which (sets of) channels are output channels?
-               , lpeOutChans :: Set.Set (Set.Set TxsDefs.ChanId)
+                 -- Multi-channels and channels with different hidden variables are mapped to fresh channels.
+                 -- This map keeps a record of this transformation:
+               , lpeChanMap :: LPEChanMap
+                 -- [optional] Which (fresh) channels are input channels?
+               , lpeInChans :: Set.Set TxsDefs.ChanId
+                 -- [optional] Which (fresh) channels are output channels?
+               , lpeOutChans :: Set.Set TxsDefs.ChanId
                  -- Name of the LPE process:
                , lpeName :: Text.Text
-                 -- Channels that the LPE process uses as parameters in its signature:
-               , lpeChanParams :: Set.Set TxsDefs.ChanId
                  -- Data that the LPE process uses as parameters in its signature:
                , lpeInitEqs :: LPEParamEqs
                  -- Summands that form the body of the LPE process:
@@ -61,12 +63,15 @@ data LPE = LPE { -- [optional] Definitions that surrounded the original TorXakis
                } deriving (Eq, Ord, Show)
 -- LPE
 
+lpeChanParams :: LPE -> Set.Set TxsDefs.ChanId
+lpeChanParams lpe = Set.union (lpeInChans lpe) (lpeOutChans lpe)
+
 emptyLPE :: LPE
 emptyLPE = LPE { lpeContext = TxsDefs.empty
+               , lpeChanMap = Map.empty
                , lpeInChans = Set.empty
                , lpeOutChans = Set.empty
                , lpeName = Text.pack ""
-               , lpeChanParams = Set.empty
                , lpeInitEqs = Map.empty
                , lpeSummands = Set.empty
                }
@@ -77,10 +82,10 @@ lpeParams = Map.keysSet . lpeInitEqs
 
 type LPESummands = Set.Set LPESummand
 
-data LPESummand = LPESummand { -- All local (=channel) variables, including hidden ones:
-                               lpeSmdVars :: Set.Set VarId.VarId
-                               -- Channel offers (see below):
-                             , lpeSmdOffers :: LPEChanOffers
+data LPESummand = LPESummand { -- Communication channel:
+                               lpeSmdChan :: TxsDefs.ChanId
+                               -- Communication variables:
+                             , lpeSmdVars :: [VarId.VarId]
                                -- Guard:
                              , lpeSmdGuard :: TxsDefs.VExpr
                                -- Values per parameter for the process instantiation:
@@ -88,17 +93,16 @@ data LPESummand = LPESummand { -- All local (=channel) variables, including hidd
                              } deriving (Eq, Ord, Show)
 -- LPESummand
 
+lpeSmdVarSet :: LPESummand -> Set.Set VarId.VarId
+lpeSmdVarSet = Set.fromList . lpeSmdVars
+
 emptyLPESummand :: LPESummand
-emptyLPESummand = LPESummand { lpeSmdVars = Set.empty
-                             , lpeSmdOffers = Map.empty
+emptyLPESummand = LPESummand { lpeSmdChan = TxsDefs.chanIdIstep
+                             , lpeSmdVars = []
                              , lpeSmdGuard = ValExpr.cstrConst (Constant.Cbool True)
                              , lpeSmdEqs = Map.empty
                              }
 -- emptyLPESummand
-
--- Relates channels with the communication variables over which they must be synchronized:
-type LPEChanOffers = Map.Map TxsDefs.ChanId [VarId.VarId]
-type LPEChanOffer = (ChanId.ChanId, [VarId.VarId])
 
 -- Relates parameters with their (initial) value:
 type LPEParamEqs = Map.Map VarId.VarId TxsDefs.VExpr
@@ -127,22 +131,25 @@ selfLoopParamEqs = Map.fromSet ValExpr.cstrVar
 defaultValueParamEqs :: TxsDefs.TxsDefs -> Set.Set VarId.VarId -> LPEParamEqs
 defaultValueParamEqs tdefs = Map.fromSet (sort2defaultValue tdefs . VarId.varsort)
 
+-- This method is used by unit tests:
 newLPESummand :: [VarId.VarId] -> [(ChanId.ChanId, [VarId.VarId])] -> TxsDefs.VExpr -> [(VarId.VarId, TxsDefs.VExpr)] -> LPESummand
-newLPESummand chanVarIds chanOffers guard procInstParamEqs =
-    LPESummand { lpeSmdVars = Set.fromList chanVarIds
-               , lpeSmdOffers = Map.fromList chanOffers
+newLPESummand _chanVarIds [(chanId, chanVars)] guard procInstParamEqs =
+    LPESummand { lpeSmdChan = chanId
+               , lpeSmdVars = chanVars
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
                }
+newLPESummand _ _ _ _ = emptyLPESummand
 -- newLPESummand
 
+-- This method is used by unit tests:
 newLPE :: ([TxsDefs.ChanId], [(VarId.VarId, TxsDefs.VExpr)], [LPESummand]) -> LPE
 newLPE (chanIds, initParamEqs, summands) =
     LPE { lpeContext = TxsDefs.empty
+        , lpeChanMap = Map.fromList (map (\x -> (x, ([x], ChanId.chansorts x))) chanIds)
         , lpeInChans = Set.empty
-        , lpeOutChans = Set.empty
+        , lpeOutChans = Set.fromList chanIds
         , lpeName = Text.pack "LPE"
-        , lpeChanParams = Set.fromList chanIds
         , lpeInitEqs = Map.fromList initParamEqs
         , lpeSummands = Set.fromList summands
         }

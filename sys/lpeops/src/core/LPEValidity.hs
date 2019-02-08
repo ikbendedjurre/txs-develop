@@ -35,6 +35,7 @@ import qualified TxsDefs
 import qualified CstrId
 import qualified FuncId
 import qualified SortId
+import qualified ChanId
 import qualified VarId
 import           Constant hiding (args, sort)
 import           ValExpr
@@ -55,31 +56,25 @@ validateLPE lpe _out _invariant = do
 validateLPEModel :: LPE -> [String]
 validateLPEModel lpe =
     let summands = Set.toList (lpeSummands lpe) in
-      concatMap getSmdProblems (zip [1..] summands)
+      concatMap getSmdProblems (zip [1..] summands) ++ getChanProblems
   where
     getSmdProblems :: (Int, LPESummand) -> [String]
     getSmdProblems (i, smd) = validateLPESummand ("summand " ++ show i) (lpeParams lpe) smd
     
-    -- Usage: getDisjointScopeProblems summands (tail summands)
-    -- getDisjointScopeProblems :: [LPESummand] -> [LPESummand] -> [String]
-    -- getDisjointScopeProblems [] _ = []
-    -- getDisjointScopeProblems [_] _ = []
-    -- getDisjointScopeProblems (_:x2:xs) [] = getDisjointScopeProblems (x2:xs) xs
-    -- getDisjointScopeProblems (x:xs) (y:ys) =
-        -- let index1 = Set.size (lpeSummands lpe) - length xs in
-        -- let index2 = Set.size (lpeSummands lpe) - length ys in
-        -- let sharedVars = Set.toList (Set.intersection (lpeSmdVars x) (lpeSmdVars y)) in
-          -- map (\v -> "Variable " ++ Text.unpack (VarId.name v) ++ " is used in summands " ++ show index1 ++ " and " ++ show index2 ++ "!") sharedVars ++ getDisjointScopeProblems (x:xs) ys
+    getChanProblems :: [String]
+    getChanProblems =
+        let overlap = Set.intersection (lpeInChans lpe) (lpeOutChans lpe) in
+          [ "Channel " ++ Text.unpack (ChanId.name c) ++ " is both an input channel and an output channel!" | c <- Set.toList overlap ]
 -- validateLPEModel
 
 validateLPESummand :: String -> Set.Set VarId.VarId -> LPESummand -> [String]
 validateLPESummand location scope summand =
-    let newScope = Set.union scope (lpeSmdVars summand) in
+    let newScope = Set.union scope (lpeSmdVarSet summand) in
       getDisjointScopeProblems ++ validateValExpr ("guard of " ++ location) newScope (lpeSmdGuard summand) ++ getProcInstProblems newScope
   where
     getDisjointScopeProblems :: [String]
     getDisjointScopeProblems =
-        let sharedVars = Set.toList (Set.intersection scope (lpeSmdVars summand)) in
+        let sharedVars = Set.toList (Set.intersection scope (lpeSmdVarSet summand)) in
           map (\v -> "Variable " ++ Text.unpack (VarId.name v) ++ " is redeclared in " ++ location ++ "!") sharedVars
     -- getDisjointScopeProblems
     

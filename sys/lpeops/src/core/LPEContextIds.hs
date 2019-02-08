@@ -76,9 +76,8 @@ getLPEIds lpe =
 getLPESummandIds :: LPESummand -> Set.Set TxsDefs.Ident
 getLPESummandIds summand =
     Set.unions [
-      getVarsIds (Set.toList (lpeSmdVars summand)),
-      getChansIds (Map.keysSet (lpeSmdOffers summand)),
-      Set.unions (map getVarsIds (Map.elems (lpeSmdOffers summand))),
+      getChanIds (lpeSmdChan summand),
+      getVarsIds (lpeSmdVars summand),
       getValExprIds (lpeSmdGuard summand),
       getParamEqsIds (lpeSmdEqs summand)
     ] Set.\\ stdIds

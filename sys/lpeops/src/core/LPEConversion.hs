@@ -22,6 +22,7 @@ module LPETypes
 ) where
 
 --import qualified Control.Monad as Monad
+import qualified Control.Monad as Monad
 import qualified Control.Monad.State as MonadState
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -34,12 +35,12 @@ import qualified TxsShow
 import qualified ProcId
 import qualified VarId
 import qualified ChanId
-import           LPEPrettyPrint
 import           LPEValidity
 import           LPETypes
 import           ConcatEither
 import           BlindSubst
 import           ModelIdFactory
+import           LPEChanMap
 
 -- Constructs an LPEModel from a process expression (unless there are problems).
 -- The process expression should be the instantiation of a process that has already been linearized!
@@ -53,83 +54,74 @@ model2lpe modelId = do
           TxsDefs.ProcInst procId _ paramValues -> do
             let pdefs = TxsDefs.procDefs tdefs
             case pdefs Map.!? procId of
-              Just procDef@(TxsDefs.ProcDef chans params body) ->
-                let (initEqs, initEqsProblems) = getParamEqs tdefs "model initiation" params paramValues in
-                  case getLPESummands tdefs procId procDef body of
-                    Left msgs -> return (Left msgs)
-                    Right summands -> do let lpe = LPE { lpeContext = tdefs
-                                                       , lpeInChans = Set.fromList inChans
-                                                       , lpeOutChans = Set.fromList outChans
-                                                       , lpeName = ProcId.name procId
-                                                       , lpeChanParams = Set.fromList chans
-                                                       , lpeInitEqs = initEqs
-                                                       , lpeSummands = Set.fromList summands
-                                                       }
-                                         let problems = initEqsProblems ++ validateLPEModel lpe
-                                         if null problems
-                                         then return (Right lpe)
-                                         else return (Left problems)
+              Just procDef@(TxsDefs.ProcDef _chans params body) ->
+                case getParamEqs tdefs "model initiation" params paramValues of
+                  Left msgs -> return (Left msgs)
+                  Right initEqs -> case getSummandData tdefs procId procDef body of
+                                     Left msgs -> return (Left msgs)
+                                     Right summandData -> do let lpe = emptyLPE { lpeContext = tdefs
+                                                                                , lpeName = ProcId.name procId
+                                                                                , lpeInitEqs = initEqs
+                                                                                }
+                                                             (lpe', msgs) <- Monad.foldM foldSummandDataIntoLPE (lpe, []) summandData
+                                                             let lpe'' = lpe' { lpeInChans = selectChanMapKeys (lpeChanMap lpe') (Set.unions inChans)
+                                                                              , lpeOutChans = selectChanMapKeys (lpeChanMap lpe') (Set.unions outChans)
+                                                                              }
+                                                             let problems = msgs ++ validateLPEModel lpe''
+                                                             if null problems
+                                                             then return (Right lpe'')
+                                                             else return (Left problems)
               Nothing -> do let definedProcessNames = List.intercalate " or " (map (Text.unpack . ProcId.name) (Map.keys pdefs))
                             return (Left ["Expected " ++ definedProcessNames ++ ", found " ++ show (Text.unpack (ProcId.name procId)) ++ "!"])
           _ -> return (Left ["Expected process instantiation, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"])
       [] -> return (Left ["Could not find model " ++ show modelId ++ "!"])
-  where
-    getParamEqs :: TxsDefs.TxsDefs -> String -> [VarId.VarId] -> [TxsDefs.VExpr] -> (LPEParamEqs, [String])
-    getParamEqs tdefs location params paramValues =
-        let newParamValues = map (any2defaultValue tdefs) paramValues in
-        let paramEqs = Map.fromList (zip params newParamValues) in
-        let problems = validateSortList location (map SortOf.sortOf params) (map SortOf.sortOf newParamValues) in
-          (paramEqs, problems)
 -- toLPEModel
 
--- Helper function.
--- Constructs one or more summands from a TXS process expression (unless there are problems).
-getLPESummands :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [LPESummand]
-getLPESummands tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
+foldSummandDataIntoLPE :: (LPE, [String]) -> (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (LPE, [String])
+foldSummandDataIntoLPE (lpe, earlierMsgs) (actOffer, paramEqs) = do
+    case concatEither (map getSmdVars (Set.toList (TxsDefs.offers actOffer))) of
+      Left msgs -> return (lpe, ["Action offer " ++ TxsShow.fshow actOffer ++ " is invalid because"] ++ msgs)
+      Right smdVars -> do (smdChan, newChanMap) <- addToChanMap (lpeChanMap lpe) actOffer
+                          let lpeSummand = LPESummand { lpeSmdChan = smdChan
+                                                      , lpeSmdVars = smdVars ++ Set.toList (TxsDefs.hiddenvars actOffer)
+                                                      , lpeSmdGuard = TxsDefs.constraint actOffer
+                                                      , lpeSmdEqs = paramEqs
+                                                      }
+                          return (lpe { lpeChanMap = newChanMap, lpeSummands = Set.insert lpeSummand (lpeSummands lpe) }, earlierMsgs)
+  where
+    getSmdVars :: TxsDefs.Offer -> Either [String] [VarId.VarId]
+    getSmdVars TxsDefs.Offer { TxsDefs.chanoffers = chanoffers } =
+        concatEither (map offerToVar chanoffers)
+      where
+        offerToVar :: TxsDefs.ChanOffer -> Either [String] [VarId.VarId]
+        offerToVar (TxsDefs.Quest varId) = Right [varId]
+        offerToVar chanOffer = Left ["Invalid channel format, found " ++ TxsShow.fshow chanOffer ++ "!"]
+-- foldSummandDataIntoLPE
+
+getSummandData :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [(TxsDefs.ActOffer, LPEParamEqs)]
+getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
     case TxsDefs.view expr of
-      TxsDefs.Choice choices -> concatEither (map (getLPESummands tdefs expectedProcId expectedProcDef) (Set.toList choices))
-      TxsDefs.ActionPref TxsDefs.ActOffer { TxsDefs.offers = offers, TxsDefs.hiddenvars = hiddenvars, TxsDefs.constraint = constraint } procInst ->
+      TxsDefs.Choice choices -> concatEither (map (getSummandData tdefs expectedProcId expectedProcDef) (Set.toList choices))
+      TxsDefs.ActionPref actOffer procInst ->
           case TxsDefs.view procInst of
             TxsDefs.ProcInst procId chanIds paramValues
                 | procId /= expectedProcId -> Left ["Expected instantiation of " ++ show expectedProcId ++ ", found instantiation of " ++ show procId ++ "!"]
                 | chanIds /= defChanIds -> Left ["Signature mismatch in channels, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"]
-                | otherwise ->
-                    let (paramEqs, paramEqsProblems) = getParamEqs "process instantiation" paramValues in
-                      case concatEither (map getChannelOffer (Set.toList offers)) of
-                        Left msgs -> Left (("Process instantiation " ++ TxsShow.fshow procInst ++ " is invalid because"):msgs)
-                        Right channelOffers -> let channelVars = concatMap snd channelOffers ++ Set.toList hiddenvars in
-                                               let lpeSummand = LPESummand { lpeSmdVars = Set.fromList channelVars
-                                                                           , lpeSmdOffers = Map.fromList channelOffers
-                                                                           , lpeSmdGuard = constraint
-                                                                           , lpeSmdEqs = paramEqs
-                                                                           } in
-                                               let problems = paramEqsProblems ++ validateLPESummand "summand" (Set.fromList params) lpeSummand in
-                                                 if null problems
-                                                 then Right [lpeSummand]
-                                                 else Left (("Summand " ++ showLPESummand lpeSummand ++ " is invalid because"):problems)
+                | otherwise -> case getParamEqs tdefs "process instantiation" params paramValues of
+                                 Left msgs -> Left msgs
+                                 Right paramEqs -> Right [(actOffer, paramEqs)]
             _ -> Left ["Expected process instantiation, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"]
       _ -> Left ["Expected choice or action prefix, found " ++ TxsShow.fshow (TxsDefs.view expr) ++ "!"]
-  where
-    getParamEqs :: String -> [TxsDefs.VExpr] -> (LPEParamEqs, [String])
-    getParamEqs location paramValues =
-        let newParamValues = map (any2defaultValue tdefs) paramValues in
-        let paramEqs = Map.fromList (zip params newParamValues) in
-        let problems = validateSortList location (map SortOf.sortOf params) (map SortOf.sortOf paramValues) in
-          (paramEqs, problems)
--- getLPESummands
+-- getSummandData
 
--- Helper method.
--- Extracts an LPEChannelOffer for each channel offer (unless there are problems).
-getChannelOffer :: TxsDefs.Offer -> Either [String] [LPEChanOffer]
-getChannelOffer TxsDefs.Offer { TxsDefs.chanid = chanid, TxsDefs.chanoffers = chanoffers } =
-    case concatEither (map offerToVar chanoffers) of
-      Left msgs -> Left msgs
-      Right offerVars -> Right [(chanid, offerVars)]
-  where
-    offerToVar :: TxsDefs.ChanOffer -> Either [String] [VarId.VarId]
-    offerToVar (TxsDefs.Quest varId) = Right [varId]
-    offerToVar chanOffer = Left ["Invalid channel format, found " ++ TxsShow.fshow chanOffer ++ "!"]
--- getChannelOffers
+getParamEqs :: TxsDefs.TxsDefs -> String -> [VarId.VarId] -> [TxsDefs.VExpr] -> Either [String] LPEParamEqs
+getParamEqs tdefs location params paramValues =
+    let msgs = validateSortList location (map SortOf.sortOf params) (map SortOf.sortOf paramValues) in
+      if null msgs
+      then let newParamValues = map (any2defaultValue tdefs) paramValues in
+             Right (Map.fromList (zip params newParamValues))
+      else Left msgs
+-- getParamEqs
 
 -- Constructs a process expression and a process definition from an LPEModel (unless there is a problem).
 -- The process expression creates an instance of the process definition.
@@ -151,7 +143,9 @@ lpe2model lpe = do
     
     -- Create a new model:
     newModelId <- getModelIdFromName (lpeName lpe)
-    let newModelDef = TxsDefs.ModelDef (Set.toList (lpeInChans lpe)) (Set.toList (lpeOutChans lpe)) [] newProcInit
+    let inChans = map (getMultiChannelFromChanMap (lpeChanMap lpe)) (Set.toList (lpeInChans lpe))
+    let outChans = map (getMultiChannelFromChanMap (lpeChanMap lpe)) (Set.toList (lpeOutChans lpe))
+    let newModelDef = TxsDefs.ModelDef inChans outChans [] newProcInit
     
     -- Add process and model:
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
@@ -165,18 +159,8 @@ lpe2model lpe = do
       -- Constructs a behavioral expression from a summand.
       summandToBExpr :: TxsDefs.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> LPESummand -> TxsDefs.BExpr
       summandToBExpr lpeProcId orderedChanParams orderedDataParams summand =
-          let usedChanVars = Set.fromList (concat (Map.elems (lpeSmdOffers summand))) in
-          let actPref = TxsDefs.ActOffer { TxsDefs.offers = Set.fromList (map offerToOffer (Map.toList (lpeSmdOffers summand))),
-                                           TxsDefs.constraint = lpeSmdGuard summand,
-                                           TxsDefs.hiddenvars = lpeSmdVars summand Set.\\ usedChanVars } in
+          let actOffer = getActOfferFromChanMap (lpeChanMap lpe) (lpeSmdChan summand) (lpeSmdVars summand) (lpeSmdGuard summand) in
           let procInst = TxsDefs.procInst lpeProcId orderedChanParams (paramEqsLookup orderedDataParams (lpeSmdEqs summand)) in
-            TxsDefs.actionPref actPref procInst
-      -- summandToBExpr
-      
-      -- Constructs an offer from an offer.
-      offerToOffer :: LPEChanOffer -> TxsDefs.Offer
-      offerToOffer (chanId, chanVars) = TxsDefs.Offer { TxsDefs.chanid = chanId
-                                                      , TxsDefs.chanoffers = [TxsDefs.Quest var | var <- chanVars]
-                                                      }
+            TxsDefs.actionPref actOffer procInst
 -- fromLPEModel
 

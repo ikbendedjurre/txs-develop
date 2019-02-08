@@ -107,12 +107,12 @@ showLPEInContext f lpe =
             _ -> (orderedChansDefault, orderedParamsDefault)
     -- getOrderedChansAndParams
     
-    showChanSyncs :: String -> [Set.Set ChanId.ChanId] -> String
+    showChanSyncs :: String -> [ChanId.ChanId] -> String
     showChanSyncs caption [] = "    " ++ caption ++ "\n"
-    showChanSyncs caption syncs = "    " ++ caption ++ " " ++ List.intercalate ", " (map showChanSync syncs) ++ "\n"
+    showChanSyncs caption cids = "    " ++ caption ++ " " ++ List.intercalate ", " (map showChanSync cids) ++ "\n"
     
-    showChanSync :: Set.Set ChanId.ChanId -> String
-    showChanSync cids = List.intercalate " | " (map (showChanId f) (Set.toList cids))
+    showChanSync :: ChanId.ChanId -> String
+    showChanSync cid = showChanId f cid
 -- showLPEInContext
 
 showChanDefs :: LPEContext -> [ChanId.ChanId] -> String
@@ -190,30 +190,12 @@ showAbbrevLPESummand summand = showLPESummandInContext (getAbbrevLPESummandConte
 
 showLPESummandInContext :: LPEContext -> VExprFromSortIdFunc -> [ChanId.ChanId] -> [VarId.VarId] -> LPESummand -> String
 showLPESummandInContext f g orderedChans orderedParams summand =
-    let visibleChannelVars = Set.fromList (concat (Map.elems (lpeSmdOffers summand))) in
-    let hiddenChannelVars = Set.toList (lpeSmdVars summand Set.\\ visibleChannelVars) in
-      (if null hiddenChannelVars then "" else "HIDE [ HiddenChannel ] IN ") ++
-      showChannelOffers (lpeSmdOffers summand) ++
-      showHiddenVars hiddenChannelVars ++
-      "[[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
-      "LPE" ++ showChanRefs orderedChans ++
-      "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")" ++
-      (if null hiddenChannelVars then "" else " NI")
+    showChanId f (lpeSmdChan summand) ++ 
+    showChannelVars (lpeSmdVars summand) ++
+    "[[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
+    "LPE" ++ showChanRefs orderedChans ++
+    "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")"
   where
-    showChannelOffers :: LPEChanOffers -> String
-    showChannelOffers offers =
-        if offers == Map.empty
-        then "ISTEP "
-        else List.intercalate " | " (map showChannelOffer (Map.toList offers)) ++ " "
-    -- showChannelOffers
-    
-    showHiddenVars :: [VarId.VarId] -> String
-    showHiddenVars [] = ""
-    showHiddenVars hiddenVars = "| HiddenChannel" ++ showChannelVars hiddenVars ++ " "
-    
-    showChannelOffer :: LPEChanOffer -> String
-    showChannelOffer (chanId, vars) = showChanId f chanId ++ showChannelVars vars
-    
     showChannelVars :: [VarId.VarId] -> String
     showChannelVars vars = concatMap (\v -> " ? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v)) vars
     
