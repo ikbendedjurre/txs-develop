@@ -57,7 +57,12 @@ To make a \txs{} process linear in practice, do the following:
 
 \begin{enumerate}
 \item Start \txs{} (see \ref{starttxs}).
-\item Run \texttt{lpe Model} in the client terminal, where \texttt{Model} is the name of the model in the \txs{} specification file.
+\item Run
+\begin{align*}
+\texttt{lpe Model}
+\end{align*}
+
+in the client terminal, where \texttt{Model} is the name of the model in the \txs{} specification file.
 \txs{} will attempt to linearize the processes that underlie that model.
 
 Note that not all \txs{} models are linearizable.
@@ -92,6 +97,10 @@ It is possible to use the \texttt{\%i} token in the base name.
 This will insert the current counter value into the name.
 Use the \texttt{inc} command to increase the counter (which starts at 1).
 \end{itemize}
+
+\subsection{Examples TODO}
+
+TODO
 
 \section{Unit tests}
 
