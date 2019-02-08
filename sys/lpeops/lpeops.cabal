@@ -23,7 +23,7 @@ library
                     -- , LPEDeterminism
                     , LPEContexts
                     , LPEContextIds
-                    -- , LPEClean
+                    , LPEClean
                     , LPEChanMap
                     , ChanFactory
                     -- , LPEConstElm
@@ -93,7 +93,7 @@ test-suite lpeops-test
                       , LPEDeterminism
                       , LPEContexts
                       , LPEContextIds
-                      -- , LPEClean
+                      , LPEClean
                       , LPEChanMap
                       , ChanFactory
                       -- , LPEConstElm

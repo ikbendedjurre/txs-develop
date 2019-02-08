@@ -16,7 +16,8 @@ See LICENSE at root directory of this repository.
 
 module LPECompareSmds (
 isEquivalentSummand,
-isContainedSummand
+isContainedSummand,
+removeContainedSummands
 ) where
 
 import qualified Data.Map as Map
@@ -79,7 +80,15 @@ isContainedSummand summand1 summand2 invariant = do
         return (ValExpr.cstrEqual v1 v2')
 -- isContainedSummand
 
-
+-- Only leaves summands in the set that are not 'contained' by another summand in the same set.
+removeContainedSummands :: Set.Set LPESummand -> TxsDefs.VExpr -> IOC.IOC (Set.Set LPESummand)
+removeContainedSummands summands invariant = Set.fromList <$> Monad.filterM isNotContainedByOthers (Set.toList summands)
+  where
+    isNotContainedByOthers :: LPESummand -> IOC.IOC Bool
+    isNotContainedByOthers summand = do
+        containers <- Monad.filterM (\c -> isContainedSummand c summand invariant) (Set.toList (Set.delete summand summands))
+        return (containers == [])
+-- removeContainedSummands
 
 
 

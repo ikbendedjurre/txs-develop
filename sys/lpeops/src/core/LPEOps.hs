@@ -34,7 +34,7 @@ import qualified Text.Read as Read
 import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
--- import qualified LPEClean
+import qualified LPEClean
 -- import qualified LPEConstElm
 -- import qualified LPEParElm
 -- import qualified LPEIStepElm
@@ -52,7 +52,7 @@ import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.01.21.01"
+lpeOpsVersion = "2019.02.08.01"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 
@@ -159,7 +159,7 @@ getLPEOperation opName = case opName of
                            'l':'o':'o':'p':'*':xs -> case Read.readMaybe xs of
                                                        Just n -> Right (LPEOps.LPEOpLoop n)
                                                        Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")
-                           -- "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
+                           "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
                            -- "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)
                            -- "parelm" -> Right (LPEOps.LPEOp LPEParElm.parElm)
                            -- "istepelm" -> Right (LPEOps.LPEOp LPEIStepElm.iStepElm)
