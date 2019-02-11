@@ -69,7 +69,7 @@ showLPEParamUsage paramUsage =
 -- showLPEParamUsage
 
 showLPEParamUsagePerSummand :: Map.Map LPESummand LPEParamUsage -> String
-showLPEParamUsagePerSummand paramUsages = concatMap (\(s, m) -> "\nSummand:\n\\-> " ++ showLPESummand s ++ "\nParameter usage:\n" ++ m) (Map.toList (Map.map showLPEParamUsage paramUsages))
+showLPEParamUsagePerSummand paramUsages = concatMap (\(s, m) -> "\nSummand:\n\\-> " ++ showLPESummand Map.empty s ++ "\nParameter usage:\n" ++ m) (Map.toList (Map.map showLPEParamUsage paramUsages))
 
 getParamUsagePerSummand :: LPESummands -> Set.Set VarId -> TxsDefs.VExpr -> IOC.IOC (Map.Map LPESummand LPEParamUsage)
 getParamUsagePerSummand summands params invariant = do

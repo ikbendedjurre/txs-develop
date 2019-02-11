@@ -32,6 +32,7 @@ import qualified Data.Text as Text
 import qualified TxsDefs
 import           LPETypes
 import           LPEContextIds
+import           LPEChanMap
 
 type LPEContext = Map.Map TxsDefs.Ident String
 
@@ -60,8 +61,8 @@ getAbbrevContextFromIds ids =
 getLPEContext :: LPE -> LPEContext
 getLPEContext = getContextFromIds . getLPEIds
 
-getLPESummandContext :: LPESummand -> LPEContext
-getLPESummandContext = getContextFromIds . getLPESummandIds
+getLPESummandContext :: LPEChanMap -> LPESummand -> LPEContext
+getLPESummandContext chanMap summand = getContextFromIds (getLPESummandIds chanMap summand)
 
 getValExprContext :: TxsDefs.VExpr -> LPEContext
 getValExprContext = getContextFromIds . getValExprIds
@@ -69,8 +70,8 @@ getValExprContext = getContextFromIds . getValExprIds
 getAbbrevLPEContext :: LPE -> LPEContext
 getAbbrevLPEContext = getAbbrevContextFromIds . getLPEIds
 
-getAbbrevLPESummandContext :: LPESummand -> LPEContext
-getAbbrevLPESummandContext = getAbbrevContextFromIds . getLPESummandIds
+getAbbrevLPESummandContext :: LPEChanMap -> LPESummand -> LPEContext
+getAbbrevLPESummandContext chanMap summand = getAbbrevContextFromIds (getLPESummandIds chanMap summand)
 
 getAbbrevValExprContext :: TxsDefs.VExpr -> LPEContext
 getAbbrevValExprContext = getAbbrevContextFromIds . getValExprIds

@@ -55,7 +55,7 @@ cleanLPE lpe _out invariant = do
     
     updateReachableSummands :: Set.Set LPESummand -> Set.Set LPESummand -> IOC.IOC (Set.Set LPESummand)
     updateReachableSummands uniqueSummands reachableSummands = do
-        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Reached " ++ show (Set.size reachableSummands) ++ " of " ++ show (Set.size reachableSummands + Set.size uniqueSummands) ++ " summands") ]
+        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Reached " ++ show (Set.size reachableSummands) ++ " of " ++ show (Set.size uniqueSummands) ++ " summands") ]
         newSummands <- Set.fromList <$> Monad.filterM (isReachableFrom reachableSummands) (Set.toList (uniqueSummands Set.\\ reachableSummands))
         return (Set.union reachableSummands newSummands)
     -- updateReachableSummands

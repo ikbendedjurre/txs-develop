@@ -31,7 +31,6 @@ import qualified CstrId
 import qualified CstrDef
 import qualified FuncId
 import qualified SortOf
-import qualified ChanId
 import qualified FuncDef
 import qualified VarId
 import qualified Id
@@ -41,6 +40,7 @@ import           ValExprVisitor
 import           LPETypes
 import           SetUnions
 import           UntilFixpoint
+import           LPEChanMap
 
 stdIds :: Set.Set TxsDefs.Ident
 stdIds = Set.fromList (map fst StdTDefs.stdTDefs)
@@ -48,9 +48,9 @@ stdIds = Set.fromList (map fst StdTDefs.stdTDefs)
 getLPEIds :: LPE -> Set.Set TxsDefs.Ident
 getLPEIds lpe =
     untilFixpoint getNextIds (Set.unions [
-      getChansIds (lpeChanParams lpe),
+      Set.unions (map (getObjectIdsFromChanMap (lpeChanMap lpe)) (Set.toList (lpeChanParams lpe))),
       getParamEqsIds (lpeInitEqs lpe),
-      setUnions (Set.map getLPESummandIds (lpeSummands lpe))
+      setUnions (Set.map (getLPESummandIds (lpeChanMap lpe)) (lpeSummands lpe))
     ])
   where
     getNextIds :: Set.Set TxsDefs.Ident -> Set.Set TxsDefs.Ident
@@ -73,10 +73,10 @@ getLPEIds lpe =
 -- getModelIds
 
 -- Gathers all ids that are used in the given summand:
-getLPESummandIds :: LPESummand -> Set.Set TxsDefs.Ident
-getLPESummandIds summand =
+getLPESummandIds :: LPEChanMap -> LPESummand -> Set.Set TxsDefs.Ident
+getLPESummandIds chanMap summand =
     Set.unions [
-      getChanIds (lpeSmdChan summand),
+      getObjectIdsFromChanMap chanMap (lpeSmdChan summand),
       getVarsIds (lpeSmdVars summand),
       getValExprIds (lpeSmdGuard summand),
       getParamEqsIds (lpeSmdEqs summand)
@@ -144,12 +144,6 @@ getAccessorIds cid n p =
     let accSort = CstrId.cstrargs cid !! p in
       Set.fromList [TxsDefs.IdFunc (FuncId.FuncId n (Id.Id 0) [CstrId.cstrsort cid] accSort), TxsDefs.IdSort accSort]
 -- createAccessorIds
-
-getChansIds :: Set.Set ChanId.ChanId -> Set.Set TxsDefs.Ident
-getChansIds = setUnions . Set.map getChanIds
-
-getChanIds :: ChanId.ChanId -> Set.Set TxsDefs.Ident
-getChanIds chan = Set.fromList (TxsDefs.IdChan chan : map TxsDefs.IdSort (ChanId.chansorts chan))
 
 getVarsIds :: [VarId.VarId] -> Set.Set TxsDefs.Ident
 getVarsIds = Set.unions . map getVarIds

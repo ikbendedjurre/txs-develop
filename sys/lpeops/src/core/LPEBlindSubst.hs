@@ -76,7 +76,7 @@ doConfidentSubst contextSummand subst expr = do
                        -- Print a warning, because if this happens we should at least scratch ourselves behind our ears:
                        IOC.putMsgs [ EnvData.TXS_CORE_RUNTIME_WARNING ("WARNING: Confidently substituted " ++ showValExpr defaultValue ++ " for " ++ showValExpr parentExpr ++ showSubst subst
                                        ++ "\nExpression: " ++ showValExpr expr
-                                       ++ "\nSummand: " ++ showLPESummand contextSummand) ]
+                                       ++ "\nSummand: " ++ showLPESummand Map.empty contextSummand) ]
                        return (ValExprVisitorOutput defaultValue 1 ())
           Right r -> return r
 -- doConfidentSubst

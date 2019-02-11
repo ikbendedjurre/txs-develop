@@ -35,7 +35,7 @@ import qualified TxsDefs
 import qualified CstrId
 import qualified FuncId
 import qualified SortId
-import qualified ChanId
+--import qualified ChanId
 import qualified VarId
 import           Constant hiding (args, sort)
 import           ValExpr
@@ -62,9 +62,9 @@ validateLPEModel lpe =
     getSmdProblems (i, smd) = validateLPESummand ("summand " ++ show i) (lpeParams lpe) smd
     
     getChanProblems :: [String]
-    getChanProblems =
-        let overlap = Set.intersection (lpeInChans lpe) (lpeOutChans lpe) in
-          [ "Channel " ++ Text.unpack (ChanId.name c) ++ " is both an input channel and an output channel!" | c <- Set.toList overlap ]
+    getChanProblems = []
+        --let overlap = Set.intersection (lpeInChans lpe) (lpeOutChans lpe) in
+        --  [ "Channel " ++ Text.unpack (ChanId.name c) ++ " is both an input channel and an output channel!" | c <- Set.toList overlap ]
 -- validateLPEModel
 
 validateLPESummand :: String -> Set.Set VarId.VarId -> LPESummand -> [String]

@@ -20,7 +20,9 @@ LPEChanMap,
 addToChanMap,
 selectChanMapKeys,
 getActOfferFromChanMap,
-getMultiChannelFromChanMap
+getActOfferDataFromChanMap,
+getMultiChannelFromChanMap,
+getObjectIdsFromChanMap
 ) where
 
 import qualified Data.List as List
@@ -99,11 +101,36 @@ getActOfferFromChanMap chanMap chanId chanVars guard =
                  iter (soFar { BehExprDefs.offers = newOffers }) remainingChans suffix
 -- getActOfferFromChanMap
 
+getActOfferDataFromChanMap :: LPEChanMap -> ChanId.ChanId -> [VarId.VarId] -> ([(ChanId.ChanId, [VarId.VarId])], [VarId.VarId])
+getActOfferDataFromChanMap chanMap chanId chanVars =
+    case chanMap Map.!? chanId of
+      Just (originalChanIds, _) -> iter originalChanIds chanVars
+      Nothing -> ([(chanId, chanVars)], [])
+  where
+    iter :: [ChanId.ChanId] -> [VarId.VarId] -> ([(ChanId.ChanId, [VarId.VarId])], [VarId.VarId])
+    iter [] remainingVars = ([], remainingVars)
+    iter (cid:remainingChans) remainingVars =
+        let varCount = length (ChanId.chansorts cid) in
+          if length remainingVars < varCount
+          then error "Insufficient communication variables!" -- Should not happen!
+          else let (prefix, suffix) = List.splitAt varCount remainingVars in
+               let (restVarsPerChan, restHiddenVars) = iter remainingChans suffix in
+                 ((cid, prefix):restVarsPerChan, restHiddenVars)
+-- getActOfferDataFromChanMap
+
 getMultiChannelFromChanMap :: LPEChanMap -> ChanId.ChanId -> Set.Set ChanId.ChanId
 getMultiChannelFromChanMap chanMap chanId =
     case chanMap Map.!? chanId of
       Just (originalChanIds, _) -> Set.fromList originalChanIds
-      Nothing -> error ("Unknown channel found during conversion from restricted LPE form to regular LPE form (" ++ show chanId ++ ")!") -- Should not happen!
+      Nothing -> error ("Unknown channel found (" ++ show chanId ++ ")!") -- Should not happen!
 -- getMultiChannelFromChanMap
+
+-- Note that this function uses the object ids of the input parameter as fallback!
+getObjectIdsFromChanMap :: LPEChanMap -> ChanId.ChanId -> Set.Set TxsDefs.Ident
+getObjectIdsFromChanMap chanMap chanId =
+    case chanMap Map.!? chanId of
+      Just (originalChanIds, originalSortIds) -> Set.fromList ((map TxsDefs.IdChan originalChanIds) ++ (map TxsDefs.IdSort originalSortIds))
+      Nothing -> Set.fromList (TxsDefs.IdChan chanId : map TxsDefs.IdSort (ChanId.chansorts chanId))
+-- getObjectIdsFromChanMap
 
 

@@ -42,12 +42,14 @@ import qualified SortId
 import qualified CstrDef
 import qualified FuncDef
 import qualified ProcDef
+--import qualified BehExprDefs
 import           Constant hiding (sort)
 import           ValExpr hiding (subst)
 import           LPETypes
 import           LPEContexts
 import           ValExprVisitor
 import           ValFactory
+import           LPEChanMap
 --import           Debug.Trace
 
 mapGet :: LPEContext -> TxsDefs.Ident -> String
@@ -89,7 +91,7 @@ showLPEInContext f lpe =
       showChanDefs f orderedChans ++
       "PROCDEF LPE[" ++ List.intercalate "; " (map (showChanDecl f) orderedChans) ++ "]" ++
       "(" ++ List.intercalate "; " (map (showParamDecl f g (lpeInitEqs lpe)) orderedParams) ++ ") ::=\n        " ++
-      List.intercalate "\n     ## " (map (showLPESummandInContext f g orderedChans orderedParams) (Set.toList (lpeSummands lpe))) ++
+      List.intercalate "\n     ## " (map (showLPESummandInContext f g orderedChans orderedParams (lpeChanMap lpe)) (Set.toList (lpeSummands lpe))) ++
       "\nENDDEF\n" ++
       "MODELDEF Model ::=\n" ++
       showChanSyncs "CHAN IN" (Set.toList (lpeInChans lpe)) ++
@@ -182,22 +184,28 @@ showParamDecl f _g _paramEqs paramId = showVarId f paramId ++ " :: " ++ showSort
 -- Showing LPE summands:
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-showLPESummand :: LPESummand -> String
-showLPESummand summand = showLPESummandInContext (getLPESummandContext summand) (\_ -> Nothing) [] (Map.keys (lpeSmdEqs summand)) summand
+showLPESummand :: LPEChanMap -> LPESummand -> String
+showLPESummand chanMap summand = showLPESummandInContext (getLPESummandContext chanMap summand) (\_ -> Nothing) [] (Map.keys (lpeSmdEqs summand)) chanMap summand
 
-showAbbrevLPESummand :: LPESummand -> String
-showAbbrevLPESummand summand = showLPESummandInContext (getAbbrevLPESummandContext summand) (\_ -> Nothing) [] (Map.keys (lpeSmdEqs summand)) summand
+showAbbrevLPESummand :: LPEChanMap -> LPESummand -> String
+showAbbrevLPESummand chanMap summand = showLPESummandInContext (getAbbrevLPESummandContext chanMap summand) (\_ -> Nothing) [] (Map.keys (lpeSmdEqs summand)) chanMap summand
 
-showLPESummandInContext :: LPEContext -> VExprFromSortIdFunc -> [ChanId.ChanId] -> [VarId.VarId] -> LPESummand -> String
-showLPESummandInContext f g orderedChans orderedParams summand =
-    showChanId f (lpeSmdChan summand) ++ 
-    showChannelVars (lpeSmdVars summand) ++
-    "[[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
-    "LPE" ++ showChanRefs orderedChans ++
-    "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")"
+showLPESummandInContext :: LPEContext -> VExprFromSortIdFunc -> [ChanId.ChanId] -> [VarId.VarId] -> LPEChanMap -> LPESummand -> String
+showLPESummandInContext f g orderedChans orderedParams chanMap summand =
+    let (varsPerChan, hiddenVars) = getActOfferDataFromChanMap chanMap (lpeSmdChan summand) (lpeSmdVars summand) in
+      (if null hiddenVars then "" else "HIDE [ HiddenChannel ] IN ") ++
+      List.intercalate " | " (map showOffer varsPerChan) ++
+      (if null hiddenVars then " " else " | HiddenChannel " ++ showOfferVars hiddenVars) ++
+      "[[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
+      "LPE" ++ showChanRefs orderedChans ++
+      "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")" ++
+      (if null hiddenVars then "" else " NI")
   where
-    showChannelVars :: [VarId.VarId] -> String
-    showChannelVars vars = concatMap (\v -> " ? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v)) vars
+    showOffer :: (ChanId.ChanId, [VarId.VarId]) -> String
+    showOffer (cid, vids) = showChanId f cid ++ showOfferVars vids
+    
+    showOfferVars :: [VarId.VarId] -> String
+    showOfferVars vars = concatMap (\v -> "? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v) ++ " ") vars
     
     showChanRefs :: [ChanId.ChanId] -> String
     showChanRefs [] = ""
