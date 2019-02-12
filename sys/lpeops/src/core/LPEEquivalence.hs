@@ -6,7 +6,7 @@ See LICENSE at root directory of this repository.
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  LPECompareSmds
+-- Module      :  LPEEquivalence
 -- Copyright   :  TNO and University of Twente
 -- License     :  BSD3
 -- Maintainer  :  djurrevanderwal@gmail.com
@@ -14,10 +14,14 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
-module LPECompareSmds (
+module LPEEquivalence (
 isEquivalentSummand,
 isContainedSummand,
-removeContainedSummands
+removeContainedSummands,
+isContainedBySummands,
+isContainedByLPE,
+areContainedByLPE,
+isEquivalentLPE
 ) where
 
 import qualified Data.Map as Map
@@ -31,6 +35,7 @@ import qualified Constant
 import qualified Satisfiability as Sat
 import LPETypes
 import BlindSubst
+import MonadAny
 
 -- Checks if two summands are (definitely) equivalent.
 -- This means that the two summands add the exact same behavior to an LPE.
@@ -63,7 +68,7 @@ isContainedSummand :: LPESummand -> LPESummand -> TxsDefs.VExpr -> IOC.IOC Bool
 isContainedSummand summand1 summand2 invariant = do
     -- Both summands must communicate over the same channel:
     if lpeSmdChan summand1 /= lpeSmdChan summand2
-    then return False
+    then do return False
     else do let useChanVars1 = Map.fromList (zipWith (\cv1 cv2 -> (cv2, ValExpr.cstrVar cv1)) (lpeSmdVars summand1) (lpeSmdVars summand2))
             -- Check whether both guards are definitely enabled at the same time with the following expression:
             guard2' <- doBlindSubst useChanVars1 (lpeSmdGuard summand2)
@@ -71,7 +76,8 @@ isContainedSummand summand1 summand2 invariant = do
             -- Check whether both summands definitely lead to the same next-state with the following expressions:
             procInstEqs <- Monad.mapM (getProcInstEq useChanVars1 (lpeSmdEqs summand2)) (Map.toList (lpeSmdEqs summand1))
             -- Check:
-            Sat.isTautology (ValExpr.cstrAnd (Set.fromList (guardEq:procInstEqs))) invariant
+            sat <- Sat.isTautology (ValExpr.cstrAnd (Set.fromList (guardEq:procInstEqs))) invariant
+            return sat
   where
     getProcInstEq :: Map.Map VarId.VarId TxsDefs.VExpr -> LPEParamEqs -> (VarId.VarId, TxsDefs.VExpr) -> IOC.IOC TxsDefs.VExpr
     getProcInstEq useChanVars1 eqs2 (p1, v1) = do
@@ -82,13 +88,34 @@ isContainedSummand summand1 summand2 invariant = do
 
 -- Only leaves summands in the set that are not 'contained' by another summand in the same set.
 removeContainedSummands :: Set.Set LPESummand -> TxsDefs.VExpr -> IOC.IOC (Set.Set LPESummand)
-removeContainedSummands summands invariant = Set.fromList <$> Monad.filterM isNotContainedByOthers (Set.toList summands)
+removeContainedSummands summands invariant = Set.fromList <$> Monad.foldM addSummandIfNotContained [] (Set.toList summands)
   where
-    isNotContainedByOthers :: LPESummand -> IOC.IOC Bool
-    isNotContainedByOthers summand = do
-        containers <- Monad.filterM (\c -> isContainedSummand c summand invariant) (Set.toList (Set.delete summand summands))
-        return (containers == [])
+    addSummandIfNotContained :: [LPESummand] -> LPESummand -> IOC.IOC [LPESummand]
+    addSummandIfNotContained [] summand = return [summand]
+    addSummandIfNotContained (current:unchecked) summand = do
+        summandContainsCurrent <- isContainedSummand summand current invariant
+        if summandContainsCurrent
+        then do rest <- addSummandIfNotContained unchecked summand
+                return (summand:rest) --Summand may be added multiple times; not a problem, later on we create a set anyway
+        else do currentContainsSummand <- isContainedSummand current summand invariant
+                if currentContainsSummand
+                then return (current:unchecked)
+                else do rest <- addSummandIfNotContained unchecked summand
+                        return (current:rest)
 -- removeContainedSummands
 
+isContainedBySummands :: [LPESummand] -> LPESummand -> TxsDefs.VExpr -> IOC.IOC Bool
+isContainedBySummands summands summand invariant = anyM (\c -> isContainedSummand c summand invariant) summands
+
+isContainedByLPE :: LPE -> LPESummand -> TxsDefs.VExpr -> IOC.IOC Bool
+isContainedByLPE lpe summand invariant = isContainedBySummands (Set.toList (lpeSummands lpe)) summand invariant
+
+areContainedByLPE :: LPE -> LPESummands -> TxsDefs.VExpr -> IOC.IOC Bool
+areContainedByLPE lpe summands invariant = allM (\s -> isContainedByLPE lpe s invariant) (Set.toList summands)
+
+isEquivalentLPE :: LPE -> LPE -> TxsDefs.VExpr -> IOC.IOC Bool
+isEquivalentLPE lpe1 lpe2 invariant =
+    andM (areContainedByLPE lpe1 (lpeSummands lpe2) invariant) (areContainedByLPE lpe2 (lpeSummands lpe1) invariant)
+-- isEquivalentLPE
 
 

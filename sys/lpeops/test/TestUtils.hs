@@ -28,11 +28,12 @@ import qualified Config
 import qualified EnvCore as IOC
 import qualified ParamCore
 import qualified Solve.Params
+import qualified LPEValidity as Val
 import LPEPrettyPrint
+import LPEEquivalence
 import LPETypes
 import ValExpr
 import Constant
-import qualified LPEValidity as Val
 
 createTestEnvC :: IO IOC.EnvC
 createTestEnvC = do
@@ -83,7 +84,8 @@ tryLPEOperation op input expected = do
                           msgsOrFound <- evalStateT (op input "Out" (cstrConst (Cbool True))) env
                           case msgsOrFound of
                             Left msgs -> assertBool ("\nCould not produce output LPE:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
-                            Right found -> assertBool (printInputExpectedFound input expected found) (found==expected)
+                            Right found -> do equivalent <- evalStateT (isEquivalentLPE found expected (cstrConst (Cbool True))) env
+                                              assertBool (printInputExpectedFound input expected found) equivalent
                  msgs -> assertBool ("\nInvalid expected LPE:\n\n" ++ showLPE expected ++ "\nProblems:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
       msgs -> assertBool ("\nInvalid input LPE:\n\n" ++ showLPE input ++ "\nProblems:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
 -- tryLPEOperation

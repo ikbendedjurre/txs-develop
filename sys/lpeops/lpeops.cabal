@@ -24,6 +24,7 @@ library
                     , LPEContexts
                     , LPEContextIds
                     , LPEClean
+                    , MonadAny
                     , LPEChanMap
                     , ChanFactory
                     -- , LPEConstElm
@@ -33,7 +34,7 @@ library
                     -- , LPEParReset
                     , LPETypes
                     , LPEConversion
-                    , LPECompareSmds
+                    , LPEEquivalence
                     , SetUnions
                     -- , LPEUGuards
                     , Pairs
@@ -90,11 +91,12 @@ test-suite lpeops-test
   other-modules:        BlindSubst
                       , LPEOps
                       , LPEValidity
-                      , LPEDeterminism
+                      -- , LPEDeterminism
                       , LPEContexts
                       , LPEContextIds
                       , LPEClean
                       , LPEChanMap
+                      , MonadAny
                       , ChanFactory
                       -- , LPEConstElm
                       -- , LPEParElm
@@ -103,7 +105,7 @@ test-suite lpeops-test
                       -- , LPEParReset
                       , LPETypes
                       , LPEConversion
-                      , LPECompareSmds
+                      , LPEEquivalence
                       , LPEBlindSubst
                       , SetUnions
                       -- , LPEUGuards
@@ -127,8 +129,8 @@ test-suite lpeops-test
                       , MCRL2Defs
                       , MCRL2Env
                       , MCRL2PrettyPrint
-                      -- , TestUtils
-                      -- , TestClean
+                      , TestUtils
+                      , TestClean
                       -- , TestConstElm
                       -- , TestParElm
                       -- , TestParReset

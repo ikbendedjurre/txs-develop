@@ -25,7 +25,7 @@ import qualified EnvData
 import qualified Satisfiability as Sat
 import LPETypes
 import LPESuccessors
-import LPECompareSmds
+import LPEEquivalence
 import BlindSubst
 import UntilFixpoint
 

@@ -8,7 +8,8 @@ See LICENSE at root directory of this repository.
 
 module TestClean
 (
-testCleanBasic,
+testCleanEquivalence,
+testCleanContainment,
 testCleanUnreachable
 )
 where
@@ -34,31 +35,27 @@ import TestUtils
 
 {-# ANN module "HLint: ignore Reduce duplication" #-}
 
-testCleanBasic :: Test
-testCleanBasic = TestCase $ tryLPEOperation cleanLPE model1 model2
+testCleanEquivalence :: Test
+testCleanEquivalence = TestCase $ tryLPEOperation cleanLPE model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A ? z [x==0] >-> P(1)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr0)
         [(varIdX, vexpr1)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- A ? y [x==1] >-> P(2)
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1]))
         [(varIdX, vexpr2)]
     summand1_3 :: LPESummand
     summand1_3 = newLPESummand -- A ? z [x==1] >-> P(2)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr1)
         [(varIdX, vexpr2)]
     summand1_4 :: LPESummand
     summand1_4 = newLPESummand -- A ? z [x==2] >-> P(0)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr2)
         [(varIdX, vexpr0)]
     model1 :: LPE
@@ -66,51 +63,89 @@ testCleanBasic = TestCase $ tryLPEOperation cleanLPE model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? z [x==0] >-> P(1)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr0)
         [(varIdX, vexpr1)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- A ? y [x==1] >-> P(2)
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1]))
         [(varIdX, vexpr2)]
     summand2_4 :: LPESummand
     summand2_4 = newLPESummand -- A ? z [x==2] >-> P(0)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr2)
         [(varIdX, vexpr0)]
     model2 :: LPE
     model2 = newLPE ([chanIdA], [(varIdX, vexpr0)], [summand2_1, summand2_2, summand2_4])
 -- testCleanBasic
 
+testCleanContainment :: Test
+testCleanContainment = TestCase $ tryLPEOperation cleanLPE model1 model2
+  where
+    summand1_1 :: LPESummand
+    summand1_1 = newLPESummand -- A ? z [x==0] >-> P(1)
+        chanIdA [varIdZ]
+        (cstrEqual vexprX vexpr0)
+        [(varIdX, vexpr1)]
+    summand1_2 :: LPESummand
+    summand1_2 = newLPESummand -- A ? y [x==1] >-> P(2)
+        chanIdA [varIdY]
+        (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1]))
+        [(varIdX, vexpr3)]
+    summand1_3 :: LPESummand
+    summand1_3 = newLPESummand -- A ? z [x==1 || x == 2] >-> P(3)
+        chanIdA [varIdZ]
+        (cstrOr (Set.fromList [cstrEqual vexprX vexpr1, cstrEqual vexprX vexpr2]))
+        [(varIdX, vexpr3)]
+    summand1_4 :: LPESummand
+    summand1_4 = newLPESummand -- A ? z [x==3] >-> P(0)
+        chanIdA [varIdZ]
+        (cstrEqual vexprX vexpr3)
+        [(varIdX, vexpr0)]
+    model1 :: LPE
+    model1 = newLPE ([chanIdA], [(varIdX, vexpr0)], [summand1_1, summand1_2, summand1_3, summand1_4])
+    
+    summand2_1 :: LPESummand
+    summand2_1 = newLPESummand -- A ? z [x==0] >-> P(1)
+        chanIdA [varIdZ]
+        (cstrEqual vexprX vexpr0)
+        [(varIdX, vexpr1)]
+    summand2_2 :: LPESummand
+    summand2_2 = newLPESummand -- A ? y [x==1 || x == 2] >-> P(3)
+        chanIdA [varIdZ]
+        (cstrOr (Set.fromList [cstrEqual vexprX vexpr1, cstrEqual vexprX vexpr2]))
+        [(varIdX, vexpr3)]
+    summand2_4 :: LPESummand
+    summand2_4 = newLPESummand -- A ? z [x==3] >-> P(0)
+        chanIdA [varIdZ]
+        (cstrEqual vexprX vexpr3)
+        [(varIdX, vexpr0)]
+    model2 :: LPE
+    model2 = newLPE ([chanIdA], [(varIdX, vexpr0)], [summand2_1, summand2_2, summand2_4])
+-- testCleanContainment
+
 testCleanUnreachable :: Test
 testCleanUnreachable = TestCase $ tryLPEOperation cleanLPE model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A ? z [x==0] >-> P(1)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr0)
         [(varIdX, vexpr1)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- A ? y [x==1] >-> P(0)
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1]))
         [(varIdX, vexpr0)]
     summand1_3 :: LPESummand
     summand1_3 = newLPESummand -- A ? z [x==1] >-> P(0)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr1)
         [(varIdX, vexpr0)]
     summand1_4 :: LPESummand
     summand1_4 = newLPESummand -- A ? z [x==2] >-> P(0)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr2)
         [(varIdX, vexpr0)]
     model1 :: LPE
@@ -118,14 +153,12 @@ testCleanUnreachable = TestCase $ tryLPEOperation cleanLPE model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? z [x==0] >-> P(1)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr0)
         [(varIdX, vexpr1)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- A ? y [x==1] >-> P(0)
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1]))
         [(varIdX, vexpr0)]
     model2 :: LPE

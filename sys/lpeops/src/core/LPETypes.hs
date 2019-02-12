@@ -132,14 +132,13 @@ defaultValueParamEqs :: TxsDefs.TxsDefs -> Set.Set VarId.VarId -> LPEParamEqs
 defaultValueParamEqs tdefs = Map.fromSet (sort2defaultValue tdefs . VarId.varsort)
 
 -- This method is used by unit tests:
-newLPESummand :: [VarId.VarId] -> [(ChanId.ChanId, [VarId.VarId])] -> TxsDefs.VExpr -> [(VarId.VarId, TxsDefs.VExpr)] -> LPESummand
-newLPESummand _chanVarIds [(chanId, chanVars)] guard procInstParamEqs =
+newLPESummand :: ChanId.ChanId -> [VarId.VarId] -> TxsDefs.VExpr -> [(VarId.VarId, TxsDefs.VExpr)] -> LPESummand
+newLPESummand chanId chanVars guard procInstParamEqs =
     LPESummand { lpeSmdChan = chanId
                , lpeSmdVars = chanVars
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
                }
-newLPESummand _ _ _ _ = emptyLPESummand
 -- newLPESummand
 
 -- This method is used by unit tests:
