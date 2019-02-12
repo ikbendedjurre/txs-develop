@@ -94,15 +94,15 @@ showLPEInContext f lpe =
       List.intercalate "\n     ## " (map (showLPESummandInContext f g orderedChans orderedParams (lpeChanMap lpe)) (Set.toList (lpeSummands lpe))) ++
       "\nENDDEF\n" ++
       "MODELDEF Model ::=\n" ++
-      showChanSyncs "CHAN IN" (Set.toList (lpeInChans lpe)) ++
-      showChanSyncs "CHAN OUT" (Set.toList (lpeOutChans lpe)) ++
+      showChanSyncs "CHAN IN" (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeInChans lpe))) ++
+      showChanSyncs "CHAN OUT" (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeOutChans lpe))) ++
       "    BEHAVIOUR LPE[" ++ List.intercalate ", " (map (showChanId f) orderedChans) ++ "]" ++
       "(" ++ List.intercalate ", " (map (showValExprInContext f g) (paramEqsLookup orderedParams (lpeInitEqs lpe))) ++ ")" ++
       "\nENDDEF\n"
   where
     getOrderedChansAndParams :: TxsDefs.TxsDefs -> ([ChanId.ChanId], [VarId.VarId])
     getOrderedChansAndParams tdefs =
-        let orderedChansDefault = Set.toList (lpeChanParams lpe) in
+        let orderedChansDefault = Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeChanParams lpe)) in
         let orderedParamsDefault = Map.keys (lpeInitEqs lpe) in
           case [def | (pid, def) <- Map.toList (TxsDefs.procDefs tdefs), ProcId.name pid == lpeName lpe] of
             (ProcDef.ProcDef chans params _):_ -> (orderListByList chans orderedChansDefault, orderListByList params orderedParamsDefault)
@@ -173,7 +173,8 @@ showFuncDefs f g funcdefs =
     showFuncDef fid =
         case funcdefs Map.!? fid of
           Just (FuncDef.FuncDef params body) ->
-            "FUNCDEF " ++ showFuncId f fid ++ "(" ++ List.intercalate "; " (map (showParamDecl f g Map.empty) params) ++ ") :: " ++ showSortId f (FuncId.funcsort fid) ++ " ::= " ++ showValExprInContext f g body ++ " ENDDEF\n"
+            "FUNCDEF " ++ showFuncId f fid ++ "(" ++ List.intercalate "; " (map (showParamDecl f g Map.empty) params) ++ ") :: " ++
+                showSortId f (FuncId.funcsort fid) ++ " ::= " ++ showValExprInContext f g body ++ " ENDDEF\n"
           Nothing -> ""
 -- showFuncDefs
 

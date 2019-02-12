@@ -52,7 +52,7 @@ import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.02.11.01"
+lpeOpsVersion = "2019.02.12.01"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 

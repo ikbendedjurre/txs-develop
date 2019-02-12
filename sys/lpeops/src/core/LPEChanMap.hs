@@ -22,6 +22,7 @@ selectChanMapKeys,
 getActOfferFromChanMap,
 getActOfferDataFromChanMap,
 getMultiChannelFromChanMap,
+getAllChannelsFromChanMap,
 getObjectIdsFromChanMap
 ) where
 
@@ -118,12 +119,17 @@ getActOfferDataFromChanMap chanMap chanId chanVars =
                  ((cid, prefix):restVarsPerChan, restHiddenVars)
 -- getActOfferDataFromChanMap
 
+-- Note that this function uses the input parameter as fallback!
 getMultiChannelFromChanMap :: LPEChanMap -> ChanId.ChanId -> Set.Set ChanId.ChanId
 getMultiChannelFromChanMap chanMap chanId =
     case chanMap Map.!? chanId of
       Just (originalChanIds, _) -> Set.fromList originalChanIds
-      Nothing -> error ("Unknown channel found (" ++ show chanId ++ ")!") -- Should not happen!
+      Nothing -> Set.singleton chanId
 -- getMultiChannelFromChanMap
+
+-- Note that this function uses the input parameter as fallback!
+getAllChannelsFromChanMap :: LPEChanMap -> Set.Set ChanId.ChanId -> Set.Set ChanId.ChanId
+getAllChannelsFromChanMap chanMap chanIds = Set.unions (map (getMultiChannelFromChanMap chanMap) (Set.toList chanIds))
 
 -- Note that this function uses the object ids of the input parameter as fallback!
 getObjectIdsFromChanMap :: LPEChanMap -> ChanId.ChanId -> Set.Set TxsDefs.Ident
