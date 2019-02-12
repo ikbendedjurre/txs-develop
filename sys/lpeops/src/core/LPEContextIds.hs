@@ -21,7 +21,6 @@ getLPESummandIds,
 getValExprIds
 ) where
 
---import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text

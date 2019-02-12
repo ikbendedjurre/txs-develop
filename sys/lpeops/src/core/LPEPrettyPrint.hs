@@ -203,7 +203,7 @@ showLPESummandInContext f g orderedChans orderedParams chanMap summand =
       (if null hiddenVars then "" else " NI")
   where
     showOffer :: (ChanId.ChanId, [VarId.VarId]) -> String
-    showOffer (cid, vids) = showChanId f cid ++ showOfferVars vids
+    showOffer (cid, vids) = showChanId f cid ++ " " ++ showOfferVars vids
     
     showOfferVars :: [VarId.VarId] -> String
     showOfferVars vars = concatMap (\v -> "? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v) ++ " ") vars
