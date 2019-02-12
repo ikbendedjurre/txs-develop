@@ -42,7 +42,6 @@ import qualified SortId
 import qualified CstrDef
 import qualified FuncDef
 import qualified ProcDef
---import qualified BehExprDefs
 import           Constant hiding (sort)
 import           ValExpr hiding (subst)
 import           LPETypes
@@ -86,6 +85,7 @@ showLPEInContext f lpe =
     let g = Just . sort2defaultValue tdefs in
     let (orderedChans, orderedParams) = getOrderedChansAndParams tdefs in
       "-- " ++ Text.unpack (lpeName lpe) ++ " --\n" ++
+      showChanMap f (lpeChanMap lpe) ++
       showTypeDefs f (Map.toList (TxsDefs.cstrDefs tdefs)) ++
       showFuncDefs f g (TxsDefs.funcDefs tdefs) ++
       showChanDefs f orderedChans ++
@@ -116,6 +116,18 @@ showLPEInContext f lpe =
     showChanSync :: ChanId.ChanId -> String
     showChanSync cid = showChanId f cid
 -- showLPEInContext
+
+showChanMap :: LPEContext -> LPEChanMap -> String
+showChanMap f chanMap = concatMap showEntry (Map.toList chanMap)
+  where
+    showEntry :: (ChanId.ChanId, LPEChanSignature) -> String
+    showEntry (cid, sig) = "-- " ++ Text.unpack (ChanId.name cid) ++ " <=> " ++ showSig sig ++ "\n"
+    
+    showSig :: LPEChanSignature -> String
+    showSig (cids, sids) =
+        "{" ++ List.intercalate " | " (map (\c -> Text.unpack (ChanId.name c) ++ " aka " ++ showChanId f c) cids) ++ "}" ++
+        " ? [" ++ List.intercalate ", " (map (\s -> Text.unpack (SortId.name s) ++ " aka " ++ showSortId f s) sids) ++ "]"
+-- showChanMap
 
 showChanDefs :: LPEContext -> [ChanId.ChanId] -> String
 showChanDefs _ [] = ""
@@ -196,7 +208,7 @@ showLPESummandInContext f g orderedChans orderedParams chanMap summand =
     let (varsPerChan, hiddenVars) = getActOfferDataFromChanMap chanMap (lpeSmdChan summand) (lpeSmdVars summand) in
       (if null hiddenVars then "" else "HIDE [ HiddenChannel ] IN ") ++
       List.intercalate " | " (map showOffer varsPerChan) ++
-      (if null hiddenVars then " " else " | HiddenChannel " ++ showOfferVars hiddenVars) ++
+      (if null hiddenVars then "" else "| HiddenChannel " ++ showOfferVars hiddenVars) ++
       "[[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
       "LPE" ++ showChanRefs orderedChans ++
       "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")" ++
@@ -301,7 +313,11 @@ showSortId :: LPEContext -> SortId.SortId -> String
 showSortId f sid = Maybe.fromMaybe (Text.unpack (SortId.name sid)) (f Map.!? TxsDefs.IdSort sid)
 
 showChanId :: LPEContext -> ChanId.ChanId -> String
-showChanId f = mapGet f . TxsDefs.IdChan
+showChanId f cid =
+    if cid == TxsDefs.chanIdIstep
+    then "ISTEP"
+    else mapGet f (TxsDefs.IdChan cid)
+-- showChanId
 
 showVarId :: LPEContext -> VarId.VarId -> String
 showVarId f = mapGet f . TxsDefs.IdVar

@@ -56,7 +56,7 @@ addToChanMap chanMap actOffer = do
             return (freshChan, Map.insert freshChan chanSignature chanMap)
   where
     getOrderedOffers :: [BehExprDefs.Offer] -> [BehExprDefs.Offer]
-    getOrderedOffers [] = [BehExprDefs.Offer { BehExprDefs.chanid = TxsDefs.chanIdIstep 
+    getOrderedOffers [] = [BehExprDefs.Offer { BehExprDefs.chanid = TxsDefs.chanIdIstep
                                              , BehExprDefs.chanoffers = []
                                              }]
     getOrderedOffers xs = xs
@@ -138,5 +138,4 @@ getObjectIdsFromChanMap chanMap chanId =
       Just (originalChanIds, originalSortIds) -> Set.fromList ((map TxsDefs.IdChan originalChanIds) ++ (map TxsDefs.IdSort originalSortIds))
       Nothing -> Set.fromList (TxsDefs.IdChan chanId : map TxsDefs.IdSort (ChanId.chansorts chanId))
 -- getObjectIdsFromChanMap
-
 

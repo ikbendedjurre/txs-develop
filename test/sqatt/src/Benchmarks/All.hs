@@ -28,21 +28,21 @@ allExamples = [ --Choice.benchmarksSet
               --, Sequence.benchmarksSet
               --, Synchronization.benchmarksSet
               --, Queue.benchmarksSet
-                LPEBenchmarkSets.lpeBenchmarkSet "Adder" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "Adder3" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works
-              --, LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- TODO
+              --  LPEBenchmarkSets.lpeBenchmarkSet "Adder" -- Works
+              --, LPEBenchmarkSets.lpeBenchmarkSet "Adder3" -- Works
+              --, LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works
+              --, LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- ??? FAILED!!
               --, LPEBenchmarkSets.lpeBenchmarkSet "CustomersOrders" -- Takes too long!
-              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro01" -- Works
+                LPEBenchmarkSets.lpeBenchmarkSet "DisPro01" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "DisPro02" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "DisPro03" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "DisPro04" -- Works
               --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro05a" -- Takes too long!
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro05" --Fails due to HIDE
+              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro05" -- ??? Fails due to HIDE
               --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro06a" -- Takes too long!
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro06" --Fails due to HIDE
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro07", --Fails due to HIDE
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro08" -- Fails due to HIDE
+              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro06" -- ??? Fails due to HIDE
+              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro07" -- ??? Fails due to HIDE
+              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro08" -- ??? Fails due to HIDE
               , LPEBenchmarkSets.lpeBenchmarkSet "Echo" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "EchoDelay" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "Lossy" -- Works
