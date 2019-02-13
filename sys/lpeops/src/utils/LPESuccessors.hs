@@ -30,27 +30,19 @@ import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified EnvCore             as IOC
 import qualified Satisfiability      as Sat
-import qualified FreeVar
 import qualified TxsDefs
 import qualified ValExpr
-import qualified VarId
 import           LPETypes
 import           BlindSubst
 import           VarFactory
 
 isPossibleSuccessor :: LPESummand -> TxsDefs.VExpr -> LPESummand -> IOC.IOC Bool
 isPossibleSuccessor summand invariant candidate = do
-    let usedParams = Set.intersection (Set.fromList (FreeVar.freeVars (lpeSmdGuard candidate))) (Map.keysSet (lpeSmdEqs summand))
-    newParamPerUsedParam <- Map.fromList <$> Monad.mapM createNewParam (Set.toList usedParams)
-    g1 <- doBlindSubst (Map.map ValExpr.cstrVar newParamPerUsedParam) (lpeSmdGuard candidate)
-    g2 <- doBlindSubst (Map.mapKeys (\k -> newParamPerUsedParam Map.! k) (Map.restrictKeys (lpeSmdEqs summand) usedParams)) g1
+    freshVarPerCommVar <- createFreshVars (lpeSmdVarSet candidate)
+    g1 <- doBlindSubst (Map.map ValExpr.cstrVar freshVarPerCommVar) (lpeSmdGuard candidate)
+    g2 <- doBlindSubst (lpeSmdEqs summand) g1
     let g3 = ValExpr.cstrAnd (Set.fromList [lpeSmdGuard summand, g2])
     Sat.couldBeSatisfiable g3 invariant
-  where
-    createNewParam :: VarId.VarId -> IOC.IOC (VarId.VarId, VarId.VarId)
-    createNewParam varId = do
-        newVarId <- createFreshVarFromVar varId
-        return (varId, newVarId)
 -- isPossibleSuccessor
 
 -- Selects all potential successors summands of a given summand from a list with all summands.

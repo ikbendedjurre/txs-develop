@@ -18,21 +18,33 @@ module VarFactory (
 createFreshVar,
 createFreshVarFromVar,
 createFreshVarFromPrefix,
+createFreshVars,
 createFreshIntVar,
 createFreshIntVarFromPrefix,
 createFreshBoolVar,
 createFreshBoolVarFromPrefix
 ) where
 
-import qualified EnvCore as IOC
+import qualified Control.Monad as Monad
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Maybe as Maybe
+import qualified EnvCore as IOC
 import qualified SortId
 import qualified SortOf
 import qualified Id
 import StdTDefs (stdSortTable)
 import VarId
+
+createFreshVars :: Set.Set VarId.VarId -> IOC.IOC (Map.Map VarId.VarId VarId.VarId)
+createFreshVars vids = Map.fromList <$> Monad.mapM createFreshVarPair (Set.toList vids)
+  where
+    createFreshVarPair :: VarId.VarId -> IOC.IOC (VarId.VarId, VarId.VarId)
+    createFreshVarPair varId = do
+        newVarId <- createFreshVarFromVar varId
+        return (varId, newVarId)
+-- createFreshVars
 
 -- Creates a variable of the specified sort, using the specified string as part of the name.
 createFreshVar :: SortId.SortId -> IOC.IOC VarId.VarId

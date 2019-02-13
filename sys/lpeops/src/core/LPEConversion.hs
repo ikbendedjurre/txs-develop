@@ -86,6 +86,7 @@ foldSummandDataIntoLPE (lpe, earlierMsgs) (actOffer, paramEqs) = do
                                                       , lpeSmdVars = smdVars ++ Set.toList (TxsDefs.hiddenvars actOffer)
                                                       , lpeSmdGuard = TxsDefs.constraint actOffer
                                                       , lpeSmdEqs = paramEqs
+                                                      , lpeSmdDebug = ""
                                                       }
                           return (lpe { lpeChanMap = newChanMap, lpeSummands = Set.insert lpeSummand (lpeSummands lpe) }, earlierMsgs)
   where
@@ -143,9 +144,10 @@ lpe2model lpe = do
     
     -- Create a new model:
     newModelId <- getModelIdFromName (lpeName lpe)
-    let inChans = map (getMultiChannelFromChanMap (lpeChanMap lpe)) (Set.toList (lpeInChans lpe))
-    let outChans = map (getMultiChannelFromChanMap (lpeChanMap lpe)) (Set.toList (lpeOutChans lpe))
-    let newModelDef = TxsDefs.ModelDef inChans outChans [] newProcInit
+    let inChans = map Set.singleton (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeInChans lpe)))
+    let outChans = map Set.singleton (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeOutChans lpe)))
+    let syncChans = map (getMultiChannelFromChanMap (lpeChanMap lpe)) (Set.toList (lpeChanParams lpe))
+    let newModelDef = TxsDefs.ModelDef inChans outChans syncChans newProcInit
     
     -- Add process and model:
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)

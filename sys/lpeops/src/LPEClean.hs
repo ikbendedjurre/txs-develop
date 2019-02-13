@@ -41,6 +41,8 @@ cleanLPE lpe _out invariant = do
     initReachableSummands <- Monad.foldM addSummandIfReachableFromInit Set.empty uniqueSummands
     reachableSummands <- untilFixpointM (updateReachableSummands uniqueSummands) initReachableSummands
     Monad.when (length reachableSummands < length uniqueSummands) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Removed " ++ show (length uniqueSummands - length reachableSummands) ++ " unreachable summands") ])
+    --let unreachableSummands = Set.map (\s -> s { lpeSmdDebug = "UNREACHABLE" }) (uniqueSummands Set.\\ reachableSummands)
+    --return (Right (lpe { lpeSummands = Set.union reachableSummands unreachableSummands }))
     return (Right (lpe { lpeSummands = reachableSummands }))
   where
     addSummandIfReachableFromInit :: Set.Set LPESummand -> LPESummand -> IOC.IOC (Set.Set LPESummand)

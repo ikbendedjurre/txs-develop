@@ -22,6 +22,7 @@ lpeParams,
 LPESummands,
 LPESummand(..),
 lpeSmdVarSet,
+lpeSmdParams,
 emptyLPESummand,
 LPEParamEqs,
 LPEOperation,
@@ -90,8 +91,12 @@ data LPESummand = LPESummand { -- Communication channel:
                              , lpeSmdGuard :: TxsDefs.VExpr
                                -- Values per parameter for the process instantiation:
                              , lpeSmdEqs :: LPEParamEqs
+                             , lpeSmdDebug :: String
                              } deriving (Eq, Ord, Show)
 -- LPESummand
+
+lpeSmdParams :: LPESummand -> Set.Set VarId.VarId
+lpeSmdParams = Map.keysSet . lpeSmdEqs
 
 lpeSmdVarSet :: LPESummand -> Set.Set VarId.VarId
 lpeSmdVarSet = Set.fromList . lpeSmdVars
@@ -101,6 +106,7 @@ emptyLPESummand = LPESummand { lpeSmdChan = TxsDefs.chanIdIstep
                              , lpeSmdVars = []
                              , lpeSmdGuard = ValExpr.cstrConst (Constant.Cbool True)
                              , lpeSmdEqs = Map.empty
+                             , lpeSmdDebug = ""
                              }
 -- emptyLPESummand
 
@@ -138,6 +144,7 @@ newLPESummand chanId chanVars guard procInstParamEqs =
                , lpeSmdVars = chanVars
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
+               , lpeSmdDebug = ""
                }
 -- newLPESummand
 

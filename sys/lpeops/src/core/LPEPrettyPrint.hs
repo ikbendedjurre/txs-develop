@@ -94,8 +94,9 @@ showLPEInContext f lpe =
       List.intercalate "\n     ## " (map (showLPESummandInContext f g orderedChans orderedParams (lpeChanMap lpe)) (Set.toList (lpeSummands lpe))) ++
       "\nENDDEF\n" ++
       "MODELDEF Model ::=\n" ++
-      showChanSyncs "CHAN IN" (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeInChans lpe))) ++
-      showChanSyncs "CHAN OUT" (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeOutChans lpe))) ++
+      "    CHAN IN" ++ showSingleChan (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeInChans lpe))) ++
+      "    CHAN OUT" ++ showSingleChan (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeOutChans lpe))) ++
+      "    SYNC" ++ showChanSyncs (map (getMultiChannelFromChanMap (lpeChanMap lpe)) (Set.toList (lpeChanParams lpe))) ++
       "    BEHAVIOUR LPE[" ++ List.intercalate ", " (map (showChanId f) orderedChans) ++ "]" ++
       "(" ++ List.intercalate ", " (map (showValExprInContext f g) (paramEqsLookup orderedParams (lpeInitEqs lpe))) ++ ")" ++
       "\nENDDEF\n"
@@ -109,12 +110,16 @@ showLPEInContext f lpe =
             _ -> (orderedChansDefault, orderedParamsDefault)
     -- getOrderedChansAndParams
     
-    showChanSyncs :: String -> [ChanId.ChanId] -> String
-    showChanSyncs caption [] = "    " ++ caption ++ "\n"
-    showChanSyncs caption cids = "    " ++ caption ++ " " ++ List.intercalate ", " (map showChanSync cids) ++ "\n"
+    showSingleChan :: [ChanId.ChanId] -> String
+    showSingleChan [] = "\n"
+    showSingleChan cids = " " ++ List.intercalate ", " (map (showChanId f) cids) ++ "\n"
     
-    showChanSync :: ChanId.ChanId -> String
-    showChanSync cid = showChanId f cid
+    showChanSyncs :: [Set.Set ChanId.ChanId] -> String
+    showChanSyncs [] = "\n"
+    showChanSyncs syncs = " " ++ List.intercalate ", " (map showChanSync syncs) ++ "\n"
+    
+    showChanSync :: Set.Set ChanId.ChanId -> String
+    showChanSync sync = "{" ++ List.intercalate "|" (map (showChanId f) (Set.toList sync)) ++ "}"
 -- showLPEInContext
 
 showChanMap :: LPEContext -> LPEChanMap -> String
@@ -208,17 +213,20 @@ showLPESummandInContext f g orderedChans orderedParams chanMap summand =
     let (varsPerChan, hiddenVars) = getActOfferDataFromChanMap chanMap (lpeSmdChan summand) (lpeSmdVars summand) in
       (if null hiddenVars then "" else "HIDE [ HiddenChannel ] IN ") ++
       List.intercalate " | " (map showOffer varsPerChan) ++
-      (if null hiddenVars then "" else "| HiddenChannel " ++ showOfferVars hiddenVars) ++
+      (if null hiddenVars then "" else " | HiddenChannel " ++ showOfferVars hiddenVars) ++
       "[[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
       "LPE" ++ showChanRefs orderedChans ++
       "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")" ++
-      (if null hiddenVars then "" else " NI")
+      (if null hiddenVars then "" else " NI") ++
+      (if null (lpeSmdDebug summand) then "" else (" -- " ++ (lpeSmdDebug summand)))
   where
     showOffer :: (ChanId.ChanId, [VarId.VarId]) -> String
+    showOffer (cid, []) = showChanId f cid
     showOffer (cid, vids) = showChanId f cid ++ " " ++ showOfferVars vids
     
     showOfferVars :: [VarId.VarId] -> String
-    showOfferVars vars = concatMap (\v -> "? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v) ++ " ") vars
+    showOfferVars [] = ""
+    showOfferVars vars = concatMap (\v -> " ? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v)) vars
     
     showChanRefs :: [ChanId.ChanId] -> String
     showChanRefs [] = ""
@@ -238,7 +246,7 @@ showLPEParamEqsInContext f g orderedParams eqs =
   where
     getFromEqs :: VarId.VarId -> String
     getFromEqs v = case eqs Map.!? v of
-                     Just e -> showValExprInContext f g e
+                     Just e -> "{- " ++ showVarId f v ++ " = -} " ++ showValExprInContext f g e
                      Nothing -> "<<<could not find expression for parameter named " ++ Text.unpack (VarId.name v) ++ "!>>>"
 -- showLPEParamEqsInContext
 
