@@ -65,7 +65,7 @@ model2lpe modelId = do
                                                                                 , lpeName = ProcId.name procId
                                                                                 , lpeInitEqs = initEqs
                                                                                 }
-                                                             let permittedChans = Set.union (Set.fromList inChans) (Set.fromList outChans)
+                                                             let permittedChans = Set.insert Set.empty (Set.union (Set.fromList inChans) (Set.fromList outChans))
                                                              (lpe', msgs) <- Monad.foldM (foldSummandDataIntoLPE permittedChans) (lpe, []) summandData
                                                              let lpe'' = lpe' { lpeInChans = selectChanMapKeys (lpeChanMap lpe') inChans
                                                                               , lpeOutChans = selectChanMapKeys (lpeChanMap lpe') outChans
@@ -82,8 +82,7 @@ model2lpe modelId = do
 
 foldSummandDataIntoLPE :: Set.Set (Set.Set ChanId.ChanId) -> (LPE, [String]) -> (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (LPE, [String])
 foldSummandDataIntoLPE permittedChans (lpe, earlierMsgs) (actOffer, paramEqs) = do
-    let chans = Set.map BehExprDefs.chanid (BehExprDefs.offers actOffer)
-    if Set.member chans permittedChans
+    if Set.member (Set.map BehExprDefs.chanid (BehExprDefs.offers actOffer)) permittedChans
     then case concatEither (map getSmdVars (Set.toList (TxsDefs.offers actOffer))) of
            Left msgs -> return (lpe, ["Action offer " ++ TxsShow.fshow actOffer ++ " is invalid because"] ++ msgs)
            Right smdVars -> do (smdChan, newChanMap) <- addToChanMap (lpeChanMap lpe) actOffer

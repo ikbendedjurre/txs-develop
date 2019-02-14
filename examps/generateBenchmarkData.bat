@@ -101,7 +101,8 @@ exit /B 0
 :WriteCommands
 echo lpe %~1 > _lpeExec.txscmd
 echo lpeop export* LPE_proxyModel %~2-lpe-only >> _lpeExec.txscmd
-echo lpeop clean-^>cstelm-^>parelm-^>parreset-^>datareset-^>export* LPE_proxyModel %~2-lpe-reduced >> _lpeExec.txscmd
+echo lpeop clean-^>export* LPE_proxyModel %~2-lpe-reduced >> _lpeExec.txscmd
+::echo lpeop clean-^>cstelm-^>parelm-^>parreset-^>datareset-^>export* LPE_proxyModel %~2-lpe-reduced >> _lpeExec.txscmd
 echo quit >> _lpeExec.txscmd
 exit /B 0
 
