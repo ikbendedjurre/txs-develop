@@ -1,8 +1,8 @@
-cls
-cd C:\Users\WalD1\Documents\_git\txs-develop\examps
-
 set TXSDIR=C:\Users\WalD1\Documents\_git\txs-develop\
 set BENCHDIR=%TXSDIR%\test\sqatt\data\bench\LPE\
+
+cls
+cd %TXSDIR%\examps
 
 cd Adder
 call :WriteAndExec Adder Adder Adder

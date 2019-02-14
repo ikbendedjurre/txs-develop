@@ -111,6 +111,37 @@ TODO
 
 \section{Benchmarks}
 
+\subsection{Generation (Windows OS only)}
+First, benchmark files must be generated.
+This is done via script.
+
+\begin{enumerate}
+\item Navigate to \texttt{/examps} and open the file
+\begin{align*}
+\texttt{generateBenchmarkData.bat}
+\end{align*}
+
+\item Change \texttt{TXSDIR} to the directory where the \txs{} source files are located.
+Among others, it should contain the following sub-directories:
+\begin{center}
+\texttt{examps} \\
+\texttt{sys} \\
+\texttt{test}
+\end{center}
+
+\item In order to perform different benchmark measurements, change the contents of the function \texttt{:WriteCommands} (line 104, in particular, describes how the model should be produced that is compared to the original model and the linearized model).
+
+\item Run \texttt{generateBenchmarkData.bat} and wait for it to finish.
+\end{enumerate}
+
+\subsection{Execution}
+The main benchmark file of \txs{},
+\begin{align*}
+\texttt{/test/sqatt/src/Benchmarks/All.txs}
+\end{align*}
+
+has been changed, and so the benchmark for LPE operations is started in the same way as the original benchmark:
+
 \begin{enumerate}
 \item In a terminal, navigate to \texttt{/test/sqatt} in the repository directory.
 \item Execute \texttt{stack -v --profile bench --ba "--output data.html"}.
