@@ -47,11 +47,14 @@ stdIds = Set.fromList (map fst StdTDefs.stdTDefs)
 getLPEIds :: LPE -> Set.Set TxsDefs.Ident
 getLPEIds lpe =
     untilFixpoint getNextIds (Set.unions [
-      Set.unions (map (getObjectIdsFromChanMap (lpeChanMap lpe)) (Set.toList (lpeChanParams lpe))),
+      getModelChanIds,
       getParamEqsIds (lpeInitEqs lpe),
       setUnions (Set.map (getLPESummandIds (lpeChanMap lpe)) (lpeSummands lpe))
     ])
   where
+    getModelChanIds :: Set.Set TxsDefs.Ident
+    getModelChanIds = Set.unions (map (getObjectIdsFromChanMap (lpeChanMap lpe)) (Set.toList (lpeChanParams lpe)))
+    
     getNextIds :: Set.Set TxsDefs.Ident -> Set.Set TxsDefs.Ident
     getNextIds currentIds =
         let recursiveIds = setUnions (Set.map getRecursiveIds currentIds) in

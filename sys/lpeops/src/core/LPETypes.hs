@@ -48,6 +48,8 @@ import LPEChanMap
 
 data LPE = LPE { -- [optional] Definitions that surrounded the original TorXakis model:
                  lpeContext :: TxsDefs.TxsDefs
+                 -- Store output action of the model, if any (such as EXIT):
+               , lpeSplSyncs :: [Set.Set ChanId.ChanId]
                  -- Multi-channels and channels with different hidden variables are mapped to fresh channels.
                  -- This map keeps a record of this transformation:
                , lpeChanMap :: LPEChanMap
@@ -69,6 +71,7 @@ lpeChanParams lpe = Set.union (lpeInChans lpe) (lpeOutChans lpe)
 
 emptyLPE :: LPE
 emptyLPE = LPE { lpeContext = TxsDefs.empty
+               , lpeSplSyncs = []
                , lpeChanMap = Map.empty
                , lpeInChans = Set.empty
                , lpeOutChans = Set.empty
@@ -152,6 +155,7 @@ newLPESummand chanId chanVars guard procInstParamEqs =
 newLPE :: ([TxsDefs.ChanId], [(VarId.VarId, TxsDefs.VExpr)], [LPESummand]) -> LPE
 newLPE (chanIds, initParamEqs, summands) =
     LPE { lpeContext = TxsDefs.empty
+        , lpeSplSyncs = []
         , lpeChanMap = Map.fromList (map (\x -> (x, ([x], ChanId.chansorts x))) chanIds)
         , lpeInChans = Set.empty
         , lpeOutChans = Set.fromList chanIds

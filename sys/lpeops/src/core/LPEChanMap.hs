@@ -66,11 +66,11 @@ addToChanMap chanMap actOffer = do
     getChanOfferSorts offer = map SortOf.sortOf (BehExprDefs.chanoffers offer)
 -- addToChanMap
 
-selectChanMapKeys :: LPEChanMap -> Set.Set ChanId.ChanId -> Set.Set ChanId.ChanId
-selectChanMapKeys chanMap requiredChans = Map.keysSet (Map.filter containsRequiredChans chanMap)
+selectChanMapKeys :: LPEChanMap -> [Set.Set ChanId.ChanId] -> Set.Set ChanId.ChanId
+selectChanMapKeys chanMap syncs = Map.keysSet (Map.filter containedInSyncs chanMap)
   where
-    containsRequiredChans :: LPEChanSignature -> Bool
-    containsRequiredChans (chans, _) = Set.intersection (Set.fromList chans) requiredChans /= Set.empty
+    containedInSyncs :: LPEChanSignature -> Bool
+    containedInSyncs (chans, _) = List.any (Set.isSubsetOf (Set.fromList chans)) syncs
 -- selectChanMapKeys
 
 getActOfferFromChanMap :: LPEChanMap -> ChanId.ChanId -> [VarId.VarId] -> TxsDefs.VExpr -> BehExprDefs.ActOffer
