@@ -220,7 +220,7 @@ showAbbrevLPESummand chanMap summand = showLPESummandInContext (getAbbrevLPESumm
 showLPESummandInContext :: LPEContext -> VExprFromSortIdFunc -> [ChanId.ChanId] -> [VarId.VarId] -> LPEChanMap -> LPESummand -> String
 showLPESummandInContext f g orderedChans orderedParams chanMap summand =
     let (varsPerChan, hiddenVars) = getActOfferDataFromChanMap chanMap (lpeSmdChan summand) (lpeSmdVars summand) in
-      (if null hiddenVars then "" else "HIDE [ HiddenChannel ] IN") ++
+      (if null hiddenVars then "" else "HIDE [ HiddenChannel" ++ showOfferSorts hiddenVars ++ " ] IN") ++
       List.intercalate " |" (map showOffer varsPerChan) ++
       (if null hiddenVars then "" else " | HiddenChannel" ++ showOfferVars hiddenVars) ++
       " [[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
@@ -236,6 +236,10 @@ showLPESummandInContext f g orderedChans orderedParams chanMap summand =
     showOfferVars :: [VarId.VarId] -> String
     showOfferVars [] = ""
     showOfferVars vars = concatMap (\v -> " ? " ++ showVarId f v ++ " :: " ++ showSortId f (VarId.varsort v)) vars
+    
+    showOfferSorts :: [VarId.VarId] -> String
+    showOfferSorts [] = ""
+    showOfferSorts vars = " :: " ++ List.intercalate " # " (map (\v -> showSortId f (VarId.varsort v)) vars)
     
     showChanRefs :: [ChanId.ChanId] -> String
     showChanRefs [] = ""

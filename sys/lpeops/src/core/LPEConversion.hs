@@ -34,6 +34,7 @@ import qualified TxsDefs
 import qualified TxsShow
 import qualified ProcId
 import qualified VarId
+import qualified ModelId
 import qualified BehExprDefs
 import qualified ChanId
 import           LPEValidity
@@ -62,7 +63,7 @@ model2lpe modelId = do
                                      Left msgs -> return (Left msgs)
                                      Right summandData -> do let lpe = emptyLPE { lpeContext = tdefs
                                                                                 , lpeSplSyncs = splsyncs
-                                                                                , lpeName = ProcId.name procId
+                                                                                , lpeName = Text.pack (Text.unpack (ModelId.name modelId) ++ "_" ++ Text.unpack (ProcId.name procId))
                                                                                 , lpeInitEqs = initEqs
                                                                                 }
                                                              let permittedChans = Set.insert Set.empty (Set.union (Set.fromList inChans) (Set.fromList outChans))

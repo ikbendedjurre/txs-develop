@@ -144,7 +144,11 @@ has been changed, and so the benchmark for LPE operations is started in the same
 
 \begin{enumerate}
 \item In a terminal, navigate to \texttt{/test/sqatt} in the repository directory.
-\item Execute \texttt{stack -v --profile bench --ba "--output data.html"}.
+\item Execute
+\begin{align*}
+\texttt{stack -v --profile bench --ba "--output data.html"}
+\end{align*}
+
 \item Wait for the benchmark to finish.
 If there are no failures, the benchmark results will be exported to \texttt{data.html}.
 \end{enumerate}
