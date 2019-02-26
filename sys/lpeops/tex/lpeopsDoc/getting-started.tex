@@ -145,11 +145,15 @@ has been changed, and so the benchmark for LPE operations is started in the same
 \begin{enumerate}
 \item In a terminal, navigate to \texttt{/test/sqatt} in the repository directory.
 \item Execute
-\begin{align*}
-\texttt{stack -v --profile bench --ba "--output data.html"}
-\end{align*}
+\begin{center}
+\texttt{stack -v --profile bench --ba} \\
+\texttt{"--output data.html --csv data.csv --time-limit 1"}
+\end{center}
+
+The benchmark spends a maximum of 1 second on each part of the benchmark (default is 5 seconds).
+If there are no failures, the benchmark results will be exported to \texttt{data.html} and \texttt{data.csv} (note that previous results are not deleted from \texttt{data.csv}).
+For more benchmark parameters, see \url{http://www.serpentine.com/criterion/tutorial.html}.
 
 \item Wait for the benchmark to finish.
-If there are no failures, the benchmark results will be exported to \texttt{data.html}.
 \end{enumerate}
 

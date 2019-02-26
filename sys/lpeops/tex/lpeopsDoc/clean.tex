@@ -38,8 +38,8 @@ Note that $s_\alpha$ could contain all behavior of $s_\beta$ without these two c
 
 \subsection{Summand reachability}
 
-Consider a summand pair $(s_\alpha, s_\beta)$, referencing the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
-Summand $s_\alpha$ is said to be a \emph{possible predecessor} of $s_\beta$ if the following expression is satisfiable:
+Consider summands $s_\alpha$ and $s_\beta$, referencing their elements conform \ref{summandelements}.
+Summand $s_\alpha$ is said to be a \emph{possible predecessor} of $s_\beta$ if the following expression \emph{could be} satisfiable:
 \begin{align*}
 g_\alpha \land {g_\beta}[v \rightarrow q(v) \;|\; v \in \varsof{g_\beta} \setminus P][p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}
@@ -116,4 +116,36 @@ example[A, B](0);
 \end{lstlisting}
 
 The second summand is unreachable: it is not enabled in the initial state (since \texttt{x = 0}) and it is never enabled after the application of the first summand (since \texttt{i != 13}).
+
+\section{Benchmark results}
+
+The following durations were measured with a benchmark for several models:
+\begin{itemize}
+\item The average duration of \txs{} to make 500 steps in a model without converting it to LPE form or applying LPE operations;
+\item The average duration of \txs{} to make 500 steps in a model after it has been converted to LPE form;
+\item The average duration of \txs{} to make 500 steps in a model after it has been converted to LPE form and after the \texttt{clean} operation has been applied.
+\end{itemize}
+
+When plotting the second series of measurements against the first (see Figure~\ref{lpe-only-vs-original:fig}), it becomes apparent that the influence of the LPE transformation on the step duration is quite dramatic, and not in a positive direction for each model.
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=0.8\linewidth]{charts/lpe-only-vs-original}
+\caption{Benchmark results: LPE transformation vs original}
+\label{lpe-only-vs-original:fig}
+\end{center}
+\end{figure}
+
+It is possible that the \texttt{clean} operation restores (some of) the performance of \txs{}.
+However, when plotting the third series of measurements against the second (see Figure~\ref{clean-vs-lpe-only:fig}), this cannot be concluded: only part of the models show slight (but significant) improvements, whereas other models suffer an (also slight) additional performance loss.
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=0.5\linewidth]{charts/clean-vs-lpe-only}
+\caption{Benchmark results: clean vs LPE transformation}
+\label{clean-vs-lpe-only:fig}
+\end{center}
+\end{figure}
+
+
 

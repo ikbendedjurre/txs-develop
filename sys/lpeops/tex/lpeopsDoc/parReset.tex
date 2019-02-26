@@ -15,8 +15,8 @@ The \texttt{datareset} command, serving a similar purpose (see \ref{datareset}),
 
 \subsection{Possible successors} \label{possiblesuccessors}
 
-Consider a summand pair $(s_\alpha, s_\beta)$, referencing the elements of $s_\alpha$ and $s_\beta$ conform \ref{summandelements}.
-Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression is satisfiable:
+Consider summands $s_\alpha$ and $s_\beta$, referencing their elements conform \ref{summandelements}.
+Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression \emph{could be} satisfiable:
 \begin{align*}
 g_\alpha \land {g_\beta}[v \rightarrow q(v) \;|\; v \in \varsof{g_\beta} \setminus P][p \rightarrow v_\alpha(p) \;|\; p \in P]
 \end{align*}

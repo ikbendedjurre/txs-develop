@@ -63,5 +63,23 @@ PROCDEF example[A :: Int, B](x, z :: Int)
 example[A, B](0, 0);
 \end{lstlisting}
 
+\section{Benchmark results}
 
+The following durations were measured with a benchmark for several models:
+\begin{itemize}
+\item The average duration of \txs{} to make 500 steps in a model after it has been converted to LPE form;
+\item The average duration of \txs{} to make 500 steps in a model after it has been converted to LPE form and after the \texttt{parelm} operation has been applied.
+\end{itemize}
+
+When plotting the second series of measurements against the first (see Figure~\ref{parelm-vs-lpe-only:fig}), it is easy to see that the impact is insignificant in most cases.
+There is even one significant decrease in performance (in the \texttt{ControlLoop} model), which is surprising.
+Because \texttt{parelm} exclusively reduces the size of an LPE, it is believed that this is the confidence interval of the benchmark is slightly larger than the benchmark tool indicates.
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=0.5\linewidth]{charts/parelm-vs-lpe-only}
+\caption{Benchmark results: parelm vs LPE transformation}
+\label{parelm-vs-lpe-only:fig}
+\end{center}
+\end{figure}
 
