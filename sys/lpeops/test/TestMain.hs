@@ -12,10 +12,10 @@ import System.Exit
 import Test.HUnit
 
 import TestClean
---import TestConstElm
---import TestParElm
---import TestDataReset
---import TestParReset
+import TestConstElm
+import TestParElm
+import TestDataReset
+import TestParReset
 --import TestConfCheck
 --import TestUGuard
 
@@ -25,12 +25,12 @@ testList = TestList
       TestLabel "testCleanEquivalence"     testCleanEquivalence
     , TestLabel "testCleanContainment"     testCleanContainment
     , TestLabel "cleanUnreachable"         testCleanUnreachable
-    -- , TestLabel "constElmBasic"            testConstElmBasic
-    -- , TestLabel "constElmXYX"              testConstElmXYX
-    -- , TestLabel "parElmBasic"              testParElmBasic
-    -- , TestLabel "parElmXUpperBound"        testParElmXUpperBound
-    -- , TestLabel "parDataReset"             testDataResetBasic
-    -- , TestLabel "parResetBasic"            testParResetBasic
+    , TestLabel "constElmBasic"            testConstElmBasic
+    , TestLabel "constElmXYX"              testConstElmXYX
+    , TestLabel "parElmBasic"              testParElmBasic
+    , TestLabel "parElmXUpperBound"        testParElmXUpperBound
+    , TestLabel "dataReset"                testDataResetBasic
+    , TestLabel "parResetBasic"            testParResetBasic
     -- , TestLabel "confCheckBasic"           testConfCheckBasic
     -- , TestLabel "confElmNoChange"          testConfElmNoChange
     -- , TestLabel "confElmBasic"             testConfElmBasic

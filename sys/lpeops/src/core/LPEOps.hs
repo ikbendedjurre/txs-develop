@@ -35,11 +35,11 @@ import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
 import qualified LPEClean
--- import qualified LPEConstElm
--- import qualified LPEParElm
+import qualified LPEConstElm
+import qualified LPEParElm
 -- import qualified LPEIStepElm
--- import qualified LPEDataReset
--- import qualified LPEParReset
+import qualified LPEDataReset
+import qualified LPEParReset
 -- import qualified LPEConfCheck
 -- import qualified LPEIsDet
 -- import qualified LPEDeterminize
@@ -52,7 +52,7 @@ import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.02.18.01"
+lpeOpsVersion = "2019.02.26.01"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 
@@ -160,11 +160,11 @@ getLPEOperation opName = case opName of
                                                        Just n -> Right (LPEOps.LPEOpLoop n)
                                                        Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")
                            "clean" -> Right (LPEOps.LPEOp LPEClean.cleanLPE)
-                           -- "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)
-                           -- "parelm" -> Right (LPEOps.LPEOp LPEParElm.parElm)
+                           "cstelm" -> Right (LPEOps.LPEOp LPEConstElm.constElm)
+                           "parelm" -> Right (LPEOps.LPEOp LPEParElm.parElm)
                            -- "istepelm" -> Right (LPEOps.LPEOp LPEIStepElm.iStepElm)
-                           -- "datareset" -> Right (LPEOps.LPEOp LPEDataReset.dataReset)
-                           -- "parreset" -> Right (LPEOps.LPEOp LPEParReset.parReset)
+                           "datareset" -> Right (LPEOps.LPEOp LPEDataReset.dataReset)
+                           "parreset" -> Right (LPEOps.LPEOp LPEParReset.parReset)
                            -- "isdet" -> Right (LPEOps.LPEOp LPEIsDet.isDeterministicLPE)
                            -- "det" -> Right (LPEOps.LPEOp LPEDeterminize.determinizeLPE)
                            -- "angelic" -> Right (LPEOps.LPEOp LPEAngelic.makeInputEnabledLPE)

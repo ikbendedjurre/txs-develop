@@ -39,14 +39,12 @@ testParElmBasic = TestCase $ tryLPEOperation parElm model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A ? y >-> P(x)
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         vexprTrue
         [(varIdX, vexprX)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- A ? z >-> P(x+1)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         vexprTrue
         [(varIdX, vexprSum vexprX vexpr1)]
     model1 :: LPE
@@ -54,14 +52,12 @@ testParElmBasic = TestCase $ tryLPEOperation parElm model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? y >-> P()
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         vexprTrue
         []
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- A ? z >-> P()
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         vexprTrue
         []
     model2 :: LPE
@@ -73,14 +69,12 @@ testParElmXUpperBound = TestCase $ tryLPEOperation parElm model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A ? y [x == 2] >-> P(x)
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         (cstrEqual vexprX vexpr2)
         [(varIdX, vexprX)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- A ? z [x != 2] >-> P(x+1)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1)]
     model1 :: LPE
@@ -88,14 +82,12 @@ testParElmXUpperBound = TestCase $ tryLPEOperation parElm model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? y [x == 2] >-> P(x)
-        [varIdY]
-        [(chanIdA, [varIdY])]
+        chanIdA [varIdY]
         (cstrEqual vexprX vexpr2)
         [(varIdX, vexprX)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- A ? z [x != 2] >-> P(x+1)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1)]
     model2 :: LPE

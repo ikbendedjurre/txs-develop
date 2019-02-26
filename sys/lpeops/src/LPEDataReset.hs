@@ -45,7 +45,7 @@ mapGet m k =
 dataReset :: LPEOperation
 dataReset lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<datareset>>" ]
-    let params = Map.keysSet (lpeInitEqs lpe)
+    let params = lpeParams lpe
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "Collecting information on parameter usage..." ]
     paramUsagePerSummand <- getParamUsagePerSummand (lpeSummands lpe) params invariant
     -- IOC.putMsgs [ EnvData.TXS_CORE_ANY (showLPEParamUsagePerSummand paramUsagePerSummand) ]
@@ -79,11 +79,12 @@ resetParamsInSummand :: Map.Map VarId.VarId TxsDefs.VExpr             -- initPar
                      -> Set.Set (VarId.VarId, VarId.VarId, TxsDefs.VExpr)   -- relevanceRelation
                      -> LPESummand                              -- summand
                      -> (LPESummand, [String])                  -- result
-resetParamsInSummand initParamEqs paramUsagePerSummand belongsToRelation relevanceRelation summand@(LPESummand channelVars channelOffers guard paramEqs) =
+resetParamsInSummand initParamEqs paramUsagePerSummand belongsToRelation relevanceRelation summand =
+    let paramEqs = lpeSmdEqs summand in
     let paramUsage = paramUsagePerSummand Map.! summand in
     let newParamEqs = map (resetParam paramUsage) (Map.toList paramEqs) in
       --(LPESummand channelVars channelOffers guard (LPEProcInst (Map.fromList (map fst newParamEqs))), ["{", showLPESummand summand] ++ concat (map snd newParamEqs) ++ concat (map getParamChange (map fst newParamEqs)) ++ ["}"])
-      (LPESummand channelVars channelOffers guard (Map.fromList (map fst newParamEqs)), concatMap (getParamChange . fst) newParamEqs)
+      (summand { lpeSmdEqs = Map.fromList (map fst newParamEqs) }, concatMap (getParamChange . fst) newParamEqs)
   where
     resetParam :: LPEParamUsage -> (VarId.VarId, TxsDefs.VExpr) -> ((VarId.VarId, TxsDefs.VExpr), [String])
     resetParam paramUsage (p, v) =
@@ -99,7 +100,8 @@ resetParamsInSummand initParamEqs paramUsagePerSummand belongsToRelation relevan
     
     getParamChange :: (VarId.VarId, TxsDefs.VExpr) -> [String]
     getParamChange (p, v) =
-        ["Setting " ++ Text.unpack (VarId.name p) ++ " to " ++ showValExpr v ++ " instead of " ++ showValExpr (mapGet paramEqs p) | mapGet paramEqs p /= v]
+        let paramEqs = lpeSmdEqs summand in
+          ["Setting " ++ Text.unpack (VarId.name p) ++ " to " ++ showValExpr v ++ " instead of " ++ showValExpr (mapGet paramEqs p) | mapGet paramEqs p /= v]
     -- getParamChange
 -- resetParamsInSummand
 

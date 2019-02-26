@@ -51,7 +51,7 @@ mapGetS i s m k =
     --trace ("mapGetS(" ++ (show k) ++ ")") (
       if Map.member k m
       then m Map.! k
-      else error ("Could not find " ++ show k ++ " in map!\nSummand: " ++ showLPESummand s ++ "\nLPE: " ++ showLPE i)
+      else error ("Could not find " ++ show k ++ " in map!\nSummand: " ++ showLPESummand Map.empty s ++ "\nLPE: " ++ showLPE i)
     --)
 -- mapGetS
 
@@ -104,9 +104,9 @@ resetParamsInSummand lpe invariant successorsPerSummand summand =
     -- printNewSmdEqs
     
     summandToConstraint :: LPEParamEqs -> LPESummand -> IOC.IOC TxsDefs.VExpr
-    summandToConstraint newSmdEqs (LPESummand _ _ g _) = do
-        g' <- doBlindSubst newSmdEqs g
-        return (cstrAnd (Set.fromList [lpeSmdGuard summand, g']))
+    summandToConstraint newSmdEqs s = do
+        g <- doBlindSubst newSmdEqs (lpeSmdGuard s)
+        return (cstrAnd (Set.fromList [lpeSmdGuard s, g]))
     -- summandToConstraint
     
     numberToString :: Int -> String
@@ -145,6 +145,6 @@ parResetUpdate lpe successorsPerSummand = map updateSummand successorsPerSummand
         
         -- Combine them all, but ignore communication variables:
         let allVars = Set.union guardVars assignmentVars in
-          allVars Set.\\ lpeSmdVars successor
+          allVars Set.\\ lpeSmdVarSet successor
 -- parResetUpdate
 

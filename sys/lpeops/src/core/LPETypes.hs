@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 module LPETypes (
 LPE(..),
 lpeChanParams,
+lpeSmdList,
 emptyLPE,
 lpeParams,
 LPESummands,
@@ -68,6 +69,9 @@ data LPE = LPE { -- [optional] Definitions that surrounded the original TorXakis
 
 lpeChanParams :: LPE -> Set.Set TxsDefs.ChanId
 lpeChanParams lpe = Set.union (lpeInChans lpe) (lpeOutChans lpe)
+
+lpeSmdList :: LPE -> [LPESummand]
+lpeSmdList = Set.toList . lpeSummands
 
 emptyLPE :: LPE
 emptyLPE = LPE { lpeContext = TxsDefs.empty

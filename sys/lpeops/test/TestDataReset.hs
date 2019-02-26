@@ -38,26 +38,22 @@ testDataResetBasic = TestCase $ tryLPEOperation dataReset model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A ? z [x==0] >-> P(1, z)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr0)
         [(varIdX, vexpr1), (varIdY, vexprZ)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- A ? z [x==1 && z==y] >-> P(2, y)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1, cstrEqual vexprZ vexprY]))
         [(varIdX, vexpr2), (varIdY, vexprY)]
     summand1_3 :: LPESummand
     summand1_3 = newLPESummand -- A ? z [x==2] >-> P(3, y)
-        []
-        []
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr2)
         [(varIdX, vexpr3), (varIdY, vexprY)]
     summand1_4 :: LPESummand
     summand1_4 = newLPESummand -- A ? z [x==3] >-> P(0, y)
-        []
-        []
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr3)
         [(varIdX, vexpr0), (varIdY, vexprY)]
     model1 :: LPE
@@ -65,26 +61,22 @@ testDataResetBasic = TestCase $ tryLPEOperation dataReset model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? y [x==0] >-> P(1, y)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr0)
         [(varIdX, vexpr1), (varIdY, vexprZ)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- A ? z [x==1 && z==y] >-> P(2, ANY int)
-        [varIdZ]
-        [(chanIdA, [varIdZ])]
+        chanIdA [varIdZ]
         (cstrAnd (Set.fromList [cstrEqual vexprX vexpr1, cstrEqual vexprZ vexprY]))
         [(varIdX, vexpr2), (varIdY, anyInt)]
     summand2_3 :: LPESummand
     summand2_3 = newLPESummand -- A ? z [x==2] >-> P(3, ANY int)
-        []
-        []
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr2)
         [(varIdX, vexpr3), (varIdY, anyInt)]
     summand2_4 :: LPESummand
     summand2_4 = newLPESummand -- A ? z [x==3] >-> P(0, ANY int)
-        []
-        []
+        chanIdA [varIdZ]
         (cstrEqual vexprX vexpr3)
         [(varIdX, vexpr0), (varIdY, anyInt)]
     model2 :: LPE

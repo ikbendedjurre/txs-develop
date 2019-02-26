@@ -27,11 +27,11 @@ library
                     , MonadAny
                     , LPEChanMap
                     , ChanFactory
-                    -- , LPEConstElm
-                    -- , LPEParElm
+                    , LPEConstElm
+                    , LPEParElm
                     -- , LPEIStepElm
-                    -- , LPEDataReset
-                    -- , LPEParReset
+                    , LPEDataReset
+                    , LPEParReset
                     , LPETypes
                     , LPEConversion
                     , LPEEquivalence
@@ -98,11 +98,11 @@ test-suite lpeops-test
                       , LPEChanMap
                       , MonadAny
                       , ChanFactory
-                      -- , LPEConstElm
-                      -- , LPEParElm
+                      , LPEConstElm
+                      , LPEParElm
                       -- , LPEIStepElm
-                      -- , LPEDataReset
-                      -- , LPEParReset
+                      , LPEDataReset
+                      , LPEParReset
                       , LPETypes
                       , LPEConversion
                       , LPEEquivalence
@@ -131,10 +131,10 @@ test-suite lpeops-test
                       , MCRL2PrettyPrint
                       , TestUtils
                       , TestClean
-                      -- , TestConstElm
-                      -- , TestParElm
-                      -- , TestParReset
-                      -- , TestDataReset
+                      , TestConstElm
+                      , TestParElm
+                      , TestParReset
+                      , TestDataReset
                       -- , TestConfCheck
                       -- , TestUGuard
 

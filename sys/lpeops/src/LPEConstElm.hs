@@ -26,52 +26,43 @@ import qualified EnvCore             as IOC
 import qualified EnvData
 import qualified TxsDefs
 import qualified Satisfiability as Sat
+import qualified VarId
+import qualified ValExpr
+import qualified Constant
 import           LPETypes
 import           LPEParRemoval
-import           VarId
-import qualified ValExpr
-import           Constant
 import           BlindSubst
+import           UntilFixpoint
 
 -- LPE rewrite method.
 -- Eliminates parameters that always have the same value from an LPE.
 constElm :: LPEOperation
 constElm lpe _out invariant = do
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<constelm>>" ]
-    constParams <- getConstParams lpe invariant (Map.keysSet (lpeInitEqs lpe))
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<cstelm>>" ]
+    constParams <- untilFixpointM (getConstParams lpe invariant) (Map.keysSet (lpeInitEqs lpe))
     newLpe <- removeParsFromLPE constParams lpe
     return (Right newLpe)
 -- constElm
 
-getConstParams :: LPE -> TxsDefs.VExpr -> Set.Set VarId -> IOC.IOC (Set.Set VarId)
+getConstParams :: LPE -> TxsDefs.VExpr -> Set.Set VarId.VarId -> IOC.IOC (Set.Set VarId.VarId)
 getConstParams lpe invariant constParams = do
-    newConstParams <- getConstParamsForAllSummands lpe invariant constParams
-    if newConstParams /= constParams
-    then getConstParams lpe invariant newConstParams
-    else return newConstParams
+    let subst = Map.restrictKeys (lpeInitEqs lpe) constParams
+    filteredConstParams <- Monad.mapM (filterConstParamsWithSummand subst invariant constParams) (Set.toList (lpeSummands lpe))
+    return (foldl Set.intersection constParams filteredConstParams)
 -- getConstParams
 
-getConstParamsForAllSummands :: LPE -> TxsDefs.VExpr -> Set.Set VarId -> IOC.IOC (Set.Set VarId)
-getConstParamsForAllSummands lpe invariant constParams = do
-    let subst = Map.restrictKeys (lpeInitEqs lpe) constParams
-    constParamsPerSummand <- Monad.mapM (getConstParamsForSummand subst invariant constParams) (Set.toList (lpeSummands lpe))
-    return (foldl Set.intersection constParams constParamsPerSummand)
--- getConstParamsForAllSummands
+filterConstParamsWithSummand :: Map.Map VarId.VarId TxsDefs.VExpr -> TxsDefs.VExpr -> Set.Set VarId.VarId -> LPESummand -> IOC.IOC (Set.Set VarId.VarId)
+filterConstParamsWithSummand subst invariant constParams summand = do
+    filteredConstParams <- Monad.filterM (isConstParamForSummand subst invariant summand) (Set.toList constParams)
+    return (Set.fromList filteredConstParams)
+-- filterConstParamsWithSummand
 
-getConstParamsForSummand :: Map.Map VarId TxsDefs.VExpr -> TxsDefs.VExpr -> Set.Set VarId -> LPESummand -> IOC.IOC (Set.Set VarId)
-getConstParamsForSummand subst invariant constParams summand = do
-    result <- Monad.mapM (isConstParamForSummand subst invariant summand) (Set.toList constParams)
-    return (Set.unions result)
--- getConstParamsForSummand
-
-isConstParamForSummand :: Map.Map VarId TxsDefs.VExpr -> TxsDefs.VExpr -> LPESummand -> VarId -> IOC.IOC (Set.Set VarId)
+isConstParamForSummand :: Map.Map VarId.VarId TxsDefs.VExpr -> TxsDefs.VExpr -> LPESummand -> VarId.VarId -> IOC.IOC Bool
 isConstParamForSummand subst invariant summand testParam = do
-    let expr = ValExpr.cstrITE (lpeSmdGuard summand) (ValExpr.cstrEqual ((lpeSmdEqs summand) Map.! testParam) (ValExpr.cstrVar testParam)) (ValExpr.cstrConst (Cbool True))
-    expr' <- doBlindSubst subst expr
-    taut <- Sat.isTautology expr' invariant
-    if taut
-    then return (Set.singleton testParam)
-    else return Set.empty
+    let eqExpr = ValExpr.cstrEqual ((lpeSmdEqs summand) Map.! testParam) (ValExpr.cstrVar testParam)
+    let expr = ValExpr.cstrITE (lpeSmdGuard summand) eqExpr (ValExpr.cstrConst (Constant.Cbool True))
+    substExpr <- doBlindSubst subst expr
+    Sat.isTautology substExpr invariant
 -- isConstParamsForSummand
 
 
