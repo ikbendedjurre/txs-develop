@@ -40,7 +40,7 @@ import qualified LPEParElm
 -- import qualified LPEIStepElm
 import qualified LPEDataReset
 import qualified LPEParReset
--- import qualified LPEConfCheck
+import qualified LPEConfCheck
 -- import qualified LPEIsDet
 -- import qualified LPEDeterminize
 -- import qualified LPEAngelic
@@ -52,7 +52,7 @@ import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.02.26.01"
+lpeOpsVersion = "2019.02.27.01"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 
@@ -169,7 +169,7 @@ getLPEOperation opName = case opName of
                            -- "det" -> Right (LPEOps.LPEOp LPEDeterminize.determinizeLPE)
                            -- "angelic" -> Right (LPEOps.LPEOp LPEAngelic.makeInputEnabledLPE)
                            -- "uguard" -> Right (LPEOps.LPEOp LPEUGuards.addUGuardsToLPE)
-                           -- "confelm" -> Right (LPEOps.LPEOp LPEConfCheck.confElm)
+                           "confelm" -> Right (LPEOps.LPEOp LPEConfCheck.confElm)
                            -- "mcrl2" -> Right (LPEOps.LPEOp LPE2MCRL2.lpe2mcrl2)
                            _ -> Left ("Unknown LPE operation (" ++ opName ++ ")!")
 -- getLPEOperation

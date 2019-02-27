@@ -40,7 +40,7 @@ library
                     , Pairs
                     , LPEBlindSubst
                     , UntilFixpoint
-                    -- , LPEConfCheck
+                    , LPEConfCheck
                     -- , LPEIsDet
                     -- , LPEAngelic
                     -- , LPEDeterminize
@@ -111,7 +111,7 @@ test-suite lpeops-test
                       -- , LPEUGuards
                       , Pairs
                       , UntilFixpoint
-                      -- , LPEConfCheck
+                      , LPEConfCheck
                       -- , LPEIsDet
                       -- , LPEAngelic
                       -- , LPEDeterminize
@@ -135,7 +135,7 @@ test-suite lpeops-test
                       , TestParElm
                       , TestParReset
                       , TestDataReset
-                      -- , TestConfCheck
+                      , TestConfCheck
                       -- , TestUGuard
 
   ghc-options:       -Werror -Wall -O2 -optc-O3 -optc-ffast-math -threaded -rtsopts -with-rtsopts=-N -fmax-pmcheck-iterations=100000000

@@ -20,10 +20,12 @@ lpeChanParams,
 lpeSmdList,
 emptyLPE,
 lpeParams,
+lpeParamList,
 LPESummands,
 LPESummand(..),
 lpeSmdVarSet,
 lpeSmdParams,
+lpeSmdParamList,
 emptyLPESummand,
 LPEParamEqs,
 LPEOperation,
@@ -31,6 +33,7 @@ paramEqsLookup,
 selfLoopParamEqs,
 defaultValueParamEqs,
 newLPESummand,
+newPrioritizedLPESummand,
 newLPE
 ) where
 
@@ -67,12 +70,6 @@ data LPE = LPE { -- [optional] Definitions that surrounded the original TorXakis
                } deriving (Eq, Ord, Show)
 -- LPE
 
-lpeChanParams :: LPE -> Set.Set TxsDefs.ChanId
-lpeChanParams lpe = Set.union (lpeInChans lpe) (lpeOutChans lpe)
-
-lpeSmdList :: LPE -> [LPESummand]
-lpeSmdList = Set.toList . lpeSummands
-
 emptyLPE :: LPE
 emptyLPE = LPE { lpeContext = TxsDefs.empty
                , lpeSplSyncs = []
@@ -85,8 +82,17 @@ emptyLPE = LPE { lpeContext = TxsDefs.empty
                }
 -- emptyLPE
 
+lpeChanParams :: LPE -> Set.Set TxsDefs.ChanId
+lpeChanParams lpe = Set.union (lpeInChans lpe) (lpeOutChans lpe)
+
+lpeSmdList :: LPE -> [LPESummand]
+lpeSmdList = Set.toList . lpeSummands
+
 lpeParams :: LPE -> Set.Set VarId.VarId
 lpeParams = Map.keysSet . lpeInitEqs
+
+lpeParamList :: LPE -> [VarId.VarId]
+lpeParamList = Set.toList . lpeParams
 
 type LPESummands = Set.Set LPESummand
 
@@ -94,6 +100,8 @@ data LPESummand = LPESummand { -- Communication channel:
                                lpeSmdChan :: TxsDefs.ChanId
                                -- Communication variables:
                              , lpeSmdVars :: [VarId.VarId]
+                               -- Priority flag:
+                             , lpeSmdPriority :: Bool
                                -- Guard:
                              , lpeSmdGuard :: TxsDefs.VExpr
                                -- Values per parameter for the process instantiation:
@@ -105,12 +113,16 @@ data LPESummand = LPESummand { -- Communication channel:
 lpeSmdParams :: LPESummand -> Set.Set VarId.VarId
 lpeSmdParams = Map.keysSet . lpeSmdEqs
 
+lpeSmdParamList :: LPESummand -> [VarId.VarId]
+lpeSmdParamList = Set.toList . lpeSmdParams
+
 lpeSmdVarSet :: LPESummand -> Set.Set VarId.VarId
 lpeSmdVarSet = Set.fromList . lpeSmdVars
 
 emptyLPESummand :: LPESummand
 emptyLPESummand = LPESummand { lpeSmdChan = TxsDefs.chanIdIstep
                              , lpeSmdVars = []
+                             , lpeSmdPriority = False
                              , lpeSmdGuard = ValExpr.cstrConst (Constant.Cbool True)
                              , lpeSmdEqs = Map.empty
                              , lpeSmdDebug = ""
@@ -149,11 +161,24 @@ newLPESummand :: ChanId.ChanId -> [VarId.VarId] -> TxsDefs.VExpr -> [(VarId.VarI
 newLPESummand chanId chanVars guard procInstParamEqs =
     LPESummand { lpeSmdChan = chanId
                , lpeSmdVars = chanVars
+               , lpeSmdPriority = False
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
                , lpeSmdDebug = ""
                }
 -- newLPESummand
+
+-- This method is used by unit tests:
+newPrioritizedLPESummand :: ChanId.ChanId -> [VarId.VarId] -> TxsDefs.VExpr -> [(VarId.VarId, TxsDefs.VExpr)] -> LPESummand
+newPrioritizedLPESummand chanId chanVars guard procInstParamEqs =
+    LPESummand { lpeSmdChan = chanId
+               , lpeSmdVars = chanVars
+               , lpeSmdPriority = True
+               , lpeSmdGuard = guard
+               , lpeSmdEqs = Map.fromList procInstParamEqs
+               , lpeSmdDebug = ""
+               }
+-- newPrioritizedLPESummand
 
 -- This method is used by unit tests:
 newLPE :: ([TxsDefs.ChanId], [(VarId.VarId, TxsDefs.VExpr)], [LPESummand]) -> LPE

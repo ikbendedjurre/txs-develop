@@ -41,14 +41,12 @@ testConfCheckBasic = TestCase $ tryLPEOperation confCheck model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A ? [x!=2] >-> P(x+1, y)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1), (varIdY, vexprY)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- ISTEP [y!=2] >-> P(x, y+1)
-        []
-        [(chanIdIstep, [])]
+        chanIdIstep []
         (cstrNot (cstrEqual vexprY vexpr2))
         [(varIdX, vexprX), (varIdY, vexprSum vexprY vexpr1)]
     model1 :: LPE
@@ -56,14 +54,12 @@ testConfCheckBasic = TestCase $ tryLPEOperation confCheck model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? [x!=2] >-> P(x+1, y)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1), (varIdY, vexprY)]
     summand2_2 :: LPESummand
-    summand2_2 = newLPESummand -- CISTEP [y!=2] >-> P(x, y+1)
-        []
-        [(chanIdConfluentIstep, [])]
+    summand2_2 = newPrioritizedLPESummand -- CISTEP [y!=2] >-> P(x, y+1)
+        chanIdIstep []
         (cstrNot (cstrEqual vexprY vexpr2))
         [(varIdX, vexprX), (varIdY, vexprSum vexprY vexpr1)]
     model2 :: LPE
@@ -75,31 +71,27 @@ testConfElmNoChange = TestCase $ tryLPEOperation confElm model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A ? [x!=2] >-> P(x+1, y)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1), (varIdY, vexprY)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- ISTEP [y!=2] >-> P(2, y)
-        []
-        [(chanIdIstep, [])]
+        chanIdIstep []
         (cstrNot (cstrEqual vexprY vexpr2))
-        [(varIdX, vexprX), (varIdY, vexprSum vexprY vexpr1)]
+        [(varIdX, vexpr2), (varIdY, vexprY)]
     model1 :: LPE
     model1 = newLPE ([chanIdA], [(varIdX, vexpr0), (varIdY, vexpr0)], [summand1_1, summand1_2])
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A ? [x!=2] >-> P(x+1, y)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         (cstrNot (cstrEqual vexprX vexpr2))
         [(varIdX, vexprSum vexprX vexpr1), (varIdY, vexprY)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- ISTEP [y!=2] >-> P(2, y)
-        []
-        [(chanIdIstep, [])]
+        chanIdIstep []
         (cstrNot (cstrEqual vexprY vexpr2))
-        [(varIdX, vexprX), (varIdY, vexprSum vexprY vexpr1)]
+        [(varIdX, vexpr2), (varIdY, vexprY)]
     model2 :: LPE
     model2 = newLPE ([chanIdA], [(varIdX, vexpr0), (varIdY, vexpr0)], [summand2_1, summand2_2])
 -- testConfElmNoChange
@@ -109,14 +101,12 @@ testConfElmBasic = TestCase $ tryLPEOperation confElm model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A >-> P(x+1, y)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         vexprTrue
         [(varIdX, vexprSum vexprX vexpr1), (varIdY, vexprY)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- ISTEP >-> P(x, y+1)
-        []
-        [(chanIdIstep, [])]
+        chanIdIstep []
         vexprTrue
         [(varIdX, vexprX), (varIdY, vexprSum vexprY vexpr1)]
     model1 :: LPE
@@ -124,14 +114,12 @@ testConfElmBasic = TestCase $ tryLPEOperation confElm model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A >-> P(x+1, y+1)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         vexprTrue
         [(varIdX, vexprSum vexprX vexpr1), (varIdY, vexprSum vexprY vexpr1)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- ISTEP >-> P(x, y+2)
-        []
-        [(chanIdIstep, [])]
+        chanIdIstep []
         vexprTrue
         [(varIdX, vexprX), (varIdY, vexprSum vexprY vexpr2)]
     model2 :: LPE
@@ -143,14 +131,12 @@ testConfElmModulo = TestCase $ tryLPEOperation confElm model1 model2
   where
     summand1_1 :: LPESummand
     summand1_1 = newLPESummand -- A >-> P((x+1) % 3, y)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         vexprTrue
         [(varIdX, cstrModulo (vexprSum vexprX vexpr1) vexpr3), (varIdY, vexprY)]
     summand1_2 :: LPESummand
     summand1_2 = newLPESummand -- ISTEP >-> P(x, (y+1) % 3)
-        []
-        [(chanIdIstep, [])]
+        chanIdIstep []
         vexprTrue
         [(varIdX, vexprX), (varIdY, cstrModulo (vexprSum vexprY vexpr1) vexpr3)]
     model1 :: LPE
@@ -158,14 +144,12 @@ testConfElmModulo = TestCase $ tryLPEOperation confElm model1 model2
     
     summand2_1 :: LPESummand
     summand2_1 = newLPESummand -- A >-> P((x+1) % 3, y)
-        []
-        [(chanIdA, [])]
+        chanIdA [varIdZ]
         vexprTrue
         [(varIdX, cstrModulo (vexprSum vexprX vexpr1) vexpr3), (varIdY, cstrModulo (vexprSum vexprY vexpr1) vexpr3)]
     summand2_2 :: LPESummand
     summand2_2 = newLPESummand -- ISTEP >-> P(x, (y+1) % 3)
-        []
-        [(chanIdIstep, [])]
+        chanIdIstep []
         vexprTrue
         [(varIdX, vexprX), (varIdY, cstrModulo (vexprSum (cstrModulo (vexprSum vexprY vexpr1) vexpr3) vexpr1) vexpr3)]
     model2 :: LPE

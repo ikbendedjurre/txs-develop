@@ -31,7 +31,8 @@ allExamples = [ --Choice.benchmarksSet
                 LPEBenchmarkSets.lpeBenchmarkSet "Adder" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "Adder3" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works
-              --, LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- Fails because of hidden variables?
+              --  LPEBenchmarkSets.lpeBenchmarkSet "SpeedTest" -- 
+              , LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- Fails because of hidden variables?
               --, LPEBenchmarkSets.lpeBenchmarkSet "CustomersOrders" -- Takes too long!
               , LPEBenchmarkSets.lpeBenchmarkSet "DisPro01" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "DisPro02" -- Works
@@ -44,8 +45,8 @@ allExamples = [ --Choice.benchmarksSet
               --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro07" -- Fails because of hidden variables?
               --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro08" -- Fails because of hidden variables?
               , LPEBenchmarkSets.lpeBenchmarkSet "Echo" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "EchoDelay" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "Lossy" -- Works
+              , LPEBenchmarkSets.lpeBenchmarkSet "EchoDelay" -- Works (sometimes fails?!)
+              , LPEBenchmarkSets.lpeBenchmarkSet "Lossy" -- Works (sometimes fails?!)
               --, LPEBenchmarkSets.lpeBenchmarkSet "LuckyPeople" -- Takes too long!
               , LPEBenchmarkSets.lpeBenchmarkSet "MAdder" -- Works
               , LPEBenchmarkSets.lpeBenchmarkSet "MovingArm" -- Works

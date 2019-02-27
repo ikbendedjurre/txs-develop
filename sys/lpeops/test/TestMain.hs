@@ -16,7 +16,7 @@ import TestConstElm
 import TestParElm
 import TestDataReset
 import TestParReset
---import TestConfCheck
+import TestConfCheck
 --import TestUGuard
 
 testList :: Test
@@ -31,10 +31,10 @@ testList = TestList
     , TestLabel "parElmXUpperBound"        testParElmXUpperBound
     , TestLabel "dataReset"                testDataResetBasic
     , TestLabel "parResetBasic"            testParResetBasic
-    -- , TestLabel "confCheckBasic"           testConfCheckBasic
-    -- , TestLabel "confElmNoChange"          testConfElmNoChange
-    -- , TestLabel "confElmBasic"             testConfElmBasic
-    -- , TestLabel "confElmModulo"            testConfElmModulo
+    , TestLabel "confCheckBasic"           testConfCheckBasic
+    , TestLabel "confElmNoChange"          testConfElmNoChange
+    , TestLabel "confElmBasic"             testConfElmBasic
+    , TestLabel "confElmModulo"            testConfElmModulo
     -- , TestLabel "uguardBasic"              testUGuardBasic
     ]
 

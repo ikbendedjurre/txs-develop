@@ -50,17 +50,17 @@ A summand $s_\beta$ is said to be \emph{reachable} if at least one of these cond
 
 \begin{itemize}
 \item It is possible that summand $s_\beta$ is enabled in the initial state of the LPE.
-Formally, if the LPE is initialized as
+Formally, $s_\beta$ is reachable if the LPE is initialized as
 \begin{align*}
 P(v_I(p_1), \cdots{}, v_I(p_m))
 \end{align*}
 
-then
+and if
 \begin{align*}
 g_\beta[p \rightarrow v_I(p) \;|\; p \in P]
 \end{align*}
 
-must \emph{not} be \emph{un}satisfiable.
+\emph{could be} satisfiable.
 
 \item There exists at least one other summand $s_\alpha$ in the same LPE that is a possible predecessor of $s_\beta$.
 It is \emph{not} sufficient if the only possible predecessor of $s_\beta$ is $s_\beta$ itself!

@@ -43,7 +43,7 @@ import MonadAny
 isEquivalentSummand :: LPESummand -> LPESummand -> TxsDefs.VExpr -> IOC.IOC Bool
 isEquivalentSummand summand1 summand2 invariant = do
     -- Both summands must communicate over the same channel:
-    if lpeSmdChan summand1 /= lpeSmdChan summand2
+    if (lpeSmdChan summand1 /= lpeSmdChan summand2) || (lpeSmdPriority summand1 /= lpeSmdPriority summand2)
     then return False
     else do let useChanVars1 = Map.fromList (zipWith (\cv1 cv2 -> (cv2, ValExpr.cstrVar cv1)) (lpeSmdVars summand1) (lpeSmdVars summand2))
             -- Check whether both guards are definitely enabled at the same time with the following expression:
@@ -67,7 +67,7 @@ isEquivalentSummand summand1 summand2 invariant = do
 isContainedSummand :: LPESummand -> LPESummand -> TxsDefs.VExpr -> IOC.IOC Bool
 isContainedSummand summand1 summand2 invariant = do
     -- Both summands must communicate over the same channel:
-    if lpeSmdChan summand1 /= lpeSmdChan summand2
+    if (lpeSmdChan summand1 /= lpeSmdChan summand2) || (lpeSmdPriority summand1 /= lpeSmdPriority summand2)
     then do return False
     else do let useChanVars1 = Map.fromList (zipWith (\cv1 cv2 -> (cv2, ValExpr.cstrVar cv1)) (lpeSmdVars summand1) (lpeSmdVars summand2))
             -- Check whether both guards are definitely enabled at the same time with the following expression:

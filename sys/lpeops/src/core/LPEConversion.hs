@@ -89,6 +89,7 @@ foldSummandDataIntoLPE permittedChans (lpe, earlierMsgs) (actOffer, paramEqs) = 
            Right smdVars -> do (smdChan, newChanMap) <- addToChanMap (lpeChanMap lpe) actOffer
                                let lpeSummand = LPESummand { lpeSmdChan = smdChan
                                                            , lpeSmdVars = smdVars ++ Set.toList (TxsDefs.hiddenvars actOffer)
+                                                           , lpeSmdPriority = False
                                                            , lpeSmdGuard = TxsDefs.constraint actOffer
                                                            , lpeSmdEqs = paramEqs
                                                            , lpeSmdDebug = ""

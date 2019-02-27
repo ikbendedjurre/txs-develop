@@ -42,6 +42,9 @@ type LPEChanSignature = ([ChanId.ChanId], [SortId.SortId])
 
 type LPEChanMap = Map.Map ChanId.ChanId LPEChanSignature
 
+chanIdIstepSignature :: LPEChanSignature
+chanIdIstepSignature = ([TxsDefs.chanIdIstep], [])
+
 addToChanMap :: LPEChanMap -> BehExprDefs.ActOffer -> IOC.IOC (ChanId.ChanId, LPEChanMap)
 addToChanMap chanMap actOffer = do
     let orderedOffers = getOrderedOffers (Set.toList (BehExprDefs.offers actOffer))
@@ -50,10 +53,12 @@ addToChanMap chanMap actOffer = do
     let orderedHiddenVarSorts = map SortOf.sortOf (Set.toList (BehExprDefs.hiddenvars actOffer))
     let chanSignature = (orderedChans, orderedChanSorts ++ orderedHiddenVarSorts)
     let matches = Map.filter (\v -> v == chanSignature) chanMap
-    if matches /= Map.empty
+    if matches /= Map.empty -- A channel with this signature already exists:
     then return (Map.keys matches !! 0, chanMap)
-    else do freshChan <- createFreshChanFromChansAndSorts orderedChans orderedHiddenVarSorts
-            return (freshChan, Map.insert freshChan chanSignature chanMap)
+    else if chanSignature == chanIdIstepSignature -- We found the parameterless ISTEP channel:
+         then do return (TxsDefs.chanIdIstep, Map.insert TxsDefs.chanIdIstep chanSignature chanMap)
+         else do freshChan <- createFreshChanFromChansAndSorts orderedChans orderedHiddenVarSorts
+                 return (freshChan, Map.insert freshChan chanSignature chanMap)
   where
     getOrderedOffers :: [BehExprDefs.Offer] -> [BehExprDefs.Offer]
     getOrderedOffers [] = [BehExprDefs.Offer { BehExprDefs.chanid = TxsDefs.chanIdIstep
@@ -113,7 +118,7 @@ getActOfferDataFromChanMap chanMap chanId chanVars =
     iter (cid:remainingChans) remainingVars =
         let varCount = length (ChanId.chansorts cid) in
           if length remainingVars < varCount
-          then error "Insufficient communication variables!" -- Should not happen!
+          then error ("Insufficient communication variables (chanId = " ++ show chanId ++ ", chanVars = " ++ show (chanVars) ++ ")!") -- Should not happen!
           else let (prefix, suffix) = List.splitAt varCount remainingVars in
                let (restVarsPerChan, restHiddenVars) = iter remainingChans suffix in
                  ((cid, prefix):restVarsPerChan, restHiddenVars)
