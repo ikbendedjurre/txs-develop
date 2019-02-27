@@ -126,7 +126,13 @@ The following durations were measured with a benchmark for several models:
 \item The average duration of \txs{} to make 500 steps in a model after it has been converted to LPE form and after the \texttt{clean} operation has been applied.
 \end{itemize}
 
-When plotting the second series of measurements against the first (see Figure~\ref{lpe-only-vs-original:fig}), it becomes apparent that the influence of the LPE transformation on the step duration is quite dramatic, and not in a positive direction for each model.
+When plotting the second series of measurements against the first (see Figure~\ref{lpe-only-vs-original:fig}), the following conclusions can be drawn:
+\begin{itemize}
+\item The effect of the LPE transformation on performance is negative in most cases.
+\item The effect of the LPE transformation on performance is positive in some cases, but not dramatically so.
+\item For one model (\texttt{Adder3}), the effect of the LPE transformation is extremely positive (5.2 seconds instead of 12.5).
+Unfortunately, this model is not very realistic since it simply consists of three parallel processes without any synchronization.
+\end{itemize}
 
 \begin{figure}[!ht]
 \begin{center}
@@ -136,8 +142,8 @@ When plotting the second series of measurements against the first (see Figure~\r
 \end{center}
 \end{figure}
 
-It is possible that the \texttt{clean} operation restores (some of) the performance of \txs{}.
-However, when plotting the third series of measurements against the second (see Figure~\ref{clean-vs-lpe-only:fig}), this cannot be concluded: only part of the models show slight (but significant) improvements, whereas other models suffer an (also slight) additional performance loss.
+It is possible that the \texttt{clean} operation has a significant positive influence on the performance of \txs{}.
+Based on a plot of the third series of measurements against the second (see Figure~\ref{clean-vs-lpe-only:fig}), however, this cannot be concluded: only part of the models show slight (but significant) improvements, whereas other models suffer an (also slight) additional performance loss.
 
 \begin{figure}[!ht]
 \begin{center}

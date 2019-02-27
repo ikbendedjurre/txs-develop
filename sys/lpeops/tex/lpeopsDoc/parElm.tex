@@ -72,8 +72,7 @@ The following durations were measured with a benchmark for several models:
 \end{itemize}
 
 When plotting the second series of measurements against the first (see Figure~\ref{parelm-vs-lpe-only:fig}), it is easy to see that the impact is insignificant in most cases.
-There is even one significant decrease in performance (in the \texttt{ControlLoop} model), which is surprising.
-Because \texttt{parelm} exclusively reduces the size of an LPE, it is believed that this is the confidence interval of the benchmark is slightly larger than the benchmark tool indicates.
+The only model for which a significant performance increase has been measured is the \texttt{ControlLoop} model, which has indeed lost part of its state vector.
 
 \begin{figure}[!ht]
 \begin{center}
