@@ -34,6 +34,7 @@ import qualified TxsDefs
 import qualified TxsShow
 import qualified ProcId
 import qualified VarId
+import qualified ValExpr
 import qualified ModelId
 import qualified BehExprDefs
 import qualified ChanId
@@ -43,6 +44,8 @@ import           ConcatEither
 import           BlindSubst
 import           ModelIdFactory
 import           LPEChanMap
+import           VarFactory
+import           LPEBlindSubst
 
 -- Constructs an LPEModel from a process expression (unless there are problems).
 -- The process expression should be the instantiation of a process that has already been linearized!
@@ -66,8 +69,8 @@ model2lpe modelId = do
                                                                                 , lpeName = Text.pack (Text.unpack (ModelId.name modelId) ++ "_" ++ Text.unpack (ProcId.name procId))
                                                                                 , lpeInitEqs = initEqs
                                                                                 }
-                                                             let permittedChans = Set.insert Set.empty (Set.union (Set.fromList inChans) (Set.fromList outChans))
-                                                             (lpe', msgs) <- Monad.foldM (foldSummandDataIntoLPE permittedChans) (lpe, []) summandData
+                                                             let chanAlphabet = Set.insert Set.empty (Set.union (Set.fromList inChans) (Set.fromList outChans))
+                                                             (lpe', msgs) <- Monad.foldM (foldSummandDataIntoLPE chanAlphabet) (lpe, []) summandData
                                                              let lpe'' = lpe' { lpeInChans = selectChanMapKeys (lpeChanMap lpe') inChans
                                                                               , lpeOutChans = selectChanMapKeys (lpeChanMap lpe') outChans
                                                                               }
@@ -82,18 +85,28 @@ model2lpe modelId = do
 -- toLPEModel
 
 foldSummandDataIntoLPE :: Set.Set (Set.Set ChanId.ChanId) -> (LPE, [String]) -> (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (LPE, [String])
-foldSummandDataIntoLPE permittedChans (lpe, earlierMsgs) (actOffer, paramEqs) = do
-    if Set.member (Set.map BehExprDefs.chanid (BehExprDefs.offers actOffer)) permittedChans
+foldSummandDataIntoLPE chanAlphabet (lpe, earlierMsgs) (actOffer, paramEqs) = do
+    if Set.member (Set.map BehExprDefs.chanid (BehExprDefs.offers actOffer)) chanAlphabet
     then case concatEither (map getSmdVars (Set.toList (TxsDefs.offers actOffer))) of
            Left msgs -> return (lpe, ["Action offer " ++ TxsShow.fshow actOffer ++ " is invalid because"] ++ msgs)
-           Right smdVars -> do (smdChan, newChanMap) <- addToChanMap (lpeChanMap lpe) actOffer
+           Right smdVars -> do -- If the chanmap already contains the channel signature, obtain the corresponding (fresh) channel.
+                               -- If the chanmap does not yet contain the channel signature, add it and create a fresh channel:
+                               (smdChan, newChanMap) <- addToChanMap (lpeChanMap lpe) actOffer
+                               -- Guarantee that all local variables of the summand are fresh:
+                               let vids = smdVars ++ Set.toList (TxsDefs.hiddenvars actOffer)
+                               freshVars <- createFreshVars (Set.fromList vids)
+                               let freshVarSubst = Map.map ValExpr.cstrVar freshVars
+                               freshVarGuard <- doBlindSubst freshVarSubst (TxsDefs.constraint actOffer)
+                               freshVarParamEqs <- doBlindParamEqsSubst freshVarSubst paramEqs
+                               -- Combine into summand data:
                                let lpeSummand = LPESummand { lpeSmdChan = smdChan
-                                                           , lpeSmdVars = smdVars ++ Set.toList (TxsDefs.hiddenvars actOffer)
+                                                           , lpeSmdVars = map (\v -> freshVars Map.! v) vids
                                                            , lpeSmdPriority = False
-                                                           , lpeSmdGuard = TxsDefs.constraint actOffer
-                                                           , lpeSmdEqs = paramEqs
+                                                           , lpeSmdGuard = freshVarGuard
+                                                           , lpeSmdEqs = freshVarParamEqs
                                                            , lpeSmdDebug = ""
                                                            }
+                               -- Add into LPE that is being folded:
                                return (lpe { lpeChanMap = newChanMap, lpeSummands = Set.insert lpeSummand (lpeSummands lpe) }, earlierMsgs)
     else return (lpe, earlierMsgs)
   where
@@ -106,6 +119,7 @@ foldSummandDataIntoLPE permittedChans (lpe, earlierMsgs) (actOffer, paramEqs) = 
         offerToVar chanOffer = Left ["Invalid channel format, found " ++ TxsShow.fshow chanOffer ++ "!"]
 -- foldSummandDataIntoLPE
 
+-- Collects all required data for each summand from n hierarchical process expression.
 getSummandData :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [(TxsDefs.ActOffer, LPEParamEqs)]
 getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
     case TxsDefs.view expr of
@@ -122,6 +136,9 @@ getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds 
       _ -> Left ["Expected choice or action prefix, found " ++ TxsShow.fshow (TxsDefs.view expr) ++ "!"]
 -- getSummandData
 
+-- Constructs an LPEParamEqs from given input.
+-- Occurrences of ANY are replaced by default values of the appropriate Sort.
+-- Resulting LPEParamEqs as a whole is also type-checked.
 getParamEqs :: TxsDefs.TxsDefs -> String -> [VarId.VarId] -> [TxsDefs.VExpr] -> Either [String] LPEParamEqs
 getParamEqs tdefs location params paramValues =
     let msgs = validateSortList location (map SortOf.sortOf params) (map SortOf.sortOf paramValues) in
@@ -135,7 +152,7 @@ getParamEqs tdefs location params paramValues =
 -- The process expression creates an instance of the process definition.
 lpe2model :: LPE -> IOC.IOC TxsDefs.ModelId
 lpe2model lpe = do
-    let orderedChanParams = Set.toList (lpeChanParams lpe)
+    let orderedChanParams = Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeChanParams lpe))
     let orderedDataParams = Map.keys (lpeInitEqs lpe)
     
     -- Create a new process:

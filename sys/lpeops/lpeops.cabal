@@ -20,7 +20,7 @@ library
   exposed-modules:    BlindSubst
                     , LPEOps
                     , LPEValidity
-                    -- , LPEDeterminism
+                    , LPEDeterminism
                     , LPEContexts
                     , LPEContextIds
                     , LPEClean
@@ -41,10 +41,10 @@ library
                     , LPEBlindSubst
                     , UntilFixpoint
                     , LPEConfCheck
-                    -- , LPEIsDet
+                    , LPEIsDet
                     -- , LPEAngelic
                     -- , LPEDeterminize
-                    -- , LPE2MCRL2
+                    , LPE2MCRL2
                     , LPEParRemoval
                     , LPEParUsage
                     , LPEPrettyPrint
@@ -91,7 +91,7 @@ test-suite lpeops-test
   other-modules:        BlindSubst
                       , LPEOps
                       , LPEValidity
-                      -- , LPEDeterminism
+                      , LPEDeterminism
                       , LPEContexts
                       , LPEContextIds
                       , LPEClean
@@ -112,10 +112,10 @@ test-suite lpeops-test
                       , Pairs
                       , UntilFixpoint
                       , LPEConfCheck
-                      -- , LPEIsDet
+                      , LPEIsDet
                       -- , LPEAngelic
                       -- , LPEDeterminize
-                      -- , LPE2MCRL2
+                      , LPE2MCRL2
                       , LPEParRemoval
                       , LPEParUsage
                       , LPEPrettyPrint

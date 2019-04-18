@@ -180,14 +180,16 @@ createLPEProcess paramIds = do
 summand2summand :: (MCRL2Defs.ObjectId, MCRL2Defs.Process) -> [VarId.VarId] -> LPESummand -> T2MMonad MCRL2Defs.PExpr
 summand2summand (lpeProcName, lpeProc) orderedParams summand = do
     -- Create the channel variables (both explicit and hidden) first, so that they can be referenced:
-    actionVars <- Monad.mapM createFreshVar (Set.toList (lpeSmdVars summand))
+    actionVars <- Monad.mapM createFreshVar (lpeSmdVars summand)
     -- Create actions (with their arguments):
-    newActionExpr <- if lpeSmdOffers summand == Map.empty
+    newActionExpr <- if lpeSmdChan summand == TxsDefs.chanIdIstep
                      then do
                              --lift $ IOC.putMsgs [ EnvData.TXS_CORE_ANY "WARNING: Found summand without action offers, fixed format by inserting tau" ]
                              return (MCRL2Defs.PAction MCRL2Defs.ATau)
-                     else do actions <- Monad.mapM channelOffer2action (Map.toList (lpeSmdOffers summand))
-                             return (MCRL2Defs.PAction (MCRL2Defs.AExpr actions))
+                     else do -- actions <- Monad.mapM channelOffer2action (Map.toList (lpeSmdOffers summand))
+                             -- return (MCRL2Defs.PAction (MCRL2Defs.AExpr actions))
+                             a <- channelOffer2action (lpeSmdChan summand, lpeSmdVars summand)
+                             return (MCRL2Defs.PAction (MCRL2Defs.AExpr [a]))
     -- Translate guard and recursive instantiation:
     newGuardExpr <- valExpr2dataExpr (lpeSmdGuard summand)
     newProcInst <- procInst2procInst (lpeProcName, lpeProc) orderedParams (lpeSmdEqs summand)
@@ -201,7 +203,8 @@ procInst2procInst (lpeProcName, lpeProc) orderedParams paramEqs = do
     return (MCRL2Defs.PInst lpeProcName (zip (MCRL2Defs.processParams lpeProc) paramValues))
 -- paramEqs2procInst
 
-channelOffer2action :: LPEChanOffer -> T2MMonad MCRL2Defs.AInstance
+-- channelOffer2action :: LPEChanOffer -> T2MMonad MCRL2Defs.AInstance
+channelOffer2action :: (TxsDefs.ChanId, [VarId.VarId]) -> T2MMonad MCRL2Defs.AInstance
 channelOffer2action (chanId, chanVars) = do
     -- The action should already exist:
     (actionName, _action) <- getRegisteredAction chanId
