@@ -1,0 +1,39 @@
+\chapter{Algorithm}
+
+Do the following:
+\begin{enumerate}[1.]
+\item Compute
+\begin{align*}
+\Lambda_0 = \setcomp{\enabledSuccSpectrum{s_\alpha}}{\text{$s_\alpha$ is a summand of the LPE}}
+\end{align*}
+
+\textbf{TODO add ESS of initialization}
+
+\item Compute
+\begin{align*}
+\Lambda_n = \Lambda_{n-1} \cup \setcomp{\bigcup\limits_{\substack{\triple{C}{S}{\primed{S}} \in \lambda\\ s_\alpha \in S}} \enabledSuccSpectrum{s_\alpha}}{\lambda \in \Lambda_{n-1}}
+\end{align*}
+for a value of $n > 0$ that is large enough so that $\Lambda_n = \Lambda_{n-1}$.
+\item If
+\begin{align*}
+\forall \lambda \in \Lambda_n\comma C \in \Sigma \qdot |\setcomp{\triple{C}{S}{\primed{S}}}{\triple{\primed{C}}{S}{\primed{S}} \in \lambda\comma \primed{C} = C}| = 1
+\end{align*}
+then the LPE is already deterministic, and the remainder of the algorithm can be skipped.
+\item Create a bijective mapping $q : \Lambda_n \rightarrow \mathbb{N}$.
+\item Create a new LPE with the same signature as the original LPE, but with an additional parameter $y$ of type $\mathbb{N}$.
+The new LPE has no summands yet.
+\item Consider each $\lambda \in \Lambda_n$.
+For each $\triple{C}{S}{\primed{S}} \in \lambda$ and for all $s_\alpha \in S$, create a new summand as follows:
+\begin{align*}
+C \; \texttt{?} \; x_\alpha(1) \; \cdots{} \; \texttt{?} \; x_\alpha(m_\alpha) \; [[G]] \text{ \texttt{>->} } P(v_\alpha(p_1), \cdots{}, v_\alpha(p_k))
+\end{align*}
+where $G$ is defined as
+\begin{align*}
+y = q(\lambda) \land \forall s_i \in S \qdot g_i[X_i] \land \forall s_i \in \primed{S} \qdot \neg g_i[X_i]
+\end{align*}
+and where
+\begin{align*}
+X_i = \listcomp{x_i(j) \mapsto x_\alpha(j)}{1 \leq j \leq m_\alpha}
+\end{align*}
+\end{enumerate}
+

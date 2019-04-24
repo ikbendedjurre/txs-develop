@@ -1,0 +1,107 @@
+\chapter{Definitions}
+
+\section{Restricted LPE form} \label{restricted-lpe}
+
+LPEs are considered to be in \emph{restricted LPE form}, a subset of \emph{LPE form} in which hidden variables are not permitted and in which there must be exactly one \textit{ChanOffer} per summand.
+The grammar of the restricted LPE form is
+\begin{align*}
+\textit{LPE} &::= \texttt{ProcDef} \; [C_1 :: K_1, \cdots{}, C_n :: K_n] \; [p_1 :: T_1, \cdots{}, p_k :: T_k] \; \textit{Body} \\
+\textit{Body} &::= \texttt{Choice} \; [ \;\! \textit{ActionSmd}, \cdots{}, \textit{ActionSmd} \; ] \\
+\textit{ActionSmd} &::= \texttt{ActionPref} \; \textit{ActOffer} \; \textit{ProcInst} \\
+\textit{ActOffer} &::= \texttt{ActOffer} \; \textit{ChanOffers} \;\; [\;] \; \textit{VExpr} \\
+\textit{ChanOffers} &::= [ \;\! \textit{ChanOffer} \; ] \\
+\textit{ChanOffer} &::= \textit{ChanId} \;\; [\textit{ChanFlag}, \cdots{}, \textit{ChanFlag}] \;\; [\texttt{Quest} \; x_1, \cdots{}, \texttt{Quest} \; x_m] \\
+\textit{ChanId} &::= C_1 \;| \cdots{} |\; C_n \\
+\textit{ChanFlag} &::= \texttt{INVISIBLE} \;|\; \texttt{CONFLUENT} \;|\; \texttt{QUIESCENT} \\
+\textit{ProcInst} &::= \texttt{ProcInst} \; P \; \; [ \; C_1, \cdots{}, C_n \; ] \; [\;\!\textit{VExpr}, \cdots{}, \textit{VExpr} \; ]
+\end{align*}
+
+with the following restrictions:
+\begin{itemize}
+\item $\textit{Body}$ should comply with traditional \txs{} requirements.
+More precisely, the communication variables $\{ x_1, \cdots{}, x_m \}$ must match the signature of the \textit{ChanId} channel that occurs in the same rule; and the number of \textit{VExpr}s in the \textit{ProcInst} rule must be equal to $k$ and their sorts must match $[T_1, \cdots{}, T_k]$.
+\item Parameters $p_1\comma \cdots{} p_n$ as well as the communication variables $x_1\comma \cdots{}\comma x_m$ of all \textit{ActionSmd}s must be unique across the process.
+\end{itemize}
+
+\section{Summand elements} \label{summand-elements}
+
+To formally reference the elements of $s_i$ -- the $i$th summand of an LPE $P$ that is in restricted LPE form -- the following definition is used:
+\begin{align*}
+s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
+\end{align*}
+where
+\begin{itemize}
+\item $C_i \in \Sigma$ is the name of the channel over which summand $s_i$ communicates (channel flags must be encoded into the channel name);
+\item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
+\item $x_i(j)$ is the $j$th variable that summand $s_i$ uses locally (communication variables first, followed by hidden variables);
+\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$, communication variables of summand $s_i$, or hidden variables of summand $s_i$);
+\item $p_1, \cdots{}, p_k$ are the parameters of $P$, of which there are $k \geq 0$;
+\item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters, communication variables of summand $s_i$, or hidden variables of summand $s_i$).
+\end{itemize}
+
+Note that, because $P$ is in restricted LPE form, the following assumption generally holds for two summands, $s_\alpha$ and $s_\beta$:
+\begin{align*}
+C_\alpha = C_\beta \rightarrow m_\alpha = m_\beta
+\end{align*}
+
+\section{Possible successors} \label{possible-successors}
+
+Consider summands $s_\alpha$ and $s_\beta$, referencing their elements conform \ref{summand-elements}.
+Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression \emph{could be} satisfiable:
+\begin{align*}
+{g_\alpha}[p \rightarrow v_\beta(p) \;|\; p \in P] \land g_\beta
+\end{align*}
+
+Let $s_\alpha$ be a summand.
+The possible successors of $s_\alpha$ in its LPE are given by
+\begin{align*}
+\possibleSuccessors{s_\alpha} = \setcomp{s_\beta}{\text{$s_\beta$ is a possible successor of $s_\alpha$ in the same LPE}}
+\end{align*}
+
+For convenience, we denote possible successors filtered by channel as
+\begin{align*}
+\filteredPossibleSuccessors{C}{s_\alpha} = \setcomp{s_\beta}{s_\beta \in \possibleSuccessors{s_\alpha}\comma C_\beta = C}
+\end{align*}
+
+\section{Summand non-determinism}
+
+Informally, two summands are considered \emph{non-deterministic} if they can cause the same action to be enabled under the same circumstances, and if the action could lead to different next states.
+The words `can' and `could' are chosen on purpose, because proving that two summands meet these requirements can be prohibitive.
+In order to guarantee that all non-determinism is removed from the LPE, it must be assumed that two summands are non-deterministic unless it can be proven otherwise.
+This means that two summands are considered non-deterministic if and only if they are not \emph{deterministic}.
+
+Consider two summands, $s_\alpha$ and $s_\beta$, and reference their elements conform \ref{summand-elements}.
+Summands $s_\alpha$ and $s_\beta$ are said to be \emph{deterministic} if one (or more) of these conditions holds:
+
+\begin{itemize}
+\item $s_\alpha$ and $s_\beta$ are the same summand; that is, $s_\alpha = s_\beta$.
+
+(This is \emph{not} a sufficient condition for determinism if a summand would have hidden variables!)
+
+\item $s_\alpha$ and $s_\beta$ communicate over different channels; that is, $C_\alpha \neq C_\beta$.
+
+\item $s_\alpha$ and $s_\beta$ cannot be enabled under the same circumstances, which is the case if $\neg (g_\alpha \land g_\beta)$ is a tautology.
+
+\item $s_\alpha$ and $s_\beta$ always lead to different next states, which is the case if
+\begin{align*}
+g_\alpha \land g_\beta \rightarrow \bigwedge\limits_{j=1}^{k} v_\alpha(p_j) = v_\beta(p_j)
+\end{align*}
+is a tautology.
+
+(Note that this equation also captures the previous condition.)
+\end{itemize}
+
+Using the now established notion of non-determinism, we define the predicate
+\begin{align*}
+\nonDetSummands{S} = \forall s_\alpha\comma s_\beta \in S \qdot \text{$s_\alpha$ and $s_\beta$ are non-deterministic}
+\end{align*}
+
+\section{Enabled-successor spectrum} \label{summand-closure}
+
+The \emph{enabled-successor spectrum} of a summand $s_\alpha$ is defined as
+\begin{align*}
+\enabledSuccSpectrum{s_\alpha} = \bigcup\limits_{C \in \Sigma} \setcomp{\triple{C}{S}{\primed{S}}}{\substack{S \cup \primed{S} = \filteredPossibleSuccessors{C}{s_\alpha}\comma\\ S \cap \primed{S} = \emptyset\comma S \neq \emptyset\comma\\ \nonDetSummands{S}}}
+\end{align*}
+
+Note that the computation of the enabled-successor spectrum has a complexity that is exponential.
+
