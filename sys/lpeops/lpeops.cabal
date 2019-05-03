@@ -49,6 +49,7 @@ library
                     , LPEParUsage
                     , LPEPrettyPrint
                     , LPESuccessors
+                    , LPEStepper
                     , Satisfiability
                     , ValExprVisitor
                     , ModelIdFactory
@@ -71,6 +72,7 @@ library
                       , behaveenv
                       , coreenv
                       , deepseq
+                      , random
                       , solve
                       , defs
                       , bexpr
@@ -120,6 +122,7 @@ test-suite lpeops-test
                       , LPEParUsage
                       , LPEPrettyPrint
                       , LPESuccessors
+                      , LPEStepper
                       , Satisfiability
                       , ValExprVisitor
                       , ModelIdFactory
@@ -149,6 +152,7 @@ test-suite lpeops-test
                      , behave
                      , coreenv
                      , deepseq
+                     , random
                      , solve
                      , defs
                      , bexpr

@@ -46,13 +46,14 @@ import qualified LPEIsDet
 -- import qualified LPEAngelic
 -- import qualified LPEUGuards
 import qualified LPE2MCRL2
+import qualified LPEStepper
 import           LPEPrettyPrint
 import           LPEConversion
 import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.04.18.01"
+lpeOpsVersion = "2019.05.03.04"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 
@@ -171,6 +172,9 @@ getLPEOperation opName = case opName of
                            -- "uguard" -> Right (LPEOps.LPEOp LPEUGuards.addUGuardsToLPE)
                            "confelm" -> Right (LPEOps.LPEOp LPEConfCheck.confElm)
                            "mcrl2" -> Right (LPEOps.LPEOp LPE2MCRL2.lpe2mcrl2)
+                           's':'t':'e':'p':'*':xs -> case Read.readMaybe xs of
+                                                       Just n -> Right (LPEOps.LPEOp (LPEStepper.stepLPE n))
+                                                       Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")
                            _ -> Left ("Unknown LPE operation (" ++ opName ++ ")!")
 -- getLPEOperation
 

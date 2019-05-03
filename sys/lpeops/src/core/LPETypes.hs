@@ -30,6 +30,7 @@ emptyLPESummand,
 LPEParamEqs,
 LPEOperation,
 paramEqsLookup,
+solutionToParamEqs,
 selfLoopParamEqs,
 defaultValueParamEqs,
 newLPESummand,
@@ -102,6 +103,8 @@ data LPESummand = LPESummand { -- Communication channel:
                              , lpeSmdVars :: [VarId.VarId]
                                -- Priority flag:
                              , lpeSmdPriority :: Bool
+                             , lpeSmdQuiescent :: Bool
+                             , lpeSmdInvisible :: Bool
                                -- Guard:
                              , lpeSmdGuard :: TxsDefs.VExpr
                                -- Values per parameter for the process instantiation:
@@ -123,6 +126,8 @@ emptyLPESummand :: LPESummand
 emptyLPESummand = LPESummand { lpeSmdChan = TxsDefs.chanIdIstep
                              , lpeSmdVars = []
                              , lpeSmdPriority = False
+                             , lpeSmdQuiescent = False
+                             , lpeSmdInvisible = False
                              , lpeSmdGuard = ValExpr.cstrConst (Constant.Cbool True)
                              , lpeSmdEqs = Map.empty
                              , lpeSmdDebug = ""
@@ -156,12 +161,17 @@ selfLoopParamEqs = Map.fromSet ValExpr.cstrVar
 defaultValueParamEqs :: TxsDefs.TxsDefs -> Set.Set VarId.VarId -> LPEParamEqs
 defaultValueParamEqs tdefs = Map.fromSet (sort2defaultValue tdefs . VarId.varsort)
 
+solutionToParamEqs :: Map.Map VarId.VarId Constant.Constant -> LPEParamEqs
+solutionToParamEqs = Map.map ValExpr.cstrConst
+
 -- This method is used by unit tests:
 newLPESummand :: ChanId.ChanId -> [VarId.VarId] -> TxsDefs.VExpr -> [(VarId.VarId, TxsDefs.VExpr)] -> LPESummand
 newLPESummand chanId chanVars guard procInstParamEqs =
     LPESummand { lpeSmdChan = chanId
                , lpeSmdVars = chanVars
                , lpeSmdPriority = False
+               , lpeSmdQuiescent = False
+               , lpeSmdInvisible = False
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
                , lpeSmdDebug = ""
@@ -174,6 +184,8 @@ newPrioritizedLPESummand chanId chanVars guard procInstParamEqs =
     LPESummand { lpeSmdChan = chanId
                , lpeSmdVars = chanVars
                , lpeSmdPriority = True
+               , lpeSmdQuiescent = False
+               , lpeSmdInvisible = False
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
                , lpeSmdDebug = ""

@@ -15,6 +15,7 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module Satisfiability (
+getRandomSolution,
 getSomeSolution,
 getPartiallySolvedExpr,
 isTautology,
@@ -42,6 +43,7 @@ import qualified SortId
 import qualified SortOf
 import qualified SolveDefs
 import qualified TxsDefs
+import qualified ValExpr
 import qualified Constant
 import VarId
 import ValExpr
@@ -53,6 +55,66 @@ defaultInvariant = cstrConst (Constant.Cbool True)
 
 useThreeValueLogic :: Bool
 useThreeValueLogic = False
+
+getRandomSolution :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
+getRandomSolution expr _invariant variables = do
+    if null variables
+    then case ValExpr.eval expr of
+           Right (Constant.Cbool True) -> return (SolveDefs.Solved Map.empty)
+           Right (Constant.Cbool False) -> return SolveDefs.Unsolvable
+           Right _ -> error ("ERROR Not a boolean expression (\"" ++ showValExpr expr ++ "\")!")
+           Left _ -> do smtEnv <- IOC.getSMT "current"
+                        let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
+                        let assertions = Solve.add expr Solve.empty
+                        (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
+                        IOC.putSMT "current" smtEnv'
+                        case sol of
+                          SolveDefs.Solved solMap -> return (buildSolution solMap)
+                          otherResult -> return otherResult
+    else do 
+            smtEnv <- IOC.getSMT "current"
+            parammap <- MonadState.gets IOC.params
+            let randomizationSetting = Solve.toRandParam parammap
+            let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
+            let assertions = Solve.add expr Solve.empty
+            (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.randSolve randomizationSetting (Set.toList freeVars) assertions) smtEnv
+            IOC.putSMT "current" smtEnv'
+            case sol of
+              SolveDefs.Solved solMap -> return (buildSolution solMap)
+              otherResult -> return otherResult
+  where
+    buildSolution :: Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
+    buildSolution solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
+-- getRandomSolution
+
+getSomeSolution2 :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
+getSomeSolution2 expr _invariant variables = do
+    if null variables
+    then case ValExpr.eval expr of
+           Right (Constant.Cbool True) -> return (SolveDefs.Solved Map.empty)
+           Right (Constant.Cbool False) -> return SolveDefs.Unsolvable
+           Right _ -> error ("ERROR Not a boolean expression (\"" ++ showValExpr expr ++ "\")!")
+           Left _ -> do smtEnv <- IOC.getSMT "current"
+                        let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
+                        let assertions = Solve.add expr Solve.empty
+                        (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
+                        IOC.putSMT "current" smtEnv'
+                        case sol of
+                          SolveDefs.Solved solMap -> return (buildSolution solMap)
+                          otherResult -> return otherResult
+    else do 
+            smtEnv <- IOC.getSMT "current"
+            let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
+            let assertions = Solve.add expr Solve.empty
+            (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
+            IOC.putSMT "current" smtEnv'
+            case sol of
+              SolveDefs.Solved solMap -> return (buildSolution solMap)
+              otherResult -> return otherResult
+  where
+    buildSolution :: Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
+    buildSolution solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
+-- getSomeSolution2
 
 -- Attempts to find a solution for the given expression.
 -- Code is modified code from TxsCore (with several safety checks removed!!).
@@ -105,7 +167,7 @@ getSomeSolution expr _invariant variables =
 -- substitutes a possible solution in the given expression only for the given variables.
 getPartiallySolvedExpr :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC TxsDefs.VExpr
 getPartiallySolvedExpr expr invariant variables = do
-    sol <- getSomeSolution expr invariant variables
+    sol <- getSomeSolution2 expr invariant variables
     case sol of
       SolveDefs.Solved solMap -> doBlindSubst (Map.map cstrConst solMap) expr
       SolveDefs.Unsolvable -> return (ValExpr.cstrConst (Constant.Cbool False))
@@ -119,7 +181,7 @@ isTautology expr = isNotSatisfiable (cstrNot expr)
 -- Checks if a solution for the specified expression might exist.
 couldBeSatisfiable :: TxsDefs.VExpr -> TxsDefs.VExpr -> IOC.IOC Bool
 couldBeSatisfiable expr invariant = do
-    sol <- getSomeSolution expr invariant []
+    sol <- getSomeSolution2 expr invariant []
     case sol of
       SolveDefs.Unsolvable -> return False
       _ -> return True
@@ -128,7 +190,7 @@ couldBeSatisfiable expr invariant = do
 -- Checks if a solution for the specified expression definitely exists.
 isSatisfiable :: TxsDefs.VExpr -> TxsDefs.VExpr -> IOC.IOC Bool
 isSatisfiable expr invariant = do
-    sol <- getSomeSolution expr invariant []
+    sol <- getSomeSolution2 expr invariant []
     case sol of
       SolveDefs.Solved _ -> return True
       _ -> return False
@@ -137,7 +199,7 @@ isSatisfiable expr invariant = do
 -- Checks if the specified expression cannot be true.
 isNotSatisfiable :: TxsDefs.VExpr -> TxsDefs.VExpr -> IOC.IOC Bool
 isNotSatisfiable expr invariant = do
-    sol <- getSomeSolution expr invariant []
+    sol <- getSomeSolution2 expr invariant []
     return (sol == SolveDefs.Unsolvable)
 -- isNotSatisfiable
 
@@ -159,7 +221,7 @@ areNotSatisfiable expressions invariant = do sat <- Monad.mapM (`isNotSatisfiabl
 -- The solution only has to be unique with regard to the variables listed in the third parameter:
 getUniqueSolution :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
 getUniqueSolution expr invariant variables uniqueSolVars = do
-    sol <- getSomeSolution expr invariant (variables ++ uniqueSolVars)
+    sol <- getSomeSolution2 expr invariant (variables ++ uniqueSolVars)
     case sol of
       SolveDefs.Solved solMap ->
         do -- Then check if there is NO solution where (one of) the specified variables have different values:

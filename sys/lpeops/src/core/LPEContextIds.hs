@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 module LPEContextIds (
 getLPEIds,
+getLPEParamEqsIds,
 getLPESummandIds,
 getValExprIds
 ) where
@@ -48,7 +49,7 @@ getLPEIds :: LPE -> Set.Set TxsDefs.Ident
 getLPEIds lpe =
     untilFixpoint getNextIds (Set.unions [
       getModelChanIds,
-      getParamEqsIds (lpeInitEqs lpe),
+      getLPEParamEqsIds (lpeInitEqs lpe),
       setUnions (Set.map (getLPESummandIds (lpeChanMap lpe)) (lpeSummands lpe))
     ])
   where
@@ -81,17 +82,17 @@ getLPESummandIds chanMap summand =
       getObjectIdsFromChanMap chanMap (lpeSmdChan summand),
       getVarsIds (lpeSmdVars summand),
       getValExprIds (lpeSmdGuard summand),
-      getParamEqsIds (lpeSmdEqs summand)
+      getLPEParamEqsIds (lpeSmdEqs summand)
     ] Set.\\ stdIds
 -- getLPESummandIds
 
-getParamEqsIds :: LPEParamEqs -> Set.Set TxsDefs.Ident
-getParamEqsIds =
+getLPEParamEqsIds :: LPEParamEqs -> Set.Set TxsDefs.Ident
+getLPEParamEqsIds =
     Set.unions . Map.elems . Map.mapWithKey getParamEqIds
   where
     getParamEqIds :: VarId.VarId -> TxsDefs.VExpr -> Set.Set TxsDefs.Ident
     getParamEqIds var expr = Set.union (getVarIds var) (getValExprIds expr)
--- getParamEqsIds
+-- getLPEParamEqsIds
 
 -- Gathers all ids that are used in the given data expression:
 getValExprIds :: TxsDefs.VExpr -> Set.Set TxsDefs.Ident

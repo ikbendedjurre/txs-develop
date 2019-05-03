@@ -113,16 +113,27 @@
 \newcommand{\primed}[1]{{#1}^\prime}
 \newcommand{\pair}[2]{(#1\comma #2)}
 \newcommand{\triple}[3]{(#1\comma #2\comma #3)}
+\newcommand{\fourTuple}[4]{(#1\comma #2\comma #3\comma #4)}
+\newcommand{\fiveTuple}[5]{(#1\comma #2\comma #3\comma #4\comma #5)}
 \newcommand{\set}[1]{\{\;#1\;\}}
 \newcommand{\setcomp}[2]{\{\;#1\;|\;#2\;\}}
 \newcommand{\listcomp}[2]{[\;#1\;|\;#2\;]}
 \newcommand{\qdot}{\; .\;}
 \newcommand{\angleset}[1]{\langle\;#1\;\rangle}
 
-\newcommand{\possibleSuccessors}[1]{\mathbf{psuccs}(#1)}
-\newcommand{\filteredPossibleSuccessors}[2]{\mathbf{psuccs}_{#1}(#2)}
-\newcommand{\nonDetSummands}[1]{\mathbf{nondet}(#1)}
-\newcommand{\enabledSuccSpectrum}[1]{\mathbf{ESS}(#1)}
+\newcommand{\summandList}[1]{\textsc{smds}(#1)}
+\newcommand{\starterSummands}[1]{\textsc{starters}(#1)}
+\newcommand{\filteredStarterSummands}[2]{\textsc{starters}_{#1}(#2)}
+\newcommand{\possibleSuccessors}[1]{\textsc{psuccs}(#1)}
+\newcommand{\possiblePredecessors}[1]{\textsc{ppreds}(#1)}
+\newcommand{\filteredPossibleSuccessors}[2]{\textsc{psuccs}_{#1}(#2)}
+\newcommand{\nonDetSummands}[1]{\textsc{nondet}(#1)}
+\newcommand{\enabledStarterSignature}[1]{\textsc{ESS}(#1)}
+\newcommand{\enabledSuccessorSignature}[1]{\textsc{ESS}(#1)}
+\newcommand{\nextESS}[1]{\textsc{next}(#1)}
+\newcommand{\flattenESSs}[1]{\textsc{flatten}(#1)}
+\newcommand{\dataParId}[2]{\textsc{pids}_#2(#1)}
+\newcommand{\dataParIds}[0]{\textsc{pids}}
 %----------------------------------------------------------
 \setlength\parindent{0pt}
 %----------------------------------------------------------

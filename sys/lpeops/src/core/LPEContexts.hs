@@ -20,9 +20,11 @@ getContextFromIds,
 getAbbrevContextFromIds,
 getLPEContext,
 getLPESummandContext,
+getLPEParamEqsContext,
 getValExprContext,
 getAbbrevLPEContext,
 getAbbrevLPESummandContext,
+getAbbrevLPEParamEqsContext,
 getAbbrevValExprContext
 ) where
 
@@ -64,6 +66,9 @@ getLPEContext = getContextFromIds . getLPEIds
 getLPESummandContext :: LPEChanMap -> LPESummand -> LPEContext
 getLPESummandContext chanMap summand = getContextFromIds (getLPESummandIds chanMap summand)
 
+getLPEParamEqsContext :: LPEParamEqs -> LPEContext
+getLPEParamEqsContext = getContextFromIds . getLPEParamEqsIds
+
 getValExprContext :: TxsDefs.VExpr -> LPEContext
 getValExprContext = getContextFromIds . getValExprIds
 
@@ -72,6 +77,9 @@ getAbbrevLPEContext = getAbbrevContextFromIds . getLPEIds
 
 getAbbrevLPESummandContext :: LPEChanMap -> LPESummand -> LPEContext
 getAbbrevLPESummandContext chanMap summand = getAbbrevContextFromIds (getLPESummandIds chanMap summand)
+
+getAbbrevLPEParamEqsContext :: LPEParamEqs -> LPEContext
+getAbbrevLPEParamEqsContext = getAbbrevContextFromIds . getLPEParamEqsIds
 
 getAbbrevValExprContext :: TxsDefs.VExpr -> LPEContext
 getAbbrevValExprContext = getAbbrevContextFromIds . getValExprIds

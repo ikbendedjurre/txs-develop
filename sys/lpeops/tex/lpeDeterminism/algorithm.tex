@@ -1,39 +1,92 @@
 \chapter{Algorithm}
 
+\section{Intuition}
+
+An enabled-starter/summand signature (ESS) of a non-deterministic LPE gives us an over-approximation of the summands that could be enabled after initialization or after a transition (see Sections~\ref{enabled-starter-signature} and ~\ref{enabled-successor-signature}).
+This means that an ESS symbolically represents a set of states that are modeled by the LPE.
+
+An ESS also gives us sufficient information to symbolically compute the ESSs of successor summands (see Section~\ref{next-ess-function}), which means that an ESS can be computed for every (reachable) state that the LPE models using fixed-point iteration.
+Unsurprisingly, this is the first step of the algorithm.
+
+Next, the algorithm associates each computed ESS with a unique number.
+It then creates a new LPE with the same signature as the non-deterministic LPE, but with a newly added data parameter $y$.
+By design of the algorithm, each summand of the new LPE -- although based on a summand from the non-deterministic LPE -- is guaranteed to only be enabled if $y$ is equal to the number that identifies a specific ESS.
+Consequently, if all summands of the new LPE that require the same value of $y$ are deterministic, the new LPE is also deterministic.
+
+Each tuple in an ESS is disjoint from all other tuples because either the channel is different or there is a summand that is enabled in one tuple and disabled in the other.
+The algorithm constructs guards that reflect this.
+However, the algorithm constructs a summand for each summand that is enabled according to a tuple.
+
+\section{Instructions}
+
+The algorithm consists of two main phases: the computation of the enabled-starter/summand signatures of the non-deterministic LPE, and the construction of a new, deterministic LPE by using those signatures.
+
 Do the following:
 \begin{enumerate}[1.]
 \item Compute
 \begin{align*}
-\Lambda_0 = \setcomp{\enabledSuccSpectrum{s_\alpha}}{\text{$s_\alpha$ is a summand of the LPE}}
+\Lambda_0 = \set{\enabledStarterSignature{\mathbf{P}}} \cup \setcomp{\enabledSuccessorSignature{s_\alpha}}{s_\alpha \in \summandList{\mathbf{P}}}
 \end{align*}
-
-\textbf{TODO add ESS of initialization}
-
+which is the enabled-starter signature combined with the enabled-successor signatures of all summands.
 \item Compute
 \begin{align*}
-\Lambda_n = \Lambda_{n-1} \cup \setcomp{\bigcup\limits_{\substack{\triple{C}{S}{\primed{S}} \in \lambda\\ s_\alpha \in S}} \enabledSuccSpectrum{s_\alpha}}{\lambda \in \Lambda_{n-1}}
+\Lambda_n = \Lambda_{n-1} \cup \setcomp{\nextESS{\phi}}{\phi \in \flattenESSs{\Lambda_{n-1}}}
+\end{align*}
+where
+\begin{align*}
+\flattenESSs{\Lambda} = \bigcup\limits_{\lambda \in \Lambda} \lambda
 \end{align*}
 for a value of $n > 0$ that is large enough so that $\Lambda_n = \Lambda_{n-1}$.
+$\Lambda_n$ contains $\Lambda_0$ and all signatures that are reachable from $\Lambda_0$.
 \item If
 \begin{align*}
 \forall \lambda \in \Lambda_n\comma C \in \Sigma \qdot |\setcomp{\triple{C}{S}{\primed{S}}}{\triple{\primed{C}}{S}{\primed{S}} \in \lambda\comma \primed{C} = C}| = 1
 \end{align*}
 then the LPE is already deterministic, and the remainder of the algorithm can be skipped.
-\item Create a bijective mapping $q : \Lambda_n \rightarrow \mathbb{N}$.
-\item Create a new LPE with the same signature as the original LPE, but with an additional parameter $y$ of type $\mathbb{N}$.
-The new LPE has no summands yet.
-\item Consider each $\lambda \in \Lambda_n$.
-For each $\triple{C}{S}{\primed{S}} \in \lambda$ and for all $s_\alpha \in S$, create a new summand as follows:
+\item Compute
 \begin{align*}
-C \; \texttt{?} \; x_\alpha(1) \; \cdots{} \; \texttt{?} \; x_\alpha(m_\alpha) \; [[G]] \text{ \texttt{>->} } P(v_\alpha(p_1), \cdots{}, v_\alpha(p_k))
+\textsc{before}(\lambda) = \setcomp{\primed{\lambda}}{\primed{\lambda} \in \Lambda_n\comma \theta \in \primed{\lambda}\comma \nextESS{\theta} = \lambda}
+\end{align*}
+for all $\lambda \in \Lambda_n$.
+\item Compute
+\begin{align*}
+\dataParIds = \setcomp{\dataParId{\theta}{\lambda}}{\lambda \in \Lambda_n\comma \theta \in \lambda}
+\end{align*}
+where
+\begin{align*}
+\dataParId{\triple{C}{S}{\primed{S}}}{\lambda} = \setcomp{\fiveTuple{C}{s}{S}{\primed{S}}{\lambda}}{s \in S}
+\end{align*}
+\item Create a new LPE with the same signature as the original LPE except that the data parameters are as follows:
+\begin{itemize}
+\item The new LPE has the data parameters of the original LPE;
+\item The new LPE has an additional data parameter $y$ of type $\mathbb{N}$;
+\item The new LPE has an additional data parameter $f^\pi$ of type $\mathbb{B}$ for all $\pi \in \dataParIds$;
+\item The new LPE has an additional data parameter $p^\pi$ for all $p \in P$ and for all $\pi \in \dataParIds$, where the sort of $p^\pi$ is the same as the sort of $p$.
+\end{itemize}
+Note that the number of data parameters of the new LPE relates exponentially to the number of data parameters of the original LPE.
+\item Create an injection $q : \Lambda_n \rightarrow \mathbb{N}$.
+\item Consider each $\lambda \in \Lambda_n$ and each $\triple{C}{S}{\primed{S}} \in \lambda$.
+For each $s \in \textsc{before}(\lambda)$, create a new summand as follows:
+\begin{align*}
+C \; \texttt{?} \; x_\alpha(1) \; \cdots \; \texttt{?} \; x_\alpha(m_\alpha) \; [[G]] \text{ \texttt{>->} } \mathbf{P}(\cdots)
 \end{align*}
 where $G$ is defined as
 \begin{align*}
-y = q(\lambda) \land \forall s_i \in S \qdot g_i[X_i] \land \forall s_i \in \primed{S} \qdot \neg g_i[X_i]
+y = q(\lambda) \; \land \; \forall s_i \in S \qdot g_i[X_i] \; \land \; \forall s_i \in \primed{S} \qdot \neg g_i[X_i]
 \end{align*}
 and where
 \begin{align*}
 X_i = \listcomp{x_i(j) \mapsto x_\alpha(j)}{1 \leq j \leq m_\alpha}
+\end{align*}
+
+Data parameters of the new summand are assigned in the following way:
+\begin{align*}
+y &:= q(\nextESS{\lambda}) \\
+p_1 &:= p_1\comma \cdots\comma p_k := p_k \\
+f_\pi &:= \mathbf{true} \text{ for all } \pi \in \dataParId{\triple{C}{S}{\primed{S}}}{\lambda} \\
+f_\pi &:= \mathbf{false} \text{ for all } \pi \in \dataParIds \setminus \dataParId{\triple{C}{S}{\primed{S}}}{\lambda} \\
+p_1^\pi &:= v_s(p_1)\comma \cdots\comma p_k^\pi := v_s(p_k) \text{ for all } \pi = \fiveTuple{C}{s}{S}{\primed{S}}{\lambda} \in \dataParId{\triple{C}{S}{\primed{S}}}{\lambda} \\
+p_1^\pi &:= v_s(p_1)[X_\pi]\comma \cdots\comma p_k^\pi := v_s(p_k)[X_\pi] \text{ for all } \pi \in \dataParIds \setminus \dataParId{\triple{C}{S}{\primed{S}}}{\lambda} \\
 \end{align*}
 \end{enumerate}
 

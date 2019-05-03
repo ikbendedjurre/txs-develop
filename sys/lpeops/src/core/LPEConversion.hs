@@ -30,6 +30,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified EnvCore as IOC
 import qualified SortOf
+-- import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ProcId
@@ -69,7 +70,9 @@ model2lpe modelId = do
                                                                                 , lpeName = Text.pack (Text.unpack (ModelId.name modelId) ++ "_" ++ Text.unpack (ProcId.name procId))
                                                                                 , lpeInitEqs = initEqs
                                                                                 }
-                                                             let chanAlphabet = Set.insert Set.empty (Set.union (Set.fromList inChans) (Set.fromList outChans))
+                                                             let chanAlphabet = Set.insert Set.empty (Set.fromList (inChans ++ outChans ++ splsyncs))
+                                                             --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("SYNCS = " ++ concatMap bla splsyncs) ]
+                                                             --let chanAlphabet = Set.insert Set.empty (Set.fromList splsyncs)
                                                              (lpe', msgs) <- Monad.foldM (foldSummandDataIntoLPE chanAlphabet) (lpe, []) summandData
                                                              let lpe'' = lpe' { lpeInChans = selectChanMapKeys (lpeChanMap lpe') inChans
                                                                               , lpeOutChans = selectChanMapKeys (lpeChanMap lpe') outChans
@@ -82,10 +85,14 @@ model2lpe modelId = do
                             return (Left ["Expected " ++ definedProcessNames ++ ", found " ++ show (Text.unpack (ProcId.name procId)) ++ "!"])
           _ -> return (Left ["Expected process instantiation, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"])
       [] -> return (Left ["Could not find model " ++ show modelId ++ "!"])
+  -- where
+    -- bla :: Set.Set ChanId.ChanId -> String
+    -- bla cids = "[[ " ++ concatMap (\s -> "{" ++ Text.unpack (ChanId.name s) ++ "}") (Set.toList cids) ++ " ]]"
 -- toLPEModel
 
 foldSummandDataIntoLPE :: Set.Set (Set.Set ChanId.ChanId) -> (LPE, [String]) -> (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (LPE, [String])
 foldSummandDataIntoLPE chanAlphabet (lpe, earlierMsgs) (actOffer, paramEqs) = do
+    -- Ignore summands that do not use a permitted (multi-)channel:
     if Set.member (Set.map BehExprDefs.chanid (BehExprDefs.offers actOffer)) chanAlphabet
     then case concatEither (map getSmdVars (Set.toList (TxsDefs.offers actOffer))) of
            Left msgs -> return (lpe, ["Action offer " ++ TxsShow.fshow actOffer ++ " is invalid because"] ++ msgs)
@@ -102,6 +109,8 @@ foldSummandDataIntoLPE chanAlphabet (lpe, earlierMsgs) (actOffer, paramEqs) = do
                                let lpeSummand = LPESummand { lpeSmdChan = smdChan
                                                            , lpeSmdVars = map (\v -> freshVars Map.! v) vids
                                                            , lpeSmdPriority = False
+                                                           , lpeSmdQuiescent = False
+                                                           , lpeSmdInvisible = False
                                                            , lpeSmdGuard = freshVarGuard
                                                            , lpeSmdEqs = freshVarParamEqs
                                                            , lpeSmdDebug = ""

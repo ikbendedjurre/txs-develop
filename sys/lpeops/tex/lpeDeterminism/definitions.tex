@@ -13,7 +13,7 @@ The grammar of the restricted LPE form is
 \textit{ChanOffer} &::= \textit{ChanId} \;\; [\textit{ChanFlag}, \cdots{}, \textit{ChanFlag}] \;\; [\texttt{Quest} \; x_1, \cdots{}, \texttt{Quest} \; x_m] \\
 \textit{ChanId} &::= C_1 \;| \cdots{} |\; C_n \\
 \textit{ChanFlag} &::= \texttt{INVISIBLE} \;|\; \texttt{CONFLUENT} \;|\; \texttt{QUIESCENT} \\
-\textit{ProcInst} &::= \texttt{ProcInst} \; P \; \; [ \; C_1, \cdots{}, C_n \; ] \; [\;\!\textit{VExpr}, \cdots{}, \textit{VExpr} \; ]
+\textit{ProcInst} &::= \texttt{ProcInst} \; \mathbf{P} \; \; [ \; C_1, \cdots{}, C_n \; ] \; [\;\!\textit{VExpr}, \cdots{}, \textit{VExpr} \; ]
 \end{align*}
 
 with the following restrictions:
@@ -23,46 +23,87 @@ More precisely, the communication variables $\{ x_1, \cdots{}, x_m \}$ must matc
 \item Parameters $p_1\comma \cdots{} p_n$ as well as the communication variables $x_1\comma \cdots{}\comma x_m$ of all \textit{ActionSmd}s must be unique across the process.
 \end{itemize}
 
-\section{Summand elements} \label{summand-elements}
+\section{LPE elements} \label{lpe-elements}
 
-To formally reference the elements of $s_i$ -- the $i$th summand of an LPE $P$ that is in restricted LPE form -- the following definition is used:
+The following symbols are used to denote the elements of a process $\mathbf{P}$ that is in restricted LPE form:
+\begin{itemize}
+\item $\summandList{\mathbf{P}}$ is a list that contains all summands of $\mathbf{P}$;
+\item $s_i$ denotes the $i$th summand in $\summandList{\mathbf{P}}$;
+\item $\Sigma$ is the set of all channels that are used by the summands of $\mathbf{P}$;
+\item $k$ denotes the number of data parameters that $\mathbf{P}$ requires;
+\item $p_i$ denotes the $i$th data parameter that $\mathbf{P}$ requires;
+\item $P = \setcomp{p_j}{1 \leq j \leq k}$ is the set of all data parameters of $\mathbf{P}$;
+\item $v_0(p)$ is a closed expression that defines the initial value of each data parameter $p \in P$.
+\end{itemize}
+
+The following definition is used to formally reference the elements of summand $s_i$, the $i$th summand in $\summandList{\mathbf{P}}$:
 \begin{align*}
-s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1), \cdots{}, v_i(p_k))
+s_i = C_i \; \texttt{?} \; x_i(1) \; \cdots{} \; \texttt{?} \; x_i(m_i) \; [[g_i]] \text{ \texttt{>->} } P(v_i(p_1)\comma \cdots{}\comma v_i(p_k))
 \end{align*}
 where
 \begin{itemize}
-\item $C_i \in \Sigma$ is the name of the channel over which summand $s_i$ communicates (channel flags must be encoded into the channel name);
+\item $C_i \in \Sigma$ is the name of the channel over which summand $s_i$ communicates (channel flags have been encoded into the channel name);
 \item $m_i \geq 0$ is the number of variables that summand $s_i$ uses to communicate over channel $C_i$;
 \item $x_i(j)$ is the $j$th variable that summand $s_i$ uses locally (communication variables first, followed by hidden variables);
-\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be parameters of $P$, communication variables of summand $s_i$, or hidden variables of summand $s_i$);
-\item $p_1, \cdots{}, p_k$ are the parameters of $P$, of which there are $k \geq 0$;
-\item $v_i(p)$ is an expression that defines the new value of parameter $p$ of $P$ after the application of summand $s_i$ (the only free variables in this expression must be LPE parameters, communication variables of summand $s_i$, or hidden variables of summand $s_i$).
+\item $g_i$ is the guard of summand $s_i$ (the only free variables in this expression must be elements in $P \cup \setcomp{x_i(j)}{1 \leq j \leq m_i}$);
+\item $v_i(p)$ is an expression that defines the new value of data parameter $p \in P$ after the application of summand $s_i$ (the only free variables in this expression must be elements in $P \cup \setcomp{x_i(j)}{1 \leq j \leq m_i}$).
 \end{itemize}
 
-Note that, because $P$ is in restricted LPE form, the following assumption generally holds for two summands, $s_\alpha$ and $s_\beta$:
+Note that, because $\mathbf{P}$ is in restricted LPE form, the following assumption generally holds for two summands, $s_\alpha$ and $s_\beta$:
 \begin{align*}
-C_\alpha = C_\beta \rightarrow m_\alpha = m_\beta
+C_\alpha = C_\beta \longrightarrow m_\alpha = m_\beta
+\end{align*}
+
+\section{Starter summands}
+
+Let summand $s_\alpha \in \summandList{\mathbf{P}}$, referencing its elements conform \ref{lpe-elements}.
+Summand $s_\alpha$ is said to be a \emph{starter summand} of $\mathbf{P}$ if the following expression is satisfiable:
+\begin{align*}
+{g_\alpha}[p \rightarrow v_0(p) \;|\; p \in P]
+\end{align*}
+
+(We rely on the assumption that the guard of each summand of $\mathbf{P}$ is satisfiable or unsatisfiable when $\mathbf{P}$ is in a fully specified state; instead, we could over-approximate, and also consider summands for which the expression \emph{could be} satisfiable to be starter summands.)
+
+\vspace{2mm}
+
+The set of all starter summands of LPE $\mathbf{P}$ is denoted by
+\begin{align*}
+\starterSummands{\mathbf{P}} = \setcomp{s_\alpha}{\text{$s_\alpha$ is a starter summand of $\mathbf{P}$}}
+\end{align*}
+
+For convenience, we write starter summands filtered by their channel as
+\begin{align*}
+\filteredStarterSummands{C}{\mathbf{P}} = \setcomp{s_\alpha}{s_\alpha \in \starterSummands{\mathbf{P}}\comma C_\alpha = C}
 \end{align*}
 
 \section{Possible successors} \label{possible-successors}
 
-Consider summands $s_\alpha$ and $s_\beta$, referencing their elements conform \ref{summand-elements}.
-Summand $s_\beta$ is said to be a \emph{possible successor} of $s_\alpha$ if the following expression \emph{could be} satisfiable:
+Let $s_\alpha\comma s_\beta \in \summandList{\mathbf{P}}$, referencing their elements conform \ref{lpe-elements}.
+Summand $s_\alpha$ is said to be a \emph{possible successor} of $s_\beta$ if the following expression \emph{could be} satisfiable:
 \begin{align*}
 {g_\alpha}[p \rightarrow v_\beta(p) \;|\; p \in P] \land g_\beta
 \end{align*}
 
-Let $s_\alpha$ be a summand.
-The possible successors of $s_\alpha$ in its LPE are given by
+(We cannot rely on the assumption that the guard of each summand of $\mathbf{P}$ is satisfiable or unsatisfiable when $\mathbf{P}$ is in a fully specified state because the current state is only symbolically available.)
+
+\vspace{2mm}
+
+Let $s_\alpha \in \summandList{\mathbf{P}}$ be a summand.
+The set of all possible successors of $s_\alpha$ is denoted by
 \begin{align*}
-\possibleSuccessors{s_\alpha} = \setcomp{s_\beta}{\text{$s_\beta$ is a possible successor of $s_\alpha$ in the same LPE}}
+\possibleSuccessors{s_\alpha} = \setcomp{s_\beta}{\text{$s_\beta \in \summandList{\mathbf{P}}$ is a possible successor of $s_\alpha$}}
 \end{align*}
 
-For convenience, we denote possible successors filtered by channel as
+For convenience, we write possible successors filtered by their channel as
 \begin{align*}
 \filteredPossibleSuccessors{C}{s_\alpha} = \setcomp{s_\beta}{s_\beta \in \possibleSuccessors{s_\alpha}\comma C_\beta = C}
 \end{align*}
+%and we write the \emph{possible predecessors} of a summand $s_\alpha$ as
+%\begin{align*}
+%\possiblePredecessors{s_\alpha} = \setcomp{s_\beta}{s_\alpha \in \possibleSuccessors{s_\beta}}
+%\end{align*}
 
+\clearpage
 \section{Summand non-determinism}
 
 Informally, two summands are considered \emph{non-deterministic} if they can cause the same action to be enabled under the same circumstances, and if the action could lead to different next states.
@@ -70,7 +111,7 @@ The words `can' and `could' are chosen on purpose, because proving that two summ
 In order to guarantee that all non-determinism is removed from the LPE, it must be assumed that two summands are non-deterministic unless it can be proven otherwise.
 This means that two summands are considered non-deterministic if and only if they are not \emph{deterministic}.
 
-Consider two summands, $s_\alpha$ and $s_\beta$, and reference their elements conform \ref{summand-elements}.
+Consider two summands, $s_\alpha$ and $s_\beta$, and reference their elements conform \ref{lpe-elements}.
 Summands $s_\alpha$ and $s_\beta$ are said to be \emph{deterministic} if one (or more) of these conditions holds:
 
 \begin{itemize}
@@ -95,13 +136,45 @@ Using the now established notion of non-determinism, we define the predicate
 \begin{align*}
 \nonDetSummands{S} = \forall s_\alpha\comma s_\beta \in S \qdot \text{$s_\alpha$ and $s_\beta$ are non-deterministic}
 \end{align*}
+to express whether a set of summands $S$ is non-deterministic.
 
-\section{Enabled-successor spectrum} \label{summand-closure}
+\clearpage
+\section{Enabled-starter signature} \label{enabled-starter-signature}
 
-The \emph{enabled-successor spectrum} of a summand $s_\alpha$ is defined as
+The \emph{enabled-starter signature} of a process $\mathbf{P}$ in restricted LPE form is defined as
 \begin{align*}
-\enabledSuccSpectrum{s_\alpha} = \bigcup\limits_{C \in \Sigma} \setcomp{\triple{C}{S}{\primed{S}}}{\substack{S \cup \primed{S} = \filteredPossibleSuccessors{C}{s_\alpha}\comma\\ S \cap \primed{S} = \emptyset\comma S \neq \emptyset\comma\\ \nonDetSummands{S}}}
+\enabledStarterSignature{\mathbf{P}} = \bigcup\limits_{C \in \Sigma} \setcomp{\triple{C}{S}{\primed{S}}}{\substack{S \cup \primed{S} = \filteredStarterSummands{C}{\mathbf{P}}\comma\\ S \cap \primed{S} = \emptyset\comma S \neq \emptyset\comma\\ |S|=1 \;\lor\; \nonDetSummands{S}}}
 \end{align*}
 
-Note that the computation of the enabled-successor spectrum has a complexity that is exponential.
+Note that the computation of the enabled-starter signature has a complexity that is exponential.
+
+\vspace{2mm}
+
+The fact that $\triple{C}{S}{\primed{S}} \in \enabledStarterSignature{\mathbf{P}}$ implies that there may exist a state in which
+\begin{itemize}
+\item $\mathbf{P}$ can communicate via the channel $C$ by using a summand in $S$;
+\item all summands in $S$ are enabled; and
+\item all summands in $\primed{S}$ are disabled.
+\end{itemize}
+
+\section{Enabled-successor signature} \label{enabled-successor-signature}
+
+The \emph{enabled-successor signature} of a summand $s_\alpha$ is defined as
+\begin{align*}
+\enabledSuccessorSignature{s_\alpha} = \bigcup\limits_{C \in \Sigma} \setcomp{\triple{C}{S}{\primed{S}}}{\substack{S \cup \primed{S} = \filteredPossibleSuccessors{C}{s_\alpha}\comma\\ S \cap \primed{S} = \emptyset\comma S \neq \emptyset\comma\\ |S|=1 \;\lor\; \nonDetSummands{S}}}
+\end{align*}
+
+Note that the computation of the enabled-successor signature has a complexity that is exponential.
+
+\vspace{2mm}
+
+The interpretation of $\triple{C}{S}{\primed{S}} \in \enabledSuccessorSignature{s_\alpha}$ is analogous to the interpretation of $\triple{C}{S}{\primed{S}} \in \enabledStarterSignature{\mathbf{P}}$ in Section~\ref{enabled-starter-signature}.
+
+\section{Next-ESS function} \label{next-ess-function}
+
+Let $\triple{C}{S}{\primed{S}} \in \lambda$ where $\lambda$ is some signature from Section~\ref{enabled-starter-signature} or Section~\ref{enabled-successor-signature}.
+Tuple $\triple{C}{S}{\primed{S}}$ contains sufficient information to symbolically compute the signature that results after the application of an arbitrary summand from $S$:
+\begin{align*}
+\nextESS{\triple{C}{S}{\primed{S}}} = \bigcup\limits_{s_\alpha \in S} \enabledSuccessorSignature{s_\alpha}
+\end{align*}
 

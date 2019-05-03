@@ -24,6 +24,7 @@ showLPEParamEqs,
 showValExpr,
 showAbbrevLPE,
 showAbbrevLPESummand,
+showAbbrevLPEParamEqs,
 showAbbrevValExpr
 ) where
 
@@ -252,8 +253,11 @@ showLPESummandInContext f g orderedChans orderedParams chanMap summand =
 -- Showing parameter assignments:
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-showLPEParamEqs :: LPEContext -> LPEParamEqs -> String
-showLPEParamEqs f eqs = showLPEParamEqsInContext f (\_ -> Nothing) (Map.keys eqs) eqs
+showLPEParamEqs :: LPEParamEqs -> String
+showLPEParamEqs eqs = showLPEParamEqsInContext (getLPEParamEqsContext eqs) (\_ -> Nothing) (Map.keys eqs) eqs
+
+showAbbrevLPEParamEqs :: LPEParamEqs -> String
+showAbbrevLPEParamEqs eqs = showLPEParamEqsInContext (getAbbrevLPEParamEqsContext eqs) (\_ -> Nothing) (Map.keys eqs) eqs
 
 showLPEParamEqsInContext :: LPEContext -> VExprFromSortIdFunc -> [VarId.VarId] -> LPEParamEqs -> String
 showLPEParamEqsInContext f g orderedParams eqs =
