@@ -88,12 +88,16 @@ ErrorLoc :: Int -> Int -> ErrorLoc
 class HasErrorLoc l
 getErrorLoc :: HasErrorLoc l => l -> ErrorLoc
 getErrorLoc :: HasErrorLoc l => l -> ErrorLoc
+instance Data.Data.Data TorXakis.Compiler.Error.Error
 instance GHC.Show.Show TorXakis.Compiler.Error.Error
 instance GHC.Classes.Eq TorXakis.Compiler.Error.Error
+instance Data.Data.Data TorXakis.Compiler.Error.ErrorLoc
 instance GHC.Show.Show TorXakis.Compiler.Error.ErrorLoc
 instance GHC.Classes.Eq TorXakis.Compiler.Error.ErrorLoc
+instance Data.Data.Data TorXakis.Compiler.Error.ErrorType
 instance GHC.Show.Show TorXakis.Compiler.Error.ErrorType
 instance GHC.Classes.Eq TorXakis.Compiler.Error.ErrorType
+instance Data.Data.Data TorXakis.Compiler.Error.Entity
 instance GHC.Show.Show TorXakis.Compiler.Error.Entity
 instance GHC.Classes.Eq TorXakis.Compiler.Error.Entity
 
