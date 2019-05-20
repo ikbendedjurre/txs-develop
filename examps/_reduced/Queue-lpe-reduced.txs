@@ -1,0 +1,33 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- IntList was renamed to Sort1_IntList
+-- QueueOp was renamed to Sort2_QueueOp
+-- Cons was renamed to Cstr3_Cons
+-- Deq was renamed to Cstr4_Deq
+-- Enq was renamed to Cstr5_Enq
+-- Error was renamed to Cstr6_Error
+-- Nil was renamed to Cstr7_Nil
+-- hd was renamed to f8_hd
+-- tl was renamed to f9_tl
+-- val was renamed to f10_val
+-- In was renamed to Chan11
+-- Out was renamed to Chan12
+-- In$126 was renamed to v13
+-- In$130 was renamed to v14
+-- pc$proxyProcess was renamed to v15
+-- queue$pre2$In$Out$queue$pre2$buf was renamed to v16
+TYPEDEF Sort1_IntList ::= Cstr3_Cons { f8_hd :: Int; f9_tl :: Sort1_IntList } | Cstr7_Nil ENDDEF
+TYPEDEF Sort2_QueueOp ::= Cstr4_Deq | Cstr5_Enq { f10_val :: Int } | Cstr6_Error ENDDEF
+CHANDEF ChanDefs
+    ::= Chan11 :: Sort2_QueueOp
+      ; Chan12 :: Int
+ENDDEF
+PROCDEF LPE[Chan11 :: Sort2_QueueOp; Chan12 :: Int](v15 :: Int; v16 :: Sort1_IntList) ::=
+         Chan11 ? v13 :: Sort2_QueueOp [[ IF (0==v15) THEN isCstr4_Deq(v13) ELSE False FI ]] >-> LPE[Chan11, Chan12]({- v15 = -} 2, {- v16 = -} Cstr7_Nil())
+     ##  Chan11 ? v14 :: Sort2_QueueOp [[ IF (2==v15) THEN IF isCstr7_Nil(v16) THEN isCstr4_Deq(v14) ELSE False FI ELSE False FI ]] >-> LPE[Chan11, Chan12]({- v15 = -} 2, {- v16 = -} Cstr7_Nil())
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan11
+    CHAN OUT Chan12
+    SYNC {Chan11}, {Chan12}
+    BEHAVIOUR LPE[Chan11, Chan12](0, Cstr3_Cons(0, Cstr7_Nil()))
+ENDDEF

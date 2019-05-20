@@ -1,0 +1,41 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Operation was renamed to Sort1_Operation
+-- Minus was renamed to Cstr2_Minus
+-- Plus was renamed to Cstr3_Plus
+-- m1 was renamed to f4_m1
+-- m2 was renamed to f5_m2
+-- overflow was renamed to f6_overflow
+-- p1 was renamed to f7_p1
+-- p2 was renamed to f8_p2
+-- Action was renamed to Chan9
+-- Result was renamed to Chan10
+-- Action$114 was renamed to v11
+-- Action$115 was renamed to v12
+-- Action$116 was renamed to v13
+-- Action$117 was renamed to v14
+-- Result$119 was renamed to v15
+-- Result$120 was renamed to v16
+-- adder$gnf1$Action$Result$adder$gnf1$opn was renamed to v17
+-- adder$gnf2$Action$Result$adder$gnf2$opn was renamed to v18
+-- pc$proxyProcess was renamed to v19
+-- x was renamed to v20
+TYPEDEF Sort1_Operation ::= Cstr2_Minus { f4_m1 :: Int; f5_m2 :: Int } | Cstr3_Plus { f7_p1 :: Int; f8_p2 :: Int } ENDDEF
+FUNCDEF f6_overflow(v20 :: Int) :: Bool ::= not(((((2147483647)+(v20*(-1)))>=0) /\ (((2147483648)+(v20))>=0))) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan9 :: Sort1_Operation
+      ; Chan10 :: Int
+ENDDEF
+PROCDEF LPE[Chan9 :: Sort1_Operation; Chan10 :: Int](v17 :: Sort1_Operation; v18 :: Sort1_Operation; v19 :: Int) ::=
+         Chan9 ? v11 :: Sort1_Operation [[ IF (0==v19) THEN IF isCstr2_Minus(v11) THEN (not(f6_overflow(((f4_m1(v11))+(f5_m2(v11)*(-1))))) /\ not(f6_overflow(f4_m1(v11))) /\ not(f6_overflow(f5_m2(v11)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10]({- v17 = -} v17, {- v18 = -} v11, {- v19 = -} 3)
+     ##  Chan9 ? v12 :: Sort1_Operation [[ IF (0==v19) THEN IF isCstr3_Plus(v12) THEN (not(f6_overflow(((f7_p1(v12))+(f8_p2(v12))))) /\ not(f6_overflow(f7_p1(v12))) /\ not(f6_overflow(f8_p2(v12)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10]({- v17 = -} v12, {- v18 = -} v18, {- v19 = -} 1)
+     ##  Chan9 ? v13 :: Sort1_Operation [[ IF (2==v19) THEN IF isCstr2_Minus(v13) THEN (not(f6_overflow(((f4_m1(v13))+(f5_m2(v13)*(-1))))) /\ not(f6_overflow(f4_m1(v13))) /\ not(f6_overflow(f5_m2(v13)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10]({- v17 = -} v17, {- v18 = -} v13, {- v19 = -} 3)
+     ##  Chan9 ? v14 :: Sort1_Operation [[ IF (2==v19) THEN IF isCstr3_Plus(v14) THEN (not(f6_overflow(((f7_p1(v14))+(f8_p2(v14))))) /\ not(f6_overflow(f7_p1(v14))) /\ not(f6_overflow(f8_p2(v14)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10]({- v17 = -} v14, {- v18 = -} v18, {- v19 = -} 1)
+     ##  Chan10 ? v15 :: Int [[ IF (1==v19) THEN (v15==((f7_p1(v17))+(f8_p2(v17)))) ELSE False FI ]] >-> LPE[Chan9, Chan10]({- v17 = -} v17, {- v18 = -} v18, {- v19 = -} 2)
+     ##  Chan10 ? v16 :: Int [[ IF (3==v19) THEN (v16==((f4_m1(v18))+(f5_m2(v18)*(-1)))) ELSE False FI ]] >-> LPE[Chan9, Chan10]({- v17 = -} v17, {- v18 = -} v18, {- v19 = -} 2)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan9
+    CHAN OUT Chan10
+    SYNC {Chan9}, {Chan10}
+    BEHAVIOUR LPE[Chan9, Chan10](Cstr2_Minus(0, 0), Cstr2_Minus(0, 0), 0)
+ENDDEF

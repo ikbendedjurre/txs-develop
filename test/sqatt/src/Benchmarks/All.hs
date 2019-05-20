@@ -28,31 +28,32 @@ allExamples = [ --Choice.benchmarksSet
               --, Sequence.benchmarksSet
               --, Synchronization.benchmarksSet
               --, Queue.benchmarksSet
-                LPEBenchmarkSets.lpeBenchmarkSet "Adder" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "Adder3" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works
-              --  LPEBenchmarkSets.lpeBenchmarkSet "SpeedTest" -- 
-              , LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- Fails because of hidden variables?
+   ---               LPEBenchmarkSets.lpeBenchmarkSet "Adder" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "Adder3" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "MAdder" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works
+              --, LPEBenchmarkSets.lpeBenchmarkSet "SpeedTest" -- 
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- Fails because of hidden variables?
               --, LPEBenchmarkSets.lpeBenchmarkSet "CustomersOrders" -- Takes too long!
-              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro01" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro02" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro03" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro04" -- Works
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro05a" -- Takes too long!
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro05" -- Fails because of hidden variables?
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro06a" -- Takes too long!
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro06" -- Fails because of hidden variables?
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro07" -- Fails because of hidden variables?
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro08" -- Fails because of hidden variables?
-              , LPEBenchmarkSets.lpeBenchmarkSet "Echo" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "EchoDelay" -- Works (sometimes fails?!)
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "DisPro01" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "DisPro02" -- Works
+        --w        LPEBenchmarkSets.lpeBenchmarkSet "DisPro03" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "DisPro04" -- Works
+        --w      , LPEBenchmarkSets.lpeBenchmarkSet "DisPro05a" -- Takes too long!
+        --w      , LPEBenchmarkSets.lpeBenchmarkSet "DisPro05" -- Fails because of hidden variables?
+        --w      , LPEBenchmarkSets.lpeBenchmarkSet "DisPro06a" -- Takes too long!
+        --w      , LPEBenchmarkSets.lpeBenchmarkSet "DisPro06" -- Fails because of hidden variables?
+              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro07" -- Fails because of hidden variables? + Too short, quiescence!
+              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro08" -- Fails because of hidden variables? + Too short, quiescence!
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "Echo" -- Works
+                LPEBenchmarkSets.lpeBenchmarkSet "EchoDelay" -- Works (sometimes fails?!)
               , LPEBenchmarkSets.lpeBenchmarkSet "Lossy" -- Works (sometimes fails?!)
-              --, LPEBenchmarkSets.lpeBenchmarkSet "LuckyPeople" -- Takes too long!
-              , LPEBenchmarkSets.lpeBenchmarkSet "MAdder" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "MovingArm" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "Queue" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "ReadWrite" -- Works
-              , LPEBenchmarkSets.lpeBenchmarkSet "StimulusResponseLoop" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "LuckyPeople" -- Takes too long!
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "MovingArm" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "Point" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "Queue" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "ReadWrite" -- Works
+   ---             , LPEBenchmarkSets.lpeBenchmarkSet "StimulusResponseLoop" -- Works
               --, LPEBenchmarkSets.lpeBenchmarkSet "StimulusResponse" -- Too short, quiescence!
               ]
 

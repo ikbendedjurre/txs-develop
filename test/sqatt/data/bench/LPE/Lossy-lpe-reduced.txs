@@ -1,16 +1,52 @@
--- LPE_proxyProcess --
-TYPEDEF Sort1_IntList ::= Cstr3_Cons { f8_hd :: Int; f9_tl :: Sort1_IntList } | Cstr7_Nil ENDDEF
-TYPEDEF Sort2_QueueOp ::= Cstr4_Deq | Cstr5_Enq { f10_val :: Int } | Cstr6_Error ENDDEF
+-- LPE_proxyModel_LPE_proxyProcess --
+-- IntList was renamed to Sort1_IntList
+-- QueueOp was renamed to Sort2_QueueOp
+-- Cons was renamed to Cstr3_Cons
+-- Deq was renamed to Cstr4_Deq
+-- Enq was renamed to Cstr5_Enq
+-- Error was renamed to Cstr6_Error
+-- Nil was renamed to Cstr7_Nil
+-- add was renamed to f8_add
+-- hd was renamed to f9_hd
+-- overflow was renamed to f10_overflow
+-- tl was renamed to f11_tl
+-- val was renamed to f12_val
+-- ISTEP was renamed to Chan13
+-- In was renamed to Chan14
+-- Out was renamed to Chan15
+-- In$1 was renamed to v16
+-- Out$1 was renamed to v17
+-- l was renamed to v18
+-- lossyQueue$In$Out$buf was renamed to v19
+-- lossyQueue$pre1$In$Out$lossyQueue$pre1$buf was renamed to v20
+-- lossyQueue$pre1$In$Out$lossyQueue$pre1$qop was renamed to v21
+-- lossyQueue$pre2$In$Out$lossyQueue$pre2$buf was renamed to v22
+-- lossyQueue$pre2$In$Out$lossyQueue$pre2$qop was renamed to v23
+-- pc$proxyProcess was renamed to v24
+-- x was renamed to v25
+-- x was renamed to v26
+TYPEDEF Sort1_IntList ::= Cstr3_Cons { f9_hd :: Int; f11_tl :: Sort1_IntList } | Cstr7_Nil ENDDEF
+TYPEDEF Sort2_QueueOp ::= Cstr4_Deq | Cstr5_Enq { f12_val :: Int } | Cstr6_Error ENDDEF
+FUNCDEF f8_add(v25 :: Int; v18 :: Sort1_IntList) :: Sort1_IntList ::= IF isCstr7_Nil(v18) THEN Cstr3_Cons(v25, Cstr7_Nil()) ELSE Cstr3_Cons(f9_hd(v18), f8_add(v25, f11_tl(v18))) FI ENDDEF
+FUNCDEF f10_overflow(v26 :: Int) :: Bool ::= True ENDDEF
 CHANDEF ChanDefs
-    ::= Chan11 :: Sort2_QueueOp
-      ; Chan12 :: Int
+    ::= Chan14 :: Sort2_QueueOp
+      ; Chan15 :: Int
 ENDDEF
-PROCDEF LPE[Chan11 :: Sort2_QueueOp; Chan12 :: Int](v15 :: Int; v14 :: Sort1_IntList) ::=
-        Chan11 ? v13 :: Sort2_QueueOp [[ IF (0==v15) THEN isCstr4_Deq(v13) ELSE False FI ]] >-> LPE[Chan11, Chan12](3, Cstr7_Nil())
-     ## Chan11 ? v13 :: Sort2_QueueOp [[ IF (3==v15) THEN IF isCstr7_Nil(v14) THEN isCstr4_Deq(v13) ELSE False FI ELSE False FI ]] >-> LPE[Chan11, Chan12](3, Cstr7_Nil())
+PROCDEF LPE[Chan14 :: Sort2_QueueOp; Chan15 :: Int](v19 :: Sort1_IntList; v20 :: Sort1_IntList; v21 :: Sort2_QueueOp; v22 :: Sort1_IntList; v23 :: Sort2_QueueOp; v24 :: Int) ::=
+         ISTEP [[ (1==v24) ]] >-> LPE[Chan14, Chan15]({- v19 = -} v20, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22, {- v23 = -} v23, {- v24 = -} 2)
+     ##  ISTEP [[ (1==v24) ]] >-> LPE[Chan14, Chan15]({- v19 = -} f8_add(f12_val(v21), v20), {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22, {- v23 = -} v23, {- v24 = -} 2)
+     ##  Chan14 ? v16 :: Sort2_QueueOp [[ IF (0==v24) THEN IF isCstr5_Enq(v16) THEN not(f10_overflow(f12_val(v16))) ELSE False FI ELSE False FI ]] >-> LPE[Chan14, Chan15]({- v19 = -} v19, {- v20 = -} Cstr7_Nil(), {- v21 = -} v16, {- v22 = -} v22, {- v23 = -} v23, {- v24 = -} 1)
+     ##  Chan14 ? v16 :: Sort2_QueueOp [[ IF (0==v24) THEN isCstr4_Deq(v16) ELSE False FI ]] >-> LPE[Chan14, Chan15]({- v19 = -} v19, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} Cstr7_Nil(), {- v23 = -} v16, {- v24 = -} 3)
+     ##  Chan14 ? v16 :: Sort2_QueueOp [[ IF (2==v24) THEN IF isCstr5_Enq(v16) THEN not(f10_overflow(f12_val(v16))) ELSE False FI ELSE False FI ]] >-> LPE[Chan14, Chan15]({- v19 = -} v19, {- v20 = -} v19, {- v21 = -} v16, {- v22 = -} v22, {- v23 = -} v23, {- v24 = -} 1)
+     ##  Chan14 ? v16 :: Sort2_QueueOp [[ IF (2==v24) THEN isCstr4_Deq(v16) ELSE False FI ]] >-> LPE[Chan14, Chan15]({- v19 = -} v19, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v19, {- v23 = -} v16, {- v24 = -} 3)
+     ##  Chan14 ? v16 :: Sort2_QueueOp [[ IF (3==v24) THEN IF isCstr7_Nil(v22) THEN IF isCstr5_Enq(v16) THEN not(f10_overflow(f12_val(v16))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan14, Chan15]({- v19 = -} v19, {- v20 = -} Cstr7_Nil(), {- v21 = -} v16, {- v22 = -} v22, {- v23 = -} v23, {- v24 = -} 1)
+     ##  Chan14 ? v16 :: Sort2_QueueOp [[ IF (3==v24) THEN IF isCstr7_Nil(v22) THEN isCstr4_Deq(v16) ELSE False FI ELSE False FI ]] >-> LPE[Chan14, Chan15]({- v19 = -} v19, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} Cstr7_Nil(), {- v23 = -} v16, {- v24 = -} 3)
+     ##  Chan15 ? v17 :: Int [[ IF (3==v24) THEN IF isCstr7_Nil(v22) THEN False ELSE (v17==f9_hd(v22)) FI ELSE False FI ]] >-> LPE[Chan14, Chan15]({- v19 = -} f11_tl(v22), {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22, {- v23 = -} v23, {- v24 = -} 2)
 ENDDEF
 MODELDEF Model ::=
-    CHAN IN Chan11
-    CHAN OUT Chan12
-    BEHAVIOUR LPE[Chan11, Chan12](0, Cstr3_Cons(0, Cstr7_Nil()))
+    CHAN IN Chan14
+    CHAN OUT Chan15
+    SYNC {Chan14}, {Chan15}
+    BEHAVIOUR LPE[Chan14, Chan15](Cstr3_Cons(0, Cstr7_Nil()), Cstr3_Cons(0, Cstr7_Nil()), Cstr4_Deq(), Cstr3_Cons(0, Cstr7_Nil()), Cstr4_Deq(), 0)
 ENDDEF

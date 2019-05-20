@@ -1,0 +1,65 @@
+CHANDEF ChanDefs ::=
+      Channel1
+    ; Channel2
+    ; Channel3
+    ; Channel4
+    ; Channel5
+    ; Channel6
+    ; Channel7
+    ; Channel8
+    ; Channel9
+ENDDEF
+
+PROCDEF sequence [ Channel ] ( ) ::=
+    Channel >-> sequence [ Channel ] ( )
+ENDDEF
+
+PROCDEF specSynchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]() ::=
+            (
+                sequence [ Channel1 ] ( )
+            |||
+                sequence [ Channel2 ] ( )
+            |||
+                sequence [ Channel3 ] ( )
+            |||
+                sequence [ Channel4 ] ( )
+            |||
+                sequence [ Channel5 ] ( )
+            |||
+                sequence [ Channel6 ] ( )
+            |||
+                sequence [ Channel7 ] ( )
+            |||
+                sequence [ Channel8 ] ( )
+            |||
+                sequence [ Channel9 ] ( )
+        )
+    |[ Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9 ]|
+        (
+                sequence [ Channel1 ] ( )
+            |||
+                sequence [ Channel2 ] ( )
+            |||
+                sequence [ Channel3 ] ( )
+            |||
+                sequence [ Channel4 ] ( )
+            |||
+                sequence [ Channel5 ] ( )
+            |||
+                sequence [ Channel6 ] ( )
+            |||
+                sequence [ Channel7 ] ( )
+            |||
+                sequence [ Channel8 ] ( )
+            |||
+                sequence [ Channel9 ] ( )
+        )
+ENDDEF
+
+MODELDEF Model ::=
+    CHAN IN    
+    CHAN OUT   Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9
+    BEHAVIOUR
+        specSynchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+ENDDEF
+

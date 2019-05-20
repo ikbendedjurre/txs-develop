@@ -1,0 +1,39 @@
+CHANDEF ChanDefs ::=
+      Channel1
+    ; Channel2
+    ; Channel3
+    ; Channel4
+    ; Channel5
+    ; Channel6
+    ; Channel7
+    ; Channel8
+    ; Channel9
+ENDDEF
+
+PROCDEF synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]() ::=
+        Channel1 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel2 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel3 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel4 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel5 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel6 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel7 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel8 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+    ##
+        Channel9 >-> synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+ENDDEF
+
+MODELDEF Model ::=
+    CHAN IN    
+    CHAN OUT   Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9
+    BEHAVIOUR
+        synchronizedMany [Channel1, Channel2, Channel3, Channel4, Channel5, Channel6, Channel7, Channel8, Channel9]()
+ENDDEF
+

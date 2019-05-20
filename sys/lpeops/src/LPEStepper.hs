@@ -14,6 +14,8 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ViewPatterns        #-}
 module LPEStepper (
 stepLPE
 ) where
@@ -22,13 +24,18 @@ import qualified Control.Monad as Monad
 import qualified Control.Monad.State as MonadState
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified EnvBTree as IOB
 import qualified EnvCore as IOC
 import qualified EnvData
 import qualified Satisfiability as Sat
 import qualified SolveDefs
 import qualified ValExpr
 import qualified Constant
+import qualified Eval
+import qualified Sigs
+import qualified TxsDefs
 import LPETypes
+import ConcatEither
 import Pairs
 import LPEBlindSubst
 
@@ -75,10 +82,10 @@ doLPESteps lpe states n stepNr = do
 
 getRandomNextStates :: LPE -> LPEStates -> IOC.IOC (Maybe (LPESummand, LPEParamEqs, LPEStates))
 getRandomNextStates lpe currentStates = do
-    --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("No states") ]
-    --if currentStates == Set.empty
-    --then IOC.putMsgs [ EnvData.TXS_CORE_ANY ("No states") ]
-    --else IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Some state = " ++ showLPEParamEqs ((Set.toList currentStates) !! 0)) ]
+    if currentStates == Set.empty
+    then IOC.putMsgs [ EnvData.TXS_CORE_ANY ("No states") ]
+    else IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Some state = " ++ showLPEParamEqs ((Set.toList currentStates) !! 0)) ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("->") ]
     shuffledStates <- MonadState.liftIO $ knuthShuffle (Set.toList currentStates)
     shuffledSmds <- MonadState.liftIO $ knuthShuffle (Set.toList (lpeSummands lpe))
     maybeSES <- getSummandEnablingState shuffledStates shuffledSmds
@@ -118,9 +125,87 @@ getRandomNextStates lpe currentStates = do
                 if taut
                 then do paramEqsAfterVarSubst <- doBlindParamEqsSubst varSubst (lpeSmdEqs appliedSmd)
                         paramEqsAfterSolState <- doBlindParamEqsSubst solState paramEqsAfterVarSubst
-                        return [paramEqsAfterSolState]
+                        evaluated <- evalParamEqs paramEqsAfterSolState
+                        case evaluated of
+                          Just eqs -> return [eqs]
+                          Nothing -> return []
                 else return []
     -- getStateAfterSummand
 -- getSummandsAndEnablingCommVars
+
+evalParamEqs :: LPEParamEqs -> IOC.IOC (Maybe LPEParamEqs)
+evalParamEqs eqs = do
+    let eqsList = Map.toList eqs
+    newVals <- Monad.mapM simplifyExpr (map snd eqsList)
+    case concatEither newVals of
+      Left errors -> do Monad.mapM_ (\m -> IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Error: " ++ m) ]) errors
+                        return Nothing
+      Right vals -> return (Just (Map.fromList (zip (map fst eqsList) vals)))
+-- evalParamEqs
+
+simplifyExpr :: TxsDefs.VExpr -> IOC.IOC (Either String TxsDefs.VExpr)
+simplifyExpr expr = do
+    case expr of
+      (ValExpr.view -> ValExpr.Vconst (Constant.Ccstr _ _)) ->
+          do envb <- filterEnvCtoEnvB
+             (simplified, _) <- MonadState.lift $ MonadState.runStateT (Eval.eval expr) envb
+             case simplified of
+               Left m -> return (Left m)
+               Right newExpr -> return (Right (ValExpr.cstrConst newExpr))
+      (ValExpr.view -> ValExpr.Vconst _) -> return (Right expr)
+      _ -> return (Left ("Not a constant expression (\"" ++ showValExpr expr ++ "\")!"))
+-- simplifyExpr
+
+filterEnvCtoEnvB :: IOC.IOC IOB.EnvB
+filterEnvCtoEnvB = do
+     envc <- MonadState.get
+     case IOC.state envc of
+       IOC.Noning
+         -> return IOB.EnvB { IOB.smts     = Map.empty
+                            , IOB.tdefs    = TxsDefs.empty
+                            , IOB.sigs     = Sigs.empty
+                            , IOB.stateid  = 0
+                            , IOB.params   = IOC.params envc
+                            , IOB.unid     = IOC.unid envc
+                            , IOB.msgs     = []
+                            }
+       IOC.Initing{..}
+         -> return IOB.EnvB { IOB.smts     = smts
+                            , IOB.tdefs    = tdefs
+                            , IOB.sigs     = sigs
+                            , IOB.stateid  = 0
+                            , IOB.params   = IOC.params envc
+                            , IOB.unid     = IOC.unid envc
+                            , IOB.msgs     = []
+                            }
+       IOC.Testing{..}
+         -> return IOB.EnvB { IOB.smts     = smts
+                            , IOB.tdefs    = tdefs
+                            , IOB.sigs     = sigs
+                            , IOB.stateid  = curstate
+                            , IOB.params   = IOC.params envc
+                            , IOB.unid     = IOC.unid envc
+                            , IOB.msgs     = []
+                            }
+       IOC.Simuling{..}
+         -> return IOB.EnvB { IOB.smts     = smts
+                            , IOB.tdefs    = tdefs
+                            , IOB.sigs     = sigs
+                            , IOB.stateid  = curstate
+                            , IOB.params   = IOC.params envc
+                            , IOB.unid     = IOC.unid envc
+                            , IOB.msgs     = []
+                            }
+       IOC.Stepping{..}
+         -> return IOB.EnvB { IOB.smts     = smts
+                            , IOB.tdefs    = tdefs
+                            , IOB.sigs     = sigs
+                            , IOB.stateid  = curstate
+                            , IOB.params   = IOC.params envc
+                            , IOB.unid     = IOC.unid envc
+                            , IOB.msgs     = []
+                            }
+-- filterEnvCtoEnvB
+
 
 

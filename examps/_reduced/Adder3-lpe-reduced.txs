@@ -1,0 +1,80 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Operation was renamed to Sort1_Operation
+-- Minus was renamed to Cstr2_Minus
+-- Plus was renamed to Cstr3_Plus
+-- m1 was renamed to f4_m1
+-- m2 was renamed to f5_m2
+-- overflow was renamed to f6_overflow
+-- p1 was renamed to f7_p1
+-- p2 was renamed to f8_p2
+-- Action1 was renamed to Chan9
+-- Action2 was renamed to Chan10
+-- Action3 was renamed to Chan11
+-- Result1 was renamed to Chan12
+-- Result2 was renamed to Chan13
+-- Result3 was renamed to Chan14
+-- Action1$170 was renamed to v15
+-- Action1$171 was renamed to v16
+-- Action1$172 was renamed to v17
+-- Action1$173 was renamed to v18
+-- Action2$175 was renamed to v19
+-- Action2$176 was renamed to v20
+-- Action2$177 was renamed to v21
+-- Action2$178 was renamed to v22
+-- Action3$180 was renamed to v23
+-- Action3$181 was renamed to v24
+-- Action3$182 was renamed to v25
+-- Action3$183 was renamed to v26
+-- Result1$185 was renamed to v27
+-- Result1$186 was renamed to v28
+-- Result2$188 was renamed to v29
+-- Result2$189 was renamed to v30
+-- Result3$191 was renamed to v31
+-- Result3$192 was renamed to v32
+-- pc$proxyProcess was renamed to v33
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op1$adder$gnf1$Act$Res$adder$gnf1$opn was renamed to v34
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op1$adder$gnf2$Act$Res$adder$gnf2$opn was renamed to v35
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op1$pc$adder was renamed to v36
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op2$adder$gnf1$Act$Res$adder$gnf1$opn was renamed to v37
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op2$adder$gnf2$Act$Res$adder$gnf2$opn was renamed to v38
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op2$pc$adder was renamed to v39
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op3$adder$gnf1$Act$Res$adder$gnf1$opn was renamed to v40
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op3$adder$gnf2$Act$Res$adder$gnf2$opn was renamed to v41
+-- proxyProcess$pre1$Action$Action1$Action2$Action3$Result$Result1$Result2$Result3$op3$pc$adder was renamed to v42
+-- x was renamed to v43
+TYPEDEF Sort1_Operation ::= Cstr2_Minus { f4_m1 :: Int; f5_m2 :: Int } | Cstr3_Plus { f7_p1 :: Int; f8_p2 :: Int } ENDDEF
+FUNCDEF f6_overflow(v43 :: Int) :: Bool ::= not(((((2147483647)+(v43*(-1)))>=0) /\ (((2147483648)+(v43))>=0))) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan9 :: Sort1_Operation
+      ; Chan10 :: Sort1_Operation
+      ; Chan11 :: Sort1_Operation
+      ; Chan12 :: Int
+      ; Chan13 :: Int
+      ; Chan14 :: Int
+ENDDEF
+PROCDEF LPE[Chan9 :: Sort1_Operation; Chan10 :: Sort1_Operation; Chan11 :: Sort1_Operation; Chan12 :: Int; Chan13 :: Int; Chan14 :: Int](v33 :: Int; v34 :: Sort1_Operation; v35 :: Sort1_Operation; v36 :: Int; v37 :: Sort1_Operation; v38 :: Sort1_Operation; v39 :: Int; v40 :: Sort1_Operation; v41 :: Sort1_Operation; v42 :: Int) ::=
+         Chan9 ? v15 :: Sort1_Operation [[ IF (0==v33) THEN IF isCstr2_Minus(v15) THEN (not(f6_overflow(((f4_m1(v15))+(f5_m2(v15)*(-1))))) /\ not(f6_overflow(f4_m1(v15))) /\ not(f6_overflow(f5_m2(v15)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} Cstr2_Minus(0, 0), {- v35 = -} v15, {- v36 = -} 2, {- v37 = -} Cstr2_Minus(0, 0), {- v38 = -} Cstr2_Minus(0, 0), {- v39 = -} 0, {- v40 = -} Cstr2_Minus(0, 0), {- v41 = -} Cstr2_Minus(0, 0), {- v42 = -} 0)
+     ##  Chan9 ? v16 :: Sort1_Operation [[ IF (0==v33) THEN IF isCstr3_Plus(v16) THEN (not(f6_overflow(((f7_p1(v16))+(f8_p2(v16))))) /\ not(f6_overflow(f7_p1(v16))) /\ not(f6_overflow(f8_p2(v16)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v16, {- v35 = -} Cstr2_Minus(0, 0), {- v36 = -} 1, {- v37 = -} Cstr2_Minus(0, 0), {- v38 = -} Cstr2_Minus(0, 0), {- v39 = -} 0, {- v40 = -} Cstr2_Minus(0, 0), {- v41 = -} Cstr2_Minus(0, 0), {- v42 = -} 0)
+     ##  Chan9 ? v17 :: Sort1_Operation [[ IF (1==v33) THEN IF (0==v36) THEN IF isCstr2_Minus(v17) THEN (not(f6_overflow(((f4_m1(v17))+(f5_m2(v17)*(-1))))) /\ not(f6_overflow(f4_m1(v17))) /\ not(f6_overflow(f5_m2(v17)))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v17, {- v36 = -} 2, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan9 ? v18 :: Sort1_Operation [[ IF (1==v33) THEN IF (0==v36) THEN IF isCstr3_Plus(v18) THEN (not(f6_overflow(((f7_p1(v18))+(f8_p2(v18))))) /\ not(f6_overflow(f7_p1(v18))) /\ not(f6_overflow(f8_p2(v18)))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v18, {- v35 = -} v35, {- v36 = -} 1, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan10 ? v19 :: Sort1_Operation [[ IF (0==v33) THEN IF isCstr2_Minus(v19) THEN (not(f6_overflow(((f4_m1(v19))+(f5_m2(v19)*(-1))))) /\ not(f6_overflow(f4_m1(v19))) /\ not(f6_overflow(f5_m2(v19)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} Cstr2_Minus(0, 0), {- v35 = -} Cstr2_Minus(0, 0), {- v36 = -} 0, {- v37 = -} Cstr2_Minus(0, 0), {- v38 = -} v19, {- v39 = -} 2, {- v40 = -} Cstr2_Minus(0, 0), {- v41 = -} Cstr2_Minus(0, 0), {- v42 = -} 0)
+     ##  Chan10 ? v20 :: Sort1_Operation [[ IF (0==v33) THEN IF isCstr3_Plus(v20) THEN (not(f6_overflow(((f7_p1(v20))+(f8_p2(v20))))) /\ not(f6_overflow(f7_p1(v20))) /\ not(f6_overflow(f8_p2(v20)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} Cstr2_Minus(0, 0), {- v35 = -} Cstr2_Minus(0, 0), {- v36 = -} 0, {- v37 = -} v20, {- v38 = -} Cstr2_Minus(0, 0), {- v39 = -} 1, {- v40 = -} Cstr2_Minus(0, 0), {- v41 = -} Cstr2_Minus(0, 0), {- v42 = -} 0)
+     ##  Chan10 ? v21 :: Sort1_Operation [[ IF (1==v33) THEN IF (0==v39) THEN IF isCstr2_Minus(v21) THEN (not(f6_overflow(((f4_m1(v21))+(f5_m2(v21)*(-1))))) /\ not(f6_overflow(f4_m1(v21))) /\ not(f6_overflow(f5_m2(v21)))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v21, {- v39 = -} 2, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan10 ? v22 :: Sort1_Operation [[ IF (1==v33) THEN IF (0==v39) THEN IF isCstr3_Plus(v22) THEN (not(f6_overflow(((f7_p1(v22))+(f8_p2(v22))))) /\ not(f6_overflow(f7_p1(v22))) /\ not(f6_overflow(f8_p2(v22)))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v22, {- v38 = -} v38, {- v39 = -} 1, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan11 ? v23 :: Sort1_Operation [[ IF (0==v33) THEN IF isCstr2_Minus(v23) THEN (not(f6_overflow(((f4_m1(v23))+(f5_m2(v23)*(-1))))) /\ not(f6_overflow(f4_m1(v23))) /\ not(f6_overflow(f5_m2(v23)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} Cstr2_Minus(0, 0), {- v35 = -} Cstr2_Minus(0, 0), {- v36 = -} 0, {- v37 = -} Cstr2_Minus(0, 0), {- v38 = -} Cstr2_Minus(0, 0), {- v39 = -} 0, {- v40 = -} Cstr2_Minus(0, 0), {- v41 = -} v23, {- v42 = -} 2)
+     ##  Chan11 ? v24 :: Sort1_Operation [[ IF (0==v33) THEN IF isCstr3_Plus(v24) THEN (not(f6_overflow(((f7_p1(v24))+(f8_p2(v24))))) /\ not(f6_overflow(f7_p1(v24))) /\ not(f6_overflow(f8_p2(v24)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} Cstr2_Minus(0, 0), {- v35 = -} Cstr2_Minus(0, 0), {- v36 = -} 0, {- v37 = -} Cstr2_Minus(0, 0), {- v38 = -} Cstr2_Minus(0, 0), {- v39 = -} 0, {- v40 = -} v24, {- v41 = -} Cstr2_Minus(0, 0), {- v42 = -} 1)
+     ##  Chan11 ? v25 :: Sort1_Operation [[ IF (1==v33) THEN IF (0==v42) THEN IF isCstr2_Minus(v25) THEN (not(f6_overflow(((f4_m1(v25))+(f5_m2(v25)*(-1))))) /\ not(f6_overflow(f4_m1(v25))) /\ not(f6_overflow(f5_m2(v25)))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v25, {- v42 = -} 2)
+     ##  Chan11 ? v26 :: Sort1_Operation [[ IF (1==v33) THEN IF (0==v42) THEN IF isCstr3_Plus(v26) THEN (not(f6_overflow(((f7_p1(v26))+(f8_p2(v26))))) /\ not(f6_overflow(f7_p1(v26))) /\ not(f6_overflow(f8_p2(v26)))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v26, {- v41 = -} v41, {- v42 = -} 1)
+     ##  Chan12 ? v27 :: Int [[ IF (1==v33) THEN IF (1==v36) THEN (v27==((f7_p1(v34))+(f8_p2(v34)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} 0, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan12 ? v28 :: Int [[ IF (1==v33) THEN IF (2==v36) THEN (v28==((f4_m1(v35))+(f5_m2(v35)*(-1)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} 0, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan13 ? v29 :: Int [[ IF (1==v33) THEN IF (1==v39) THEN (v29==((f7_p1(v37))+(f8_p2(v37)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} 0, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan13 ? v30 :: Int [[ IF (1==v33) THEN IF (2==v39) THEN (v30==((f4_m1(v38))+(f5_m2(v38)*(-1)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} 0, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42)
+     ##  Chan14 ? v31 :: Int [[ IF (1==v33) THEN IF (1==v42) THEN (v31==((f7_p1(v40))+(f8_p2(v40)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} 0)
+     ##  Chan14 ? v32 :: Int [[ IF (1==v33) THEN IF (2==v42) THEN (v32==((f4_m1(v41))+(f5_m2(v41)*(-1)))) ELSE False FI ELSE False FI ]] >-> LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14]({- v33 = -} 1, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} 0)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan9, Chan10, Chan11
+    CHAN OUT Chan12, Chan13, Chan14
+    SYNC {Chan9}, {Chan10}, {Chan11}, {Chan12}, {Chan13}, {Chan14}
+    BEHAVIOUR LPE[Chan9, Chan10, Chan11, Chan12, Chan13, Chan14](0, Cstr2_Minus(0, 0), Cstr2_Minus(0, 0), 0, Cstr2_Minus(0, 0), Cstr2_Minus(0, 0), 0, Cstr2_Minus(0, 0), Cstr2_Minus(0, 0), 0)
+ENDDEF

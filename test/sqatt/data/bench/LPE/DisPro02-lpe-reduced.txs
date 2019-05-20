@@ -1,18 +1,24 @@
--- LPE_proxyProcess --
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Finish was renamed to Chan1
+-- Job was renamed to Chan2
+-- Job2Proc was renamed to Chan3
+-- pc$proxyProcess was renamed to v4
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op1$pc$dispatcher was renamed to v5
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$pc$processor was renamed to v6
 CHANDEF ChanDefs
     ::= Chan1
       ; Chan2
       ; Chan3
 ENDDEF
 PROCDEF LPE[Chan1; Chan2; Chan3](v4 :: Int; v5 :: Int; v6 :: Int) ::=
-        Chan1 [[ IF (1==v4) THEN (1==v6) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, v5, 0)
-     ## Chan1 | Chan2 [[ IF (1==v4) THEN ((0==v5) /\ (1==v6)) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, 0)
-     ## Chan2 [[ (0==v4) ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, 0)
-     ## Chan2 [[ IF (1==v4) THEN (0==v5) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v6)
-     ## Chan3 [[ IF (1==v4) THEN ((0==v6) /\ (1==v5)) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, 1)
+         Chan1 [[ IF (1==v4) THEN (1==v6) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v4 = -} 1, {- v5 = -} v5, {- v6 = -} 0)
+     ##  Chan2 [[ (0==v4) ]] >-> LPE[Chan1, Chan2, Chan3]({- v4 = -} 1, {- v5 = -} 1, {- v6 = -} 0)
+     ##  Chan2 [[ IF (1==v4) THEN (0==v5) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v4 = -} 1, {- v5 = -} 1, {- v6 = -} v6)
+     ##  Chan3 [[ IF (1==v4) THEN ((0==v6) /\ (1==v5)) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v4 = -} 1, {- v5 = -} 0, {- v6 = -} 1)
 ENDDEF
 MODELDEF Model ::=
     CHAN IN Chan2
     CHAN OUT Chan1, Chan3
+    SYNC {Chan1}, {Chan2}, {Chan3}
     BEHAVIOUR LPE[Chan1, Chan2, Chan3](0, 0, 0)
 ENDDEF

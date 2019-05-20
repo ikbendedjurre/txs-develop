@@ -47,13 +47,15 @@ import qualified LPEIsDet
 -- import qualified LPEUGuards
 import qualified LPE2MCRL2
 import qualified LPEStepper
+import qualified LPEStepper2
+import qualified LPEInfo
 import           LPEPrettyPrint
 import           LPEConversion
 import           LPEValidity
 import           ConcatEither
 
 lpeOpsVersion :: String
-lpeOpsVersion = "2019.05.03.04"
+lpeOpsVersion = "2019.05.20.01"
 
 data LPEOp = LPEOpLoopInf | LPEOpLoop Int | LPEOp LPEOperation
 
@@ -175,12 +177,16 @@ getLPEOperation opName = case opName of
                            's':'t':'e':'p':'*':xs -> case Read.readMaybe xs of
                                                        Just n -> Right (LPEOps.LPEOp (LPEStepper.stepLPE n))
                                                        Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")
+                           's':'t':'e':'p':'2':'*':xs -> case Read.readMaybe xs of
+                                                           Just n -> Right (LPEOps.LPEOp (LPEStepper2.stepLPE n))
+                                                           Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")
+                           "info" -> Right (LPEOps.LPEOp LPEInfo.lpeInfo)
                            _ -> Left ("Unknown LPE operation (" ++ opName ++ ")!")
 -- getLPEOperation
 
 getLPEOperations :: String -> Either [String] [LPEOps.LPEOp]
 getLPEOperations opChain =
-    concatEither (map (listEither . getLPEOperation) (filter (\opName -> opName /= []) (splitByArrow opChain)))
+    concatEither (map getLPEOperation (filter (\opName -> opName /= []) (splitByArrow opChain)))
   where
     splitByArrow :: String -> [String]
     splitByArrow [] = [[]]
@@ -191,9 +197,5 @@ getLPEOperations opChain =
           [] -> [[x]] -- Should not happen.
           (y:ys) -> (x:y):ys
     -- splitByArrow
-    
-    listEither :: Either a b -> Either [a] [b]
-    listEither (Left x) = Left [x]
-    listEither (Right x) = Right [x]
 -- getLPEOperations
 

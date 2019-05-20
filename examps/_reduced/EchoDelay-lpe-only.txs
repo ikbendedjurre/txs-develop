@@ -1,0 +1,33 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- List was renamed to Sort1_List
+-- Cons was renamed to Cstr2_Cons
+-- Nil was renamed to Cstr3_Nil
+-- add was renamed to f4_add
+-- head was renamed to f5_head
+-- tail was renamed to f6_tail
+-- Input was renamed to Chan7
+-- Output was renamed to Chan8
+-- Input$110 was renamed to v9
+-- Input$19 was renamed to v10
+-- Output$112 was renamed to v11
+-- l was renamed to v12
+-- pc$proxyProcess was renamed to v13
+-- proc$Input$Output$l was renamed to v14
+-- x was renamed to v15
+TYPEDEF Sort1_List ::= Cstr2_Cons { f5_head :: Int; f6_tail :: Sort1_List } | Cstr3_Nil ENDDEF
+FUNCDEF f4_add(v15 :: Int; v12 :: Sort1_List) :: Sort1_List ::= IF isCstr3_Nil(v12) THEN Cstr2_Cons(v15, Cstr3_Nil()) ELSE Cstr2_Cons(f5_head(v12), f4_add(v15, f6_tail(v12))) FI ENDDEF
+CHANDEF ChanDefs
+    ::= Chan7 :: Int
+      ; Chan8 :: Int
+ENDDEF
+PROCDEF LPE[Chan7 :: Int; Chan8 :: Int](v13 :: Int; v14 :: Sort1_List) ::=
+         Chan7 ? v9 :: Int [[ (1==v13) ]] >-> LPE[Chan7, Chan8]({- v13 = -} 1, {- v14 = -} f4_add(v9, v14))
+     ##  Chan7 ? v10 :: Int [[ (0==v13) ]] >-> LPE[Chan7, Chan8]({- v13 = -} 1, {- v14 = -} f4_add(v10, Cstr3_Nil()))
+     ##  Chan8 ? v11 :: Int [[ IF (1==v13) THEN IF isCstr2_Cons(v14) THEN (v11==f5_head(v14)) ELSE False FI ELSE False FI ]] >-> LPE[Chan7, Chan8]({- v13 = -} 1, {- v14 = -} f6_tail(v14))
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan7
+    CHAN OUT Chan8
+    SYNC {Chan7}, {Chan8}
+    BEHAVIOUR LPE[Chan7, Chan8](0, Cstr2_Cons(0, Cstr3_Nil()))
+ENDDEF

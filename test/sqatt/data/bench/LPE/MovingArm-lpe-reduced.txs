@@ -1,4 +1,11 @@
--- LPE_proxyProcess --
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Down was renamed to Chan1
+-- Max was renamed to Chan2
+-- Min was renamed to Chan3
+-- Stop was renamed to Chan4
+-- Stopped was renamed to Chan5
+-- Up was renamed to Chan6
+-- pc$proxyProcess was renamed to v7
 CHANDEF ChanDefs
     ::= Chan1
       ; Chan2
@@ -8,27 +15,28 @@ CHANDEF ChanDefs
       ; Chan6
 ENDDEF
 PROCDEF LPE[Chan1; Chan2; Chan3; Chan4; Chan5; Chan6](v7 :: Int) ::=
-        Chan1 [[ (0==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](1)
-     ## Chan1 [[ (5==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](1)
-     ## Chan1 [[ (6==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](1)
-     ## Chan1 [[ (8==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](1)
-     ## Chan2 [[ (4==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](5)
-     ## Chan2 [[ (7==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](6)
-     ## Chan3 [[ (1==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](2)
-     ## Chan3 [[ (9==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](3)
-     ## Chan4 [[ (1==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](9)
-     ## Chan4 [[ (2==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](3)
-     ## Chan4 [[ (4==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](7)
-     ## Chan4 [[ (5==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](6)
-     ## Chan5 [[ (7==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](8)
-     ## Chan5 [[ (9==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](8)
-     ## Chan6 [[ (0==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](4)
-     ## Chan6 [[ (2==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](4)
-     ## Chan6 [[ (3==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](4)
-     ## Chan6 [[ (8==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](4)
+         Chan1 [[ (0==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 1)
+     ##  Chan1 [[ (5==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 1)
+     ##  Chan1 [[ (6==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 1)
+     ##  Chan1 [[ (8==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 1)
+     ##  Chan2 [[ (4==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 5)
+     ##  Chan2 [[ (7==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 6)
+     ##  Chan3 [[ (1==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 2)
+     ##  Chan3 [[ (9==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 3)
+     ##  Chan4 [[ (1==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 9)
+     ##  Chan4 [[ (2==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 3)
+     ##  Chan4 [[ (4==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 7)
+     ##  Chan4 [[ (5==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 6)
+     ##  Chan5 [[ (7==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 8)
+     ##  Chan5 [[ (9==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 8)
+     ##  Chan6 [[ (0==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 4)
+     ##  Chan6 [[ (2==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 4)
+     ##  Chan6 [[ (3==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 4)
+     ##  Chan6 [[ (8==v7) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6]({- v7 = -} 4)
 ENDDEF
 MODELDEF Model ::=
     CHAN IN Chan1, Chan4, Chan6
     CHAN OUT Chan2, Chan3, Chan5
+    SYNC {Chan1}, {Chan2}, {Chan3}, {Chan4}, {Chan5}, {Chan6}
     BEHAVIOUR LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6](0)
 ENDDEF

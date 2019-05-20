@@ -1,4 +1,39 @@
--- LPE_proxyProcess --
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Person was renamed to Sort1_Person
+-- Sex was renamed to Sort2_Sex
+-- Female was renamed to Cstr3_Female
+-- Male was renamed to Cstr4_Male
+-- Person was renamed to Cstr5_Person
+-- dayOfBirth was renamed to f6_dayOfBirth
+-- firstName was renamed to f7_firstName
+-- isLuckyByBirthday was renamed to f8_isLuckyByBirthday
+-- isLuckyByGender was renamed to f9_isLuckyByGender
+-- isLuckyByName was renamed to f10_isLuckyByName
+-- isLuckyPerson was renamed to f11_isLuckyPerson
+-- isValid_Person was renamed to f12_isValid_Person
+-- lastName was renamed to f13_lastName
+-- monthOfBirth was renamed to f14_monthOfBirth
+-- sex was renamed to f15_sex
+-- In was renamed to Chan16
+-- Out was renamed to Chan17
+-- In$1 was renamed to v18
+-- Out$1 was renamed to v19
+-- last was renamed to v20
+-- last was renamed to v21
+-- luckyPeople$gnf1$In$Out$luckyPeople$gnf1$last was renamed to v22
+-- luckyPeople$gnf1$In$Out$luckyPeople$gnf1$n was renamed to v23
+-- luckyPeople$gnf1$In$Out$luckyPeople$gnf1$p was renamed to v24
+-- luckyPeople$pre1$In$Out$luckyPeople$pre1$last was renamed to v25
+-- luckyPeople$pre1$In$Out$luckyPeople$pre1$n was renamed to v26
+-- luckyPeople$pre1$In$Out$luckyPeople$pre1$p was renamed to v27
+-- n was renamed to v28
+-- n was renamed to v29
+-- p was renamed to v30
+-- p was renamed to v31
+-- p was renamed to v32
+-- p was renamed to v33
+-- p was renamed to v34
+-- pc$proxyProcess was renamed to v35
 TYPEDEF Sort1_Person ::= Cstr5_Person { f15_sex :: Sort2_Sex; f7_firstName :: String; f13_lastName :: String; f6_dayOfBirth :: Int; f14_monthOfBirth :: Int } ENDDEF
 TYPEDEF Sort2_Sex ::= Cstr3_Female | Cstr4_Male ENDDEF
 FUNCDEF f8_isLuckyByBirthday(v34 :: Sort1_Person) :: Bool ::= (f6_dayOfBirth(v34)==f14_monthOfBirth(v34)) ENDDEF
@@ -10,14 +45,15 @@ CHANDEF ChanDefs
     ::= Chan16 :: Sort1_Person
       ; Chan17 :: Bool
 ENDDEF
-PROCDEF LPE[Chan16 :: Sort1_Person; Chan17 :: Bool](v35 :: Int; v22 :: Sort2_Sex; v23 :: Int; v24 :: Sort1_Person; v25 :: Sort2_Sex; v26 :: Int; v27 :: Sort1_Person) ::=
-        Chan16 ? v18 :: Sort1_Person [[ IF (0==v35) THEN f12_isValid_Person(v18) ELSE False FI ]] >-> LPE[Chan16, Chan17](1, Cstr4_Male(), 0, v18, v25, v26, v27)
-     ## Chan16 ? v18 :: Sort1_Person [[ IF (2==v35) THEN IF (v25==f15_sex(v27)) THEN False ELSE f12_isValid_Person(v18) FI ELSE False FI ]] >-> LPE[Chan16, Chan17](1, f15_sex(v27), 1, v18, v25, v26, v27)
-     ## Chan16 ? v18 :: Sort1_Person [[ IF (2==v35) THEN IF (v25==f15_sex(v27)) THEN f12_isValid_Person(v18) ELSE False FI ELSE False FI ]] >-> LPE[Chan16, Chan17](1, f15_sex(v27), ((1)+(v26)), v18, v25, v26, v27)
-     ## Chan17 ? v19 :: Bool [[ IF (1==v35) THEN (v19==f11_isLuckyPerson(v24, v22, v23)) ELSE False FI ]] >-> LPE[Chan16, Chan17](2, v22, v23, v24, v22, v23, v24)
+PROCDEF LPE[Chan16 :: Sort1_Person; Chan17 :: Bool](v22 :: Sort2_Sex; v23 :: Int; v24 :: Sort1_Person; v25 :: Sort2_Sex; v26 :: Int; v27 :: Sort1_Person; v35 :: Int) ::=
+         Chan16 ? v18 :: Sort1_Person [[ IF (0==v35) THEN f12_isValid_Person(v18) ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v22 = -} Cstr4_Male(), {- v23 = -} 0, {- v24 = -} v18, {- v25 = -} v25, {- v26 = -} v26, {- v27 = -} v27, {- v35 = -} 1)
+     ##  Chan16 ? v18 :: Sort1_Person [[ IF (2==v35) THEN IF (v25==f15_sex(v27)) THEN False ELSE f12_isValid_Person(v18) FI ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v22 = -} f15_sex(v27), {- v23 = -} 1, {- v24 = -} v18, {- v25 = -} v25, {- v26 = -} v26, {- v27 = -} v27, {- v35 = -} 1)
+     ##  Chan16 ? v18 :: Sort1_Person [[ IF (2==v35) THEN IF (v25==f15_sex(v27)) THEN f12_isValid_Person(v18) ELSE False FI ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v22 = -} f15_sex(v27), {- v23 = -} ((1)+(v26)), {- v24 = -} v18, {- v25 = -} v25, {- v26 = -} v26, {- v27 = -} v27, {- v35 = -} 1)
+     ##  Chan17 ? v19 :: Bool [[ IF (1==v35) THEN (v19==f11_isLuckyPerson(v24, v22, v23)) ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v22 = -} v22, {- v23 = -} v23, {- v24 = -} v24, {- v25 = -} v22, {- v26 = -} v23, {- v27 = -} v24, {- v35 = -} 2)
 ENDDEF
 MODELDEF Model ::=
     CHAN IN Chan16
     CHAN OUT Chan17
-    BEHAVIOUR LPE[Chan16, Chan17](0, Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0), Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0))
+    SYNC {Chan16}, {Chan17}
+    BEHAVIOUR LPE[Chan16, Chan17](Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0), Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0), 0)
 ENDDEF

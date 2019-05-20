@@ -15,18 +15,31 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module ConcatEither (
-concatEither
+concatEither,
+concatEitherList
 ) where
 
-concatEither :: [Either [a] [b]] -> Either [a] [b]
+concatEither :: [Either a b] -> Either [a] [b]
 concatEither [] = Right []
-concatEither (Left xs:ys) =
-    case concatEither ys of
-      Left zs -> Left (xs ++ zs)
-      Right _ -> Left xs
-concatEither (Right xs:ys) =
-    case concatEither ys of
-      Left zs -> Left zs
-      Right zs -> Right (xs ++ zs)
+concatEither (Left x:xs) =
+    case concatEither xs of
+      Left xs' -> Left (x:xs')
+      Right _ -> Left [x]
+concatEither (Right x:xs) =
+    case concatEither xs of
+      Left xs' -> Left xs'
+      Right xs' -> Right (x:xs')
 -- concatEither
+
+concatEitherList :: [Either [a] [b]] -> Either [a] [b]
+concatEitherList [] = Right []
+concatEitherList (Left xs:ys) =
+    case concatEitherList ys of
+      Left ys' -> Left (xs ++ ys')
+      Right _ -> Left xs
+concatEitherList (Right xs:ys) =
+    case concatEitherList ys of
+      Left ys' -> Left ys'
+      Right ys' -> Right (xs ++ ys')
+-- concatEitherList
 

@@ -1,16 +1,47 @@
--- LPE_proxyProcess --
-TYPEDEF Sort1_IntList ::= Cstr3_Cons { f8_hd :: Int; f9_tl :: Sort1_IntList } | Cstr7_Nil ENDDEF
-TYPEDEF Sort2_QueueOp ::= Cstr4_Deq | Cstr5_Enq { f10_val :: Int } | Cstr6_Error ENDDEF
+-- LPE_proxyModel_LPE_proxyProcess --
+-- IntList was renamed to Sort1_IntList
+-- QueueOp was renamed to Sort2_QueueOp
+-- Cons was renamed to Cstr3_Cons
+-- Deq was renamed to Cstr4_Deq
+-- Enq was renamed to Cstr5_Enq
+-- Error was renamed to Cstr6_Error
+-- Nil was renamed to Cstr7_Nil
+-- add was renamed to f8_add
+-- hd was renamed to f9_hd
+-- overflow was renamed to f10_overflow
+-- tl was renamed to f11_tl
+-- val was renamed to f12_val
+-- In was renamed to Chan13
+-- Out was renamed to Chan14
+-- In$1 was renamed to v15
+-- Out$1 was renamed to v16
+-- l was renamed to v17
+-- pc$proxyProcess was renamed to v18
+-- queue$In$Out$buf was renamed to v19
+-- queue$pre2$In$Out$queue$pre2$buf was renamed to v20
+-- queue$pre2$In$Out$queue$pre2$qop was renamed to v21
+-- x was renamed to v22
+-- x was renamed to v23
+TYPEDEF Sort1_IntList ::= Cstr3_Cons { f9_hd :: Int; f11_tl :: Sort1_IntList } | Cstr7_Nil ENDDEF
+TYPEDEF Sort2_QueueOp ::= Cstr4_Deq | Cstr5_Enq { f12_val :: Int } | Cstr6_Error ENDDEF
+FUNCDEF f8_add(v22 :: Int; v17 :: Sort1_IntList) :: Sort1_IntList ::= IF isCstr7_Nil(v17) THEN Cstr3_Cons(v22, Cstr7_Nil()) ELSE Cstr3_Cons(f9_hd(v17), f8_add(v22, f11_tl(v17))) FI ENDDEF
+FUNCDEF f10_overflow(v23 :: Int) :: Bool ::= True ENDDEF
 CHANDEF ChanDefs
-    ::= Chan11 :: Sort2_QueueOp
-      ; Chan12 :: Int
+    ::= Chan13 :: Sort2_QueueOp
+      ; Chan14 :: Int
 ENDDEF
-PROCDEF LPE[Chan11 :: Sort2_QueueOp; Chan12 :: Int](v14 :: Int; v15 :: Sort1_IntList) ::=
-        Chan11 ? v13 :: Sort2_QueueOp [[ IF (0==v14) THEN isCstr4_Deq(v13) ELSE False FI ]] >-> LPE[Chan11, Chan12](2, Cstr7_Nil())
-     ## Chan11 ? v13 :: Sort2_QueueOp [[ IF (2==v14) THEN IF isCstr7_Nil(v15) THEN isCstr4_Deq(v13) ELSE False FI ELSE False FI ]] >-> LPE[Chan11, Chan12](2, Cstr7_Nil())
+PROCDEF LPE[Chan13 :: Sort2_QueueOp; Chan14 :: Int](v18 :: Int; v19 :: Sort1_IntList; v20 :: Sort1_IntList; v21 :: Sort2_QueueOp) ::=
+         Chan13 ? v15 :: Sort2_QueueOp [[ IF (0==v18) THEN IF isCstr5_Enq(v15) THEN not(f10_overflow(f12_val(v15))) ELSE False FI ELSE False FI ]] >-> LPE[Chan13, Chan14]({- v18 = -} 1, {- v19 = -} f8_add(f12_val(v15), Cstr7_Nil()), {- v20 = -} v20, {- v21 = -} v21)
+     ##  Chan13 ? v15 :: Sort2_QueueOp [[ IF (0==v18) THEN isCstr4_Deq(v15) ELSE False FI ]] >-> LPE[Chan13, Chan14]({- v18 = -} 2, {- v19 = -} v19, {- v20 = -} Cstr7_Nil(), {- v21 = -} v15)
+     ##  Chan13 ? v15 :: Sort2_QueueOp [[ IF (1==v18) THEN IF isCstr5_Enq(v15) THEN not(f10_overflow(f12_val(v15))) ELSE False FI ELSE False FI ]] >-> LPE[Chan13, Chan14]({- v18 = -} 1, {- v19 = -} f8_add(f12_val(v15), v19), {- v20 = -} v20, {- v21 = -} v21)
+     ##  Chan13 ? v15 :: Sort2_QueueOp [[ IF (1==v18) THEN isCstr4_Deq(v15) ELSE False FI ]] >-> LPE[Chan13, Chan14]({- v18 = -} 2, {- v19 = -} v19, {- v20 = -} v19, {- v21 = -} v15)
+     ##  Chan13 ? v15 :: Sort2_QueueOp [[ IF (2==v18) THEN IF isCstr7_Nil(v20) THEN IF isCstr5_Enq(v15) THEN not(f10_overflow(f12_val(v15))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan13, Chan14]({- v18 = -} 1, {- v19 = -} f8_add(f12_val(v15), Cstr7_Nil()), {- v20 = -} v20, {- v21 = -} v21)
+     ##  Chan13 ? v15 :: Sort2_QueueOp [[ IF (2==v18) THEN IF isCstr7_Nil(v20) THEN isCstr4_Deq(v15) ELSE False FI ELSE False FI ]] >-> LPE[Chan13, Chan14]({- v18 = -} 2, {- v19 = -} v19, {- v20 = -} Cstr7_Nil(), {- v21 = -} v15)
+     ##  Chan14 ? v16 :: Int [[ IF (2==v18) THEN IF isCstr7_Nil(v20) THEN False ELSE (v16==f9_hd(v20)) FI ELSE False FI ]] >-> LPE[Chan13, Chan14]({- v18 = -} 1, {- v19 = -} f11_tl(v20), {- v20 = -} v20, {- v21 = -} v21)
 ENDDEF
 MODELDEF Model ::=
-    CHAN IN Chan11
-    CHAN OUT Chan12
-    BEHAVIOUR LPE[Chan11, Chan12](0, Cstr3_Cons(0, Cstr7_Nil()))
+    CHAN IN Chan13
+    CHAN OUT Chan14
+    SYNC {Chan13}, {Chan14}
+    BEHAVIOUR LPE[Chan13, Chan14](0, Cstr3_Cons(0, Cstr7_Nil()), Cstr3_Cons(0, Cstr7_Nil()), Cstr4_Deq())
 ENDDEF

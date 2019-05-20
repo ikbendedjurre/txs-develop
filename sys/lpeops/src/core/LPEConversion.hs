@@ -94,7 +94,7 @@ foldSummandDataIntoLPE :: Set.Set (Set.Set ChanId.ChanId) -> (LPE, [String]) -> 
 foldSummandDataIntoLPE chanAlphabet (lpe, earlierMsgs) (actOffer, paramEqs) = do
     -- Ignore summands that do not use a permitted (multi-)channel:
     if Set.member (Set.map BehExprDefs.chanid (BehExprDefs.offers actOffer)) chanAlphabet
-    then case concatEither (map getSmdVars (Set.toList (TxsDefs.offers actOffer))) of
+    then case concatEitherList (map getSmdVars (Set.toList (TxsDefs.offers actOffer))) of
            Left msgs -> return (lpe, ["Action offer " ++ TxsShow.fshow actOffer ++ " is invalid because"] ++ msgs)
            Right smdVars -> do -- If the chanmap already contains the channel signature, obtain the corresponding (fresh) channel.
                                -- If the chanmap does not yet contain the channel signature, add it and create a fresh channel:
@@ -121,7 +121,7 @@ foldSummandDataIntoLPE chanAlphabet (lpe, earlierMsgs) (actOffer, paramEqs) = do
   where
     getSmdVars :: TxsDefs.Offer -> Either [String] [VarId.VarId]
     getSmdVars TxsDefs.Offer { TxsDefs.chanoffers = chanoffers } =
-        concatEither (map offerToVar chanoffers)
+        concatEitherList (map offerToVar chanoffers)
       where
         offerToVar :: TxsDefs.ChanOffer -> Either [String] [VarId.VarId]
         offerToVar (TxsDefs.Quest varId) = Right [varId]
@@ -132,7 +132,7 @@ foldSummandDataIntoLPE chanAlphabet (lpe, earlierMsgs) (actOffer, paramEqs) = do
 getSummandData :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [(TxsDefs.ActOffer, LPEParamEqs)]
 getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
     case TxsDefs.view expr of
-      TxsDefs.Choice choices -> concatEither (map (getSummandData tdefs expectedProcId expectedProcDef) (Set.toList choices))
+      TxsDefs.Choice choices -> concatEitherList (map (getSummandData tdefs expectedProcId expectedProcDef) (Set.toList choices))
       TxsDefs.ActionPref actOffer procInst ->
           case TxsDefs.view procInst of
             TxsDefs.ProcInst procId chanIds paramValues

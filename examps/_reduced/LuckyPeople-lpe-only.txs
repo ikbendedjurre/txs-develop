@@ -1,0 +1,61 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Person was renamed to Sort1_Person
+-- Sex was renamed to Sort2_Sex
+-- Female was renamed to Cstr3_Female
+-- Male was renamed to Cstr4_Male
+-- Person was renamed to Cstr5_Person
+-- dayOfBirth was renamed to f6_dayOfBirth
+-- firstName was renamed to f7_firstName
+-- isLuckyByBirthday was renamed to f8_isLuckyByBirthday
+-- isLuckyByGender was renamed to f9_isLuckyByGender
+-- isLuckyByName was renamed to f10_isLuckyByName
+-- isLuckyPerson was renamed to f11_isLuckyPerson
+-- isValid_Person was renamed to f12_isValid_Person
+-- lastName was renamed to f13_lastName
+-- monthOfBirth was renamed to f14_monthOfBirth
+-- sex was renamed to f15_sex
+-- In was renamed to Chan16
+-- Out was renamed to Chan17
+-- In$122 was renamed to v18
+-- In$123 was renamed to v19
+-- In$124 was renamed to v20
+-- Out$126 was renamed to v21
+-- last was renamed to v22
+-- last was renamed to v23
+-- luckyPeople$gnf1$In$Out$luckyPeople$gnf1$last was renamed to v24
+-- luckyPeople$gnf1$In$Out$luckyPeople$gnf1$n was renamed to v25
+-- luckyPeople$gnf1$In$Out$luckyPeople$gnf1$p was renamed to v26
+-- luckyPeople$pre1$In$Out$luckyPeople$pre1$last was renamed to v27
+-- luckyPeople$pre1$In$Out$luckyPeople$pre1$n was renamed to v28
+-- luckyPeople$pre1$In$Out$luckyPeople$pre1$p was renamed to v29
+-- n was renamed to v30
+-- n was renamed to v31
+-- p was renamed to v32
+-- p was renamed to v33
+-- p was renamed to v34
+-- p was renamed to v35
+-- p was renamed to v36
+-- pc$proxyProcess was renamed to v37
+TYPEDEF Sort1_Person ::= Cstr5_Person { f15_sex :: Sort2_Sex; f7_firstName :: String; f13_lastName :: String; f6_dayOfBirth :: Int; f14_monthOfBirth :: Int } ENDDEF
+TYPEDEF Sort2_Sex ::= Cstr3_Female | Cstr4_Male ENDDEF
+FUNCDEF f8_isLuckyByBirthday(v36 :: Sort1_Person) :: Bool ::= (f6_dayOfBirth(v36)==f14_monthOfBirth(v36)) ENDDEF
+FUNCDEF f9_isLuckyByGender(v34 :: Sort1_Person; v23 :: Sort2_Sex; v31 :: Int) :: Bool ::= (not((v23==f15_sex(v34))) /\ (((-5)+(v31))>=0)) ENDDEF
+FUNCDEF f10_isLuckyByName(v35 :: Sort1_Person) :: Bool ::= (at(f7_firstName(v35), 0)==at(f13_lastName(v35), 0)) ENDDEF
+FUNCDEF f11_isLuckyPerson(v33 :: Sort1_Person; v22 :: Sort2_Sex; v30 :: Int) :: Bool ::= not((not(f8_isLuckyByBirthday(v33)) /\ not(f9_isLuckyByGender(v33, v22, v30)) /\ not(f10_isLuckyByName(v33)))) ENDDEF
+FUNCDEF f12_isValid_Person(v32 :: Sort1_Person) :: Bool ::= ((((-1)+(f6_dayOfBirth(v32)))>=0) /\ (((-1)+(f14_monthOfBirth(v32)))>=0) /\ (((12)+(f14_monthOfBirth(v32)*(-1)))>=0) /\ (((31)+(f6_dayOfBirth(v32)*(-1)))>=0) /\ strinre(f7_firstName(v32), REGEX('[A-Z][a-z]*')) /\ strinre(f13_lastName(v32), REGEX('[A-Z][a-z]*'))) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan16 :: Sort1_Person
+      ; Chan17 :: Bool
+ENDDEF
+PROCDEF LPE[Chan16 :: Sort1_Person; Chan17 :: Bool](v24 :: Sort2_Sex; v25 :: Int; v26 :: Sort1_Person; v27 :: Sort2_Sex; v28 :: Int; v29 :: Sort1_Person; v37 :: Int) ::=
+         Chan16 ? v18 :: Sort1_Person [[ IF (0==v37) THEN f12_isValid_Person(v18) ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v24 = -} Cstr4_Male(), {- v25 = -} 0, {- v26 = -} v18, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v37 = -} 1)
+     ##  Chan16 ? v19 :: Sort1_Person [[ IF (2==v37) THEN IF (v27==f15_sex(v29)) THEN False ELSE f12_isValid_Person(v19) FI ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v24 = -} f15_sex(v29), {- v25 = -} 1, {- v26 = -} v19, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v37 = -} 1)
+     ##  Chan16 ? v20 :: Sort1_Person [[ IF (2==v37) THEN IF (v27==f15_sex(v29)) THEN f12_isValid_Person(v20) ELSE False FI ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v24 = -} f15_sex(v29), {- v25 = -} ((1)+(v28)), {- v26 = -} v20, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v37 = -} 1)
+     ##  Chan17 ? v21 :: Bool [[ IF (1==v37) THEN (v21==f11_isLuckyPerson(v26, v24, v25)) ELSE False FI ]] >-> LPE[Chan16, Chan17]({- v24 = -} v24, {- v25 = -} v25, {- v26 = -} v26, {- v27 = -} v24, {- v28 = -} v25, {- v29 = -} v26, {- v37 = -} 2)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan16
+    CHAN OUT Chan17
+    SYNC {Chan16}, {Chan17}
+    BEHAVIOUR LPE[Chan16, Chan17](Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0), Cstr3_Female(), 0, Cstr5_Person(Cstr3_Female(), "", "", 0, 0), 0)
+ENDDEF

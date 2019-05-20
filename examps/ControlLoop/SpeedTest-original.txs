@@ -1,0 +1,52 @@
+
+
+
+
+CHANDEF ChanDefs
+    ::= Chan1 :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int
+      ; Chan2 :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int
+ENDDEF
+FUNCDEF fc(x0 :: Int; x1 :: Int; x2 :: Int; x3 :: Int; x4 :: Int; x5 :: Int; x6 :: Int; x7 :: Int; x8 :: Int; x9 :: Int; v31 :: Int; v32 :: Int; v33 :: Int; v34 :: Int; v35 :: Int; v36 :: Int; v37 :: Int; v38 :: Int; v39 :: Int; v40 :: Int; v41 :: Int; v42 :: Int; v43 :: Int; v44 :: Int; v45 :: Int) :: Bool ::=
+     IF (v31>x0) THEN IF (v32<x1) THEN (IF (v33>x2) THEN ((x3<v34) /\ (v35>x6)) ELSE (x5<0) FI /\ IF (v36>x7) THEN ((v39<x8) /\ (v38<x9)) ELSE False FI) ELSE False FI ELSE False FI
+ENDDEF
+FUNCDEF fChan1v31(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==0) \/ (choice==2) \/ (choice==4)) THEN (1 + x10) ELSE (2 - x10) FI
+ENDDEF
+FUNCDEF fChan1v38(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==4)) THEN (1 - x10) ELSE (1 + x10) FI
+ENDDEF
+FUNCDEF fChan1v39(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==0) \/ (choice==2) \/ (choice==4)) THEN (1 + x10) ELSE (1 - x10) FI
+ENDDEF
+FUNCDEF fChan1v41(x10 :: Int; choice :: Int) :: Int ::=
+     5 - choice + x10
+ENDDEF
+FUNCDEF fChan1v42(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==0) \/ (choice==2) \/ (choice==4)) THEN (1 - x10) ELSE (1 + x10) FI
+ENDDEF
+FUNCDEF fChan2v31(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==0) \/ (choice==2) \/ (choice==4)) THEN (2 - x10) ELSE (1 + x10) FI
+ENDDEF
+FUNCDEF fChan2v38(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==0)) THEN (2 + x10) ELSE (2 - x10) FI
+ENDDEF
+FUNCDEF fChan2v39(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==0) \/ (choice==2) \/ (choice==4)) THEN (2 - x10) ELSE (2 + x10) FI
+ENDDEF
+FUNCDEF fChan2v41(x10 :: Int; choice :: Int) :: Int ::=
+     choice + 1 + x10
+ENDDEF
+FUNCDEF fChan2v42(x10 :: Int; choice :: Int) :: Int ::=
+     IF ((choice==0) \/ (choice==2) \/ (choice==4)) THEN (2 + x10) ELSE (2 - x10) FI
+ENDDEF
+PROCDEF LPE[Chan1 :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int; Chan2 :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int](v31 :: Int; v32 :: Int; v33 :: Int; v34 :: Int; v35 :: Int; v36 :: Int; v37 :: Int; v38 :: Int; v39 :: Int; v40 :: Int; v41 :: Int; v42 :: Int; v43 :: Int; v44 :: Int; v45 :: Int) ::=
+         Chan1 ? v10 :: Int ? v11 :: Int ? v12 :: Int ? v13 :: Int ? v14 :: Int ? v15 :: Int ? v16 :: Int ? v17 :: Int ? v18 :: Int ? v19 :: Int ? z :: Int [[ fc(v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v31, v32, v33, v34, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45) ]] >-> LPE[Chan1, Chan2]({- v31 = -} fChan1v31(v10, z), {- v32 = -} 1 + v10, {- v33 = -} 1 + v10, {- v34 = -} 1 + v10, {- v35 = -} 1 + v10, {- v36 = -} 1 + v10, {- v37 = -} 1 + v10, {- v38 = -} fChan1v38(v10, z), {- v39 = -} fChan1v39(v10, z), {- v40 = -} 1 + v10, {- v41 = -} fChan1v41(v10, z), {- v42 = -} fChan1v42(v10, z), {- v43 = -} 1 + v10, {- v44 = -} 1 + v10, {- v45 = -} 1 + v10)
+     ##  Chan2 ? v10 :: Int ? v11 :: Int ? v12 :: Int ? v13 :: Int ? v14 :: Int ? v15 :: Int ? v16 :: Int ? v17 :: Int ? v18 :: Int ? v19 :: Int ? z :: Int [[ fc(v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v31, v32, v33, v34, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45) ]] >-> LPE[Chan1, Chan2]({- v31 = -} fChan2v31(v10, z), {- v32 = -} 1 + v10, {- v33 = -} 1 + v10, {- v34 = -} 1 + v10, {- v35 = -} 1 + v10, {- v36 = -} 1 + v10, {- v37 = -} 1 + v10, {- v38 = -} fChan2v38(v10, z), {- v39 = -} fChan2v39(v10, z), {- v40 = -} 1 + v10, {- v41 = -} fChan2v41(v10, z), {- v42 = -} fChan2v42(v10, z), {- v43 = -} 1 + v10, {- v44 = -} 1 + v10, {- v45 = -} 1 + v10)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN
+    CHAN OUT Chan1, Chan2
+    SYNC {Chan1}, {Chan2}
+    BEHAVIOUR LPE[Chan1, Chan2](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+ENDDEF
+

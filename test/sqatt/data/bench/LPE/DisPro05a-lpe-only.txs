@@ -1,33 +1,47 @@
--- LPE_proxyProcess --
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Finish was renamed to Chan1
+-- Job was renamed to Chan2
+-- Job2Proc was renamed to Chan3
+-- Finish$1 was renamed to v4
+-- Job$1 was renamed to v5
+-- Job$2 was renamed to v6
+-- Job2Proc$1 was renamed to v7
+-- Job2Proc$2 was renamed to v8
+-- pc$proxyProcess was renamed to v9
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op1$dispatcher$gnf1$Job$Dispatch$dispatcher$gnf1$x was renamed to v10
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op1$dispatcher$gnf1$Job$Dispatch$dispatcher$gnf1$y was renamed to v11
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op1$pc$dispatcher was renamed to v12
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$pc$processors was renamed to v13
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op1$pc$processor was renamed to v14
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op1$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v15
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op1$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v16
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op2$pc$processor was renamed to v17
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op2$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v18
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op2$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v19
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op3$pc$processor was renamed to v20
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op3$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v21
+-- proxyProcess$pre1$Finish$Job$Job2Proc$op2$processors$pre1$Start$Finish$op3$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v22
 CHANDEF ChanDefs
     ::= Chan1 :: Int
       ; Chan2 :: Int # Int
       ; Chan3 :: Int # Int
 ENDDEF
-PROCDEF LPE[Chan1 :: Int; Chan2 :: Int # Int; Chan3 :: Int # Int](v9 :: Int; v12 :: Int; v10 :: Int; v11 :: Int; v13 :: Int; v14 :: Int; v15 :: Int; v16 :: Int; v17 :: Int; v18 :: Int; v19 :: Int; v20 :: Int; v21 :: Int; v22 :: Int) ::=
-        Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v14) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, v12, v10, v11, 1, 0, v15, v16, v17, v18, v19, v20, v21, v22)
-     ## Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v17) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, v12, v10, v11, 1, v14, v15, v16, 0, v18, v19, v20, v21, v22)
-     ## Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v20) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, v12, v10, v11, 1, v14, v15, v16, v17, v18, v19, 0, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN ((0==v12) /\ IF (1==v13) THEN (1==v14) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 1, 0, v15, v16, v17, v18, v19, v20, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN ((0==v12) /\ IF (1==v13) THEN (1==v17) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 1, v14, v15, v16, 0, v18, v19, v20, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN ((0==v12) /\ IF (1==v13) THEN (1==v20) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 1, v14, v15, v16, v17, v18, v19, 0, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((0==v14) /\ (1==v17)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, v7, v8, 0, v18, v19, v20, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((0==v14) /\ (1==v20)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, v7, v8, v17, v18, v19, 0, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((0==v17) /\ (1==v14)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, v15, v16, 1, v7, v8, v20, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((0==v17) /\ (1==v20)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, v15, v16, 1, v7, v8, 0, v21, v22)
-     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((0==v20) /\ (1==v14)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, v15, v16, v17, v18, v19, 1, v7, v8)
-     ## Chan1 ? v4 :: Int | Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN ((0==v20) /\ (1==v17)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, v15, v16, 0, v18, v19, 1, v7, v8)
-     ## Chan2 ? v5 :: Int ? v6 :: Int [[ (0==v9) ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-     ## Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN (0==v12) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 1, v5, v6, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22)
-     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN ((0==v13) /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, 0, 0, 0, 0, 0, 1, v7, v8)
-     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN ((0==v13) /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 0, 0, 0, 1, v7, v8, 0, 0, 0)
-     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN ((0==v13) /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, v7, v8, 0, 0, 0, 0, 0, 0)
-     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN (0==v14) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, 1, v7, v8, v17, v18, v19, v20, v21, v22)
-     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN (0==v17) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, v15, v16, 1, v7, v8, v20, v21, v22)
-     ## Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN (0==v20) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](1, 0, v10, v11, 1, v14, v15, v16, v17, v18, v19, 1, v7, v8)
+PROCDEF LPE[Chan1 :: Int; Chan2 :: Int # Int; Chan3 :: Int # Int](v9 :: Int; v10 :: Int; v11 :: Int; v12 :: Int; v13 :: Int; v14 :: Int; v15 :: Int; v16 :: Int; v17 :: Int; v18 :: Int; v19 :: Int; v20 :: Int; v21 :: Int; v22 :: Int) ::=
+         Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v14) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} v12, {- v13 = -} 1, {- v14 = -} 0, {- v15 = -} v15, {- v16 = -} v16, {- v17 = -} v17, {- v18 = -} v18, {- v19 = -} v19, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22)
+     ##  Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v17) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} v12, {- v13 = -} 1, {- v14 = -} v14, {- v15 = -} v15, {- v16 = -} v16, {- v17 = -} 0, {- v18 = -} v18, {- v19 = -} v19, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22)
+     ##  Chan1 ? v4 :: Int [[ IF (1==v9) THEN IF (1==v13) THEN (1==v20) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} v12, {- v13 = -} 1, {- v14 = -} v14, {- v15 = -} v15, {- v16 = -} v16, {- v17 = -} v17, {- v18 = -} v18, {- v19 = -} v19, {- v20 = -} 0, {- v21 = -} v21, {- v22 = -} v22)
+     ##  Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN ((0==v13) /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} 0, {- v13 = -} 1, {- v14 = -} 0, {- v15 = -} 0, {- v16 = -} 0, {- v17 = -} 0, {- v18 = -} 0, {- v19 = -} 0, {- v20 = -} 1, {- v21 = -} v7, {- v22 = -} v8)
+     ##  Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN ((0==v13) /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} 0, {- v13 = -} 1, {- v14 = -} 0, {- v15 = -} 0, {- v16 = -} 0, {- v17 = -} 1, {- v18 = -} v7, {- v19 = -} v8, {- v20 = -} 0, {- v21 = -} 0, {- v22 = -} 0)
+     ##  Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN ((0==v13) /\ IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} 0, {- v13 = -} 1, {- v14 = -} 1, {- v15 = -} v7, {- v16 = -} v8, {- v17 = -} 0, {- v18 = -} 0, {- v19 = -} 0, {- v20 = -} 0, {- v21 = -} 0, {- v22 = -} 0)
+     ##  Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN (0==v14) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} 0, {- v13 = -} 1, {- v14 = -} 1, {- v15 = -} v7, {- v16 = -} v8, {- v17 = -} v17, {- v18 = -} v18, {- v19 = -} v19, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22)
+     ##  Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN (0==v17) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} 0, {- v13 = -} 1, {- v14 = -} v14, {- v15 = -} v15, {- v16 = -} v16, {- v17 = -} 1, {- v18 = -} v7, {- v19 = -} v8, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22)
+     ##  Chan3 ? v7 :: Int ? v8 :: Int [[ IF (1==v9) THEN (IF (1==v12) THEN ((v7==v10) /\ (v8==v11)) ELSE False FI /\ IF (1==v13) THEN (0==v20) ELSE False FI) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} 0, {- v13 = -} 1, {- v14 = -} v14, {- v15 = -} v15, {- v16 = -} v16, {- v17 = -} v17, {- v18 = -} v18, {- v19 = -} v19, {- v20 = -} 1, {- v21 = -} v7, {- v22 = -} v8)
+     ##  Chan2 ? v5 :: Int ? v6 :: Int [[ (0==v9) ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v5, {- v11 = -} v6, {- v12 = -} 1, {- v13 = -} 0, {- v14 = -} 0, {- v15 = -} 0, {- v16 = -} 0, {- v17 = -} 0, {- v18 = -} 0, {- v19 = -} 0, {- v20 = -} 0, {- v21 = -} 0, {- v22 = -} 0)
+     ##  Chan2 ? v5 :: Int ? v6 :: Int [[ IF (1==v9) THEN (0==v12) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} 1, {- v10 = -} v5, {- v11 = -} v6, {- v12 = -} 1, {- v13 = -} v13, {- v14 = -} v14, {- v15 = -} v15, {- v16 = -} v16, {- v17 = -} v17, {- v18 = -} v18, {- v19 = -} v19, {- v20 = -} v20, {- v21 = -} v21, {- v22 = -} v22)
 ENDDEF
 MODELDEF Model ::=
     CHAN IN Chan2
     CHAN OUT Chan1, Chan3
+    SYNC {Chan1}, {Chan2}, {Chan3}
     BEHAVIOUR LPE[Chan1, Chan2, Chan3](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 ENDDEF

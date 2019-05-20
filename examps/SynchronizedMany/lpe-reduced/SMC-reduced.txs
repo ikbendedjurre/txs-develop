@@ -1,0 +1,51 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Channel1 was renamed to Chan1
+-- Channel2 was renamed to Chan2
+-- Channel3 was renamed to Chan3
+-- Channel4 was renamed to Chan4
+-- Channel5 was renamed to Chan5
+-- Channel6 was renamed to Chan6
+-- Channel7 was renamed to Chan7
+-- Channel8 was renamed to Chan8
+-- Channel9 was renamed to Chan9
+-- pc$proxyProcess was renamed to v10
+-- proxyProcess$pre1$Channel1$Channel2$Channel3$Channel4$Channel5$Channel6$Channel7$Channel8$Channel9$op1$pc$specSynchronizedMany was renamed to v11
+-- proxyProcess$pre1$Channel1$Channel2$Channel3$Channel4$Channel5$Channel6$Channel7$Channel8$Channel9$op1$specSynchronizedMany$pre1$Channel1$Channel2$Channel3$Channel4$Channel5$Channel6$Channel7$Channel8$Channel9$op1$pc$specSynchronizedMany$pre1$op1 was renamed to v12
+-- proxyProcess$pre1$Channel1$Channel2$Channel3$Channel4$Channel5$Channel6$Channel7$Channel8$Channel9$op1$specSynchronizedMany$pre1$Channel1$Channel2$Channel3$Channel4$Channel5$Channel6$Channel7$Channel8$Channel9$op2$pc$specSynchronizedMany$pre1$op2 was renamed to v13
+CHANDEF ChanDefs
+    ::= Chan1
+      ; Chan2
+      ; Chan3
+      ; Chan4
+      ; Chan5
+      ; Chan6
+      ; Chan7
+      ; Chan8
+      ; Chan9
+ENDDEF
+PROCDEF LPE[Chan1; Chan2; Chan3; Chan4; Chan5; Chan6; Chan7; Chan8; Chan9](v10 :: Int; v11 :: Int; v12 :: Int; v13 :: Int) ::=
+         Chan1 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan1 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan2 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan2 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan3 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan3 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan4 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan4 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan5 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan5 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan6 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan6 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan7 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan7 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan8 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan8 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan9 [[ (0==v10) ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+     ##  Chan9 [[ IF (1==v10) THEN IF (1==v11) THEN ((1==v12) /\ (1==v13)) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9]({- v10 = -} 1, {- v11 = -} 1, {- v12 = -} 1, {- v13 = -} 1)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN
+    CHAN OUT Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9
+    SYNC {Chan1}, {Chan2}, {Chan3}, {Chan4}, {Chan5}, {Chan6}, {Chan7}, {Chan8}, {Chan9}
+    BEHAVIOUR LPE[Chan1, Chan2, Chan3, Chan4, Chan5, Chan6, Chan7, Chan8, Chan9](0, 0, 0, 0)
+ENDDEF

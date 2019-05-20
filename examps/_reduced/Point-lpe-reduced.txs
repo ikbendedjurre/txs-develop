@@ -1,0 +1,35 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Point was renamed to Sort1_Point
+-- Point was renamed to Cstr2_Point
+-- inRange was renamed to f3_inRange
+-- validPoint was renamed to f4_validPoint
+-- x was renamed to f5_x
+-- y was renamed to f6_y
+-- In was renamed to Chan7
+-- Out was renamed to Chan8
+-- In$118 was renamed to v9
+-- In$119 was renamed to v10
+-- Out$121 was renamed to v11
+-- allowedBehaviour$gnf1$In$Out$allowedBehaviour$gnf1$p1 was renamed to v12
+-- p was renamed to v13
+-- p1 was renamed to v14
+-- p2 was renamed to v15
+-- pc$proxyProcess was renamed to v16
+TYPEDEF Sort1_Point ::= Cstr2_Point { f5_x :: Int; f6_y :: Int } ENDDEF
+FUNCDEF f3_inRange(v14 :: Sort1_Point; v15 :: Sort1_Point) :: Bool ::= not((not((f5_x(v14)==f5_x(v15))) /\ not((f6_y(v14)==f6_y(v15))))) ENDDEF
+FUNCDEF f4_validPoint(v13 :: Sort1_Point) :: Bool ::= (not((0==f5_x(v13))) /\ not((0==f6_y(v13)))) ENDDEF
+CHANDEF ChanDefs
+    ::= Chan7 :: Sort1_Point
+      ; Chan8 :: Sort1_Point
+ENDDEF
+PROCDEF LPE[Chan7 :: Sort1_Point; Chan8 :: Sort1_Point](v12 :: Sort1_Point; v16 :: Int) ::=
+         Chan7 ? v9 :: Sort1_Point [[ IF (0==v16) THEN f4_validPoint(v9) ELSE False FI ]] >-> LPE[Chan7, Chan8]({- v12 = -} v9, {- v16 = -} 1)
+     ##  Chan7 ? v10 :: Sort1_Point [[ IF (2==v16) THEN f4_validPoint(v10) ELSE False FI ]] >-> LPE[Chan7, Chan8]({- v12 = -} v10, {- v16 = -} 1)
+     ##  Chan8 ? v11 :: Sort1_Point [[ IF (1==v16) THEN (f3_inRange(v12, v11) /\ f4_validPoint(v11)) ELSE False FI ]] >-> LPE[Chan7, Chan8]({- v12 = -} Cstr2_Point(0, 0), {- v16 = -} 2)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan7
+    CHAN OUT Chan8
+    SYNC {Chan7}, {Chan8}
+    BEHAVIOUR LPE[Chan7, Chan8](Cstr2_Point(0, 0), 0)
+ENDDEF

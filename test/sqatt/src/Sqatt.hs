@@ -341,8 +341,7 @@ runTxsWithExample mLogDir ex delay = Concurrently $ do
     cmdsFile = txsCmdsFiles ex
     searchStr = expectedMessage . expectedResult $ ex
     tErr = TestExpectationError $
-              format ("Did not get expected result "%s)
-                     (repr . expectedResult $ ex)
+              T.pack (T.unpack (format ("Did not get expected result "%s) (repr . expectedResult $ ex)) ++ (" (log directory: " ++ show mLogDir ++ ""))
     txsServerProc sLogDir =
       runInprocNI ((</> "txsserver.out.log") <$> sLogDir) txsServerCmd
 

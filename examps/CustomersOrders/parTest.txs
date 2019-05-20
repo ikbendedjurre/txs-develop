@@ -1,0 +1,23 @@
+
+
+PROCDEF p1 [ A, B ] () ::=
+        A >-> p1 [ A, B ] ()
+    -- ##  B >-> p1 [ A, B ] ()
+ENDDEF
+
+PROCDEF p2 [ C; D ] () ::=
+        C >-> p2 [ C, D ] ()
+    -- ##  D >-> p2 [ C, D ] ()
+ENDDEF
+
+CHANDEF Chans ::=
+    X; Y; Z; Q
+ENDDEF
+
+MODELDEF Model ::=
+    CHAN IN X, Q
+    CHAN OUT Z, Y
+    SYNC {Z}, {Z|Y}
+    BEHAVIOUR p1 [ Z, Q ] () |[ Q ]| p2 [ Y, Q ] ()
+ENDDEF
+

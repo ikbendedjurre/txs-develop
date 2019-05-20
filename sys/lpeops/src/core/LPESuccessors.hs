@@ -17,6 +17,8 @@ See LICENSE at root directory of this repository.
 module LPESuccessors (
 isPossibleSuccessor,
 getPossibleSuccessors,
+LPEPossibleSuccessorMap,
+getPossibleSuccessorMap,
 isDefiniteSuccessor,
 getDefiniteSuccessors,
 isPossiblePredecessor,
@@ -52,6 +54,18 @@ isPossibleSuccessor summand invariant candidate = do
 getPossibleSuccessors :: LPESummands -> TxsDefs.VExpr -> LPESummand -> IOC.IOC [LPESummand]
 getPossibleSuccessors summands invariant summand =
     Monad.filterM (isPossibleSuccessor summand invariant) (Set.toList summands)
+-- getPossibleSuccessors
+
+type LPEPossibleSuccessorMap = Map.Map LPESummand (Set.Set LPESummand)
+
+getPossibleSuccessorMap :: LPE -> TxsDefs.VExpr -> IOC.IOC LPEPossibleSuccessorMap
+getPossibleSuccessorMap lpe invariant =
+    Map.fromList <$> Monad.mapM getKeyValuePair (Set.toList (lpeSummands lpe))
+  where
+    getKeyValuePair :: LPESummand -> IOC.IOC (LPESummand, Set.Set LPESummand)
+    getKeyValuePair summand = do
+      value <- Set.fromList <$> getPossibleSuccessors (lpeSummands lpe) invariant summand
+      return (summand, value)
 -- getPossibleSuccessors
 
 isDefiniteSuccessor :: LPESummand -> TxsDefs.VExpr -> LPESummand -> IOC.IOC Bool

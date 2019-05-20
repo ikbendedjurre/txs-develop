@@ -1,0 +1,19 @@
+
+
+
+
+CHANDEF ChanDefs
+    ::= Chan1 :: Int
+      ; Chan2 :: Int
+ENDDEF
+PROCDEF LPE[Chan1 :: Int; Chan2 :: Int](v31 :: Int; v32 :: Int; v33 :: Int; v34 :: Int; v35 :: Int; v36 :: Int; v37 :: Int; v38 :: Int; v39 :: Int; v40 :: Int; v41 :: Int; v42 :: Int; v43 :: Int; v44 :: Int; v45 :: Int) ::=
+         Chan1 ? v4 :: Int [[ True ]] >-> LPE[Chan1, Chan2]({- v31 = -} 1 + v4, {- v32 = -} 1 + v4, {- v33 = -} 1 + v4, {- v34 = -} 1 + v4, {- v35 = -} 1 + v4, {- v36 = -} 1 + v4, {- v37 = -} 1 + v4, {- v38 = -} 1 + v4, {- v39 = -} 1 + v4, {- v40 = -} 1 + v4, {- v41 = -} 1 + v4, {- v42 = -} 1 + v4, {- v43 = -} 1 + v4, {- v44 = -} 1 + v4, {- v45 = -} 1 + v4)
+     ##  Chan2 ? v5 :: Int [[ True ]] >-> LPE[Chan1, Chan2]({- v31 = -} 2 + v5, {- v32 = -} 2 + v5, {- v33 = -} 2 + v5, {- v34 = -} 2 + v5, {- v35 = -} 2 + v5, {- v36 = -} 2 + v5, {- v37 = -} 2 + v5, {- v38 = -} 2 + v5, {- v39 = -} 2 + v5, {- v40 = -} 2 + v5, {- v41 = -} 2 + v5, {- v42 = -} 2 + v5, {- v43 = -} 2 + v5, {- v44 = -} 2 + v5, {- v45 = -} 2 + v5)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN
+    CHAN OUT Chan1, Chan2
+    SYNC {Chan1}, {Chan2}
+    BEHAVIOUR LPE[Chan1, Chan2](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+ENDDEF
+

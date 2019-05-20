@@ -1,0 +1,75 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- ISTEP was renamed to Chan1
+-- Read was renamed to Chan2
+-- Write was renamed to Chan3
+-- Read$1153 was renamed to v4
+-- Read$1154 was renamed to v5
+-- Read$1155 was renamed to v6
+-- Read$1156 was renamed to v7
+-- Read$1157 was renamed to v8
+-- Read$1158 was renamed to v9
+-- Read$1159 was renamed to v10
+-- Read$1160 was renamed to v11
+-- Read$1161 was renamed to v12
+-- Read$1162 was renamed to v13
+-- Read$1163 was renamed to v14
+-- Read$1164 was renamed to v15
+-- Read$1165 was renamed to v16
+-- Write$1167 was renamed to v17
+-- Write$1168 was renamed to v18
+-- Write$1169 was renamed to v19
+-- Write$1170 was renamed to v20
+-- pc$proxyProcess was renamed to v21
+-- system$pre1$Read$Write$op1$memory$Read$Write$value was renamed to v22
+-- system$pre1$Read$Write$op1$pc$memory was renamed to v23
+-- system$pre1$Read$Write$op2$pc$readWrite was renamed to v24
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$pc$readWrite$pre1$lhs was renamed to v25
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op1$pc$plus was renamed to v26
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op1$plus$Read$Write$n was renamed to v27
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op1$plus$gnf1$Read$Write$plus$gnf1$n was renamed to v28
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op1$plus$gnf1$Read$Write$plus$gnf1$value was renamed to v29
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op1$plus$gnf1$gnf1$Read$Write$plus$gnf1$gnf1$plus$gnf1$n was renamed to v30
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op1$plus$gnf1$gnf1$Read$Write$plus$gnf1$gnf1$plus$gnf1$value was renamed to v31
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op2$pc$plus was renamed to v32
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op2$plus$Read$Write$n was renamed to v33
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op2$plus$gnf1$Read$Write$plus$gnf1$n was renamed to v34
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op2$plus$gnf1$Read$Write$plus$gnf1$value was renamed to v35
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op2$plus$gnf1$gnf1$Read$Write$plus$gnf1$gnf1$plus$gnf1$n was renamed to v36
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op2$plus$gnf1$gnf1$Read$Write$plus$gnf1$gnf1$plus$gnf1$value was renamed to v37
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op3$pc$plus was renamed to v38
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op3$plus$Read$Write$n was renamed to v39
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op3$plus$gnf1$Read$Write$plus$gnf1$n was renamed to v40
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op3$plus$gnf1$Read$Write$plus$gnf1$value was renamed to v41
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op3$plus$gnf1$gnf1$Read$Write$plus$gnf1$gnf1$plus$gnf1$n was renamed to v42
+-- system$pre1$Read$Write$op2$readWrite$pre1$Read$Write$readWrite$pre1$lhs$pre1$Read$Write$op3$plus$gnf1$gnf1$Read$Write$plus$gnf1$gnf1$plus$gnf1$value was renamed to v43
+-- system$pre1$Read$Write$op2$readWrite$pre1$rhs$gnf1$Read$Write$readWrite$pre1$rhs$gnf1$value was renamed to v44
+CHANDEF ChanDefs
+    ::= Chan2 :: Int
+      ; Chan3 :: Int
+ENDDEF
+PROCDEF LPE[Chan2 :: Int; Chan3 :: Int](v21 :: Int; v22 :: Int; v23 :: Int; v24 :: Int; v25 :: Int; v26 :: Int; v27 :: Int; v28 :: Int; v29 :: Int; v30 :: Int; v31 :: Int; v32 :: Int; v33 :: Int; v34 :: Int; v35 :: Int; v36 :: Int; v37 :: Int; v38 :: Int; v39 :: Int; v40 :: Int; v41 :: Int; v42 :: Int; v43 :: Int; v44 :: Int) ::=
+         ISTEP [[ IF (1==v21) THEN IF (1==v24) THEN IF (1==v25) THEN ((2==v26) /\ (2==v32) /\ (2==v38)) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} v23, {- v24 = -} 2, {- v25 = -} v25, {- v26 = -} v26, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} v32, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44)
+     ##  Chan2 ? v4 :: Int [[ IF (0==v21) THEN (0==v4) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} 0, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 0, {- v27 = -} 1, {- v28 = -} 0, {- v29 = -} 0, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 0, {- v33 = -} 2, {- v34 = -} 0, {- v35 = -} 0, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 1, {- v39 = -} 4, {- v40 = -} 4, {- v41 = -} v4, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} 0)
+     ##  Chan2 ? v5 :: Int [[ IF (0==v21) THEN (0==v5) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} 0, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 0, {- v27 = -} 1, {- v28 = -} 0, {- v29 = -} 0, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 1, {- v33 = -} 2, {- v34 = -} 2, {- v35 = -} v5, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 4, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} 0)
+     ##  Chan2 ? v6 :: Int [[ IF (0==v21) THEN (0==v6) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} 0, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 1, {- v27 = -} 1, {- v28 = -} 1, {- v29 = -} v6, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 0, {- v33 = -} 2, {- v34 = -} 0, {- v35 = -} 0, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 4, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} 0)
+     ##  Chan2 ? v7 :: Int [[ IF (1==v21) THEN ((0==v24) /\ IF (0==v23) THEN (v7==v22) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 0, {- v27 = -} 1, {- v28 = -} 0, {- v29 = -} 0, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 0, {- v33 = -} 2, {- v34 = -} 0, {- v35 = -} 0, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 1, {- v39 = -} 4, {- v40 = -} 4, {- v41 = -} v7, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} v44)
+     ##  Chan2 ? v8 :: Int [[ IF (1==v21) THEN ((0==v24) /\ IF (0==v23) THEN (v8==v22) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 0, {- v27 = -} 1, {- v28 = -} 0, {- v29 = -} 0, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 1, {- v33 = -} 2, {- v34 = -} 2, {- v35 = -} v8, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 4, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} v44)
+     ##  Chan2 ? v9 :: Int [[ IF (1==v21) THEN ((0==v24) /\ IF (0==v23) THEN (v9==v22) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 1, {- v27 = -} 1, {- v28 = -} 1, {- v29 = -} v9, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 0, {- v33 = -} 2, {- v34 = -} 0, {- v35 = -} 0, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 4, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} v44)
+     ##  Chan2 ? v10 :: Int [[ IF (1==v21) THEN ((2==v24) /\ IF (0==v23) THEN (v10==v22) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 3, {- v25 = -} v25, {- v26 = -} v26, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} v32, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v10)
+     ##  Chan2 ? v11 :: Int [[ IF (1==v21) THEN (IF (0==v23) THEN (v11==v22) ELSE False FI /\ IF (1==v24) THEN (0==v25) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 0, {- v27 = -} 1, {- v28 = -} 0, {- v29 = -} 0, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 0, {- v33 = -} 2, {- v34 = -} 0, {- v35 = -} 0, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 1, {- v39 = -} 4, {- v40 = -} 4, {- v41 = -} v11, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} v44)
+     ##  Chan2 ? v12 :: Int [[ IF (1==v21) THEN (IF (0==v23) THEN (v12==v22) ELSE False FI /\ IF (1==v24) THEN (0==v25) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 0, {- v27 = -} 1, {- v28 = -} 0, {- v29 = -} 0, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 1, {- v33 = -} 2, {- v34 = -} 2, {- v35 = -} v12, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 4, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} v44)
+     ##  Chan2 ? v13 :: Int [[ IF (1==v21) THEN (IF (0==v23) THEN (v13==v22) ELSE False FI /\ IF (1==v24) THEN (0==v25) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 1, {- v27 = -} 1, {- v28 = -} 1, {- v29 = -} v13, {- v30 = -} 0, {- v31 = -} 0, {- v32 = -} 0, {- v33 = -} 2, {- v34 = -} 0, {- v35 = -} 0, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 4, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} v44)
+     ##  Chan2 ? v14 :: Int [[ IF (1==v21) THEN (IF (0==v23) THEN (v14==v22) ELSE False FI /\ IF (1==v24) THEN IF (1==v25) THEN (0==v26) ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 1, {- v27 = -} v27, {- v28 = -} v27, {- v29 = -} v14, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} v32, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44)
+     ##  Chan2 ? v15 :: Int [[ IF (1==v21) THEN (IF (0==v23) THEN (v15==v22) ELSE False FI /\ IF (1==v24) THEN IF (1==v25) THEN (0==v32) ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} v26, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v33, {- v35 = -} v15, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44)
+     ##  Chan2 ? v16 :: Int [[ IF (1==v21) THEN (IF (0==v23) THEN (v16==v22) ELSE False FI /\ IF (1==v24) THEN IF (1==v25) THEN (0==v38) ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v22, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} v26, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} v32, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} 1, {- v39 = -} v39, {- v40 = -} v39, {- v41 = -} v16, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44)
+     ##  Chan3 ? v17 :: Int [[ IF (1==v21) THEN ((0==v23) /\ IF (1==v24) THEN IF (1==v25) THEN IF (1==v26) THEN (v17==((v28)+(v29))) ELSE False FI ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v17, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} 2, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v28, {- v31 = -} v29, {- v32 = -} v32, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44)
+     ##  Chan3 ? v18 :: Int [[ IF (1==v21) THEN ((0==v23) /\ IF (1==v24) THEN IF (1==v25) THEN IF (1==v32) THEN (v18==((v34)+(v35))) ELSE False FI ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v18, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} v26, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} 2, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v34, {- v37 = -} v35, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44)
+     ##  Chan3 ? v19 :: Int [[ IF (1==v21) THEN ((0==v23) /\ IF (1==v24) THEN IF (1==v25) THEN IF (1==v38) THEN (v19==((v40)+(v41))) ELSE False FI ELSE False FI ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v19, {- v23 = -} 0, {- v24 = -} 1, {- v25 = -} 1, {- v26 = -} v26, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} v32, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} 2, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v40, {- v43 = -} v41, {- v44 = -} v44)
+     ##  Chan3 ? v20 :: Int [[ IF (1==v21) THEN ((0==v23) /\ IF (3==v24) THEN (0==v20) ELSE False FI) ELSE False FI ]] >-> LPE[Chan2, Chan3]({- v21 = -} 1, {- v22 = -} v20, {- v23 = -} 0, {- v24 = -} 0, {- v25 = -} v25, {- v26 = -} v26, {- v27 = -} v27, {- v28 = -} v28, {- v29 = -} v29, {- v30 = -} v30, {- v31 = -} v31, {- v32 = -} v32, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN
+    CHAN OUT Chan2, Chan3
+    SYNC {Chan2}, {Chan3}
+    BEHAVIOUR LPE[Chan2, Chan3](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+ENDDEF

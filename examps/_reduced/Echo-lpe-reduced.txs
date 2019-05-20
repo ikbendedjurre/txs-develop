@@ -1,0 +1,23 @@
+-- LPE_proxyModel_LPE_proxyProcess --
+-- In was renamed to Chan1
+-- Out was renamed to Chan2
+-- In$118 was renamed to v3
+-- In$119 was renamed to v4
+-- Out$121 was renamed to v5
+-- pc$proxyProcess was renamed to v6
+-- proc$gnf1$In$Out$proc$gnf1$x was renamed to v7
+CHANDEF ChanDefs
+    ::= Chan1 :: Int
+      ; Chan2 :: Int
+ENDDEF
+PROCDEF LPE[Chan1 :: Int; Chan2 :: Int](v6 :: Int; v7 :: Int) ::=
+         Chan1 ? v3 :: Int [[ (0==v6) ]] >-> LPE[Chan1, Chan2]({- v6 = -} 1, {- v7 = -} v3)
+     ##  Chan1 ? v4 :: Int [[ (2==v6) ]] >-> LPE[Chan1, Chan2]({- v6 = -} 1, {- v7 = -} v4)
+     ##  Chan2 ? v5 :: Int [[ IF (1==v6) THEN (v5==v7) ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v6 = -} 2, {- v7 = -} 0)
+ENDDEF
+MODELDEF Model ::=
+    CHAN IN Chan1
+    CHAN OUT Chan2
+    SYNC {Chan1}, {Chan2}
+    BEHAVIOUR LPE[Chan1, Chan2](0, 0)
+ENDDEF

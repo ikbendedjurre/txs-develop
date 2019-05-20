@@ -50,6 +50,8 @@ library
                     , LPEPrettyPrint
                     , LPESuccessors
                     , LPEStepper
+                    , LPEStepper2
+                    , LPEInfo
                     , Satisfiability
                     , ValExprVisitor
                     , ModelIdFactory
@@ -77,6 +79,7 @@ library
                       , defs
                       , bexpr
                       , valexpr
+                      , value
 
   default-language:     Haskell2010
 
@@ -115,6 +118,7 @@ test-suite lpeops-test
                       , UntilFixpoint
                       , LPEConfCheck
                       , LPEIsDet
+                      , LPEInfo
                       -- , LPEAngelic
                       -- , LPEDeterminize
                       , LPE2MCRL2
@@ -123,6 +127,7 @@ test-suite lpeops-test
                       , LPEPrettyPrint
                       , LPESuccessors
                       , LPEStepper
+                      , LPEStepper2
                       , Satisfiability
                       , ValExprVisitor
                       , ModelIdFactory
@@ -157,5 +162,6 @@ test-suite lpeops-test
                      , defs
                      , bexpr
                      , valexpr
+                     , value
 
   default-language:    Haskell2010

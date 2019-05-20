@@ -66,14 +66,14 @@ Table~\ref{lperewriteopsprops:table} shows the equivalence that is preserved by 
 \begin{center}
 \begin{tabularx}{\linewidth}{l|X|}
 \textbf{Operation} & \textbf{Description} \\ \hline
-\texttt{clean} & Remove summands of which it can be established that its behavior is also part of another summand in the same LPE; and remove summands of which it can be established via symbolic reachability that they cannot be reached from the input LPE. \\ \hline
-\texttt{cstelm} & Remove parameters of which it can be established that their value never changes from the input LPE. \\ \hline
-\texttt{parelm} & Remove parameters of which it can be established that their value is never used from the input LPE. \\ \hline
+\texttt{clean} & Remove summands of which it can be established that its behavior is also part of another summand in the same LPE; and remove summands of which it can be established via symbolic reachability that they cannot be reached from the initial state. \\ \hline
+\texttt{cstelm} & Remove parameters of which it can be established that their value never changes. \\ \hline
+\texttt{parelm} & Remove parameters of which it can be established that their value never affects the behavior of the LPE. \\ \hline
 \texttt{parreset} & Set parameters of which it can be established via symbolic reachability that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
 \texttt{datareset} & Set parameters of which it can be established via control-flow analysis that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
 \texttt{confelm} & Rewrite the input LPE so that confluent \texttt{ISTEP} summands are prioritized. \\ \hline
 \texttt{det} & \textit{Experimental.} Rewrite the input LPE in an attempt to reduce non-determinism. By design, \texttt{det} does not generally remove all non-determinism in one execution because it may not terminate (so use with \texttt{loop}). \\ \hline
-\texttt{uguard} & \textit{Experimental.} Search for underspecified summands and remove them from the input LPE. \\ \hline
+\texttt{uguard} & \textit{Experimental.} Search for underspecified summands and remove them. \\ \hline
 \end{tabularx}
 \caption{LPE rewrite operations.}
 \label{lperewriteops:table}

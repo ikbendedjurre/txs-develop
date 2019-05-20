@@ -1,15 +1,19 @@
--- LPE_proxyProcess --
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Finish was renamed to Chan1
+-- Start was renamed to Chan2
+-- pc$proxyProcess was renamed to v3
 CHANDEF ChanDefs
     ::= Chan1
       ; Chan2
 ENDDEF
 PROCDEF LPE[Chan1; Chan2](v3 :: Int) ::=
-        Chan1 [[ (1==v3) ]] >-> LPE[Chan1, Chan2](2)
-     ## Chan2 [[ (0==v3) ]] >-> LPE[Chan1, Chan2](1)
-     ## Chan2 [[ (2==v3) ]] >-> LPE[Chan1, Chan2](1)
+         Chan1 [[ (1==v3) ]] >-> LPE[Chan1, Chan2]({- v3 = -} 2)
+     ##  Chan2 [[ (0==v3) ]] >-> LPE[Chan1, Chan2]({- v3 = -} 1)
+     ##  Chan2 [[ (2==v3) ]] >-> LPE[Chan1, Chan2]({- v3 = -} 1)
 ENDDEF
 MODELDEF Model ::=
     CHAN IN Chan2
     CHAN OUT Chan1
+    SYNC {Chan1}, {Chan2}
     BEHAVIOUR LPE[Chan1, Chan2](0)
 ENDDEF

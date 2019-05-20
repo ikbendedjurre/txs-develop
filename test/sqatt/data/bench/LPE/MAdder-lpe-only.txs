@@ -1,19 +1,33 @@
--- LPE_proxyProcess --
+-- LPE_proxyModel_LPE_proxyProcess --
+-- Minus was renamed to Chan1
+-- Plus was renamed to Chan2
+-- Result was renamed to Chan3
+-- Minus$1 was renamed to v4
+-- Minus$2 was renamed to v5
+-- Plus$1 was renamed to v6
+-- Plus$2 was renamed to v7
+-- Result$1 was renamed to v8
+-- adder$gnf1$Plus$Minus$Result$adder$gnf1$x was renamed to v9
+-- adder$gnf1$Plus$Minus$Result$adder$gnf1$y was renamed to v10
+-- adder$gnf2$Plus$Minus$Result$adder$gnf2$x was renamed to v11
+-- adder$gnf2$Plus$Minus$Result$adder$gnf2$y was renamed to v12
+-- pc$proxyProcess was renamed to v13
 CHANDEF ChanDefs
     ::= Chan1 :: Int # Int
       ; Chan2 :: Int # Int
       ; Chan3 :: Int
 ENDDEF
-PROCDEF LPE[Chan1 :: Int # Int; Chan2 :: Int # Int; Chan3 :: Int](v13 :: Int; v9 :: Int; v10 :: Int; v11 :: Int; v12 :: Int) ::=
-        Chan1 ? v4 :: Int ? v5 :: Int [[ (0==v13) ]] >-> LPE[Chan1, Chan2, Chan3](1, v4, v5, v11, v12)
-     ## Chan1 ? v4 :: Int ? v5 :: Int [[ (2==v13) ]] >-> LPE[Chan1, Chan2, Chan3](1, v4, v5, v11, v12)
-     ## Chan2 ? v6 :: Int ? v7 :: Int [[ (0==v13) ]] >-> LPE[Chan1, Chan2, Chan3](3, v9, v10, v6, v7)
-     ## Chan2 ? v6 :: Int ? v7 :: Int [[ (2==v13) ]] >-> LPE[Chan1, Chan2, Chan3](3, v9, v10, v6, v7)
-     ## Chan3 ? v8 :: Int [[ IF (1==v13) THEN (v8==((v9)+(v10*(-1)))) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](2, v9, v10, v11, v12)
-     ## Chan3 ? v8 :: Int [[ IF (3==v13) THEN (v8==((v11)+(v12))) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3](2, v9, v10, v11, v12)
+PROCDEF LPE[Chan1 :: Int # Int; Chan2 :: Int # Int; Chan3 :: Int](v9 :: Int; v10 :: Int; v11 :: Int; v12 :: Int; v13 :: Int) ::=
+         Chan1 ? v4 :: Int ? v5 :: Int [[ (0==v13) ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} v4, {- v10 = -} v5, {- v11 = -} v11, {- v12 = -} v12, {- v13 = -} 1)
+     ##  Chan1 ? v4 :: Int ? v5 :: Int [[ (2==v13) ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} v4, {- v10 = -} v5, {- v11 = -} v11, {- v12 = -} v12, {- v13 = -} 1)
+     ##  Chan2 ? v6 :: Int ? v7 :: Int [[ (0==v13) ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} v9, {- v10 = -} v10, {- v11 = -} v6, {- v12 = -} v7, {- v13 = -} 3)
+     ##  Chan2 ? v6 :: Int ? v7 :: Int [[ (2==v13) ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} v9, {- v10 = -} v10, {- v11 = -} v6, {- v12 = -} v7, {- v13 = -} 3)
+     ##  Chan3 ? v8 :: Int [[ IF (1==v13) THEN (v8==((v9)+(v10*(-1)))) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} v9, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} v12, {- v13 = -} 2)
+     ##  Chan3 ? v8 :: Int [[ IF (3==v13) THEN (v8==((v11)+(v12))) ELSE False FI ]] >-> LPE[Chan1, Chan2, Chan3]({- v9 = -} v9, {- v10 = -} v10, {- v11 = -} v11, {- v12 = -} v12, {- v13 = -} 2)
 ENDDEF
 MODELDEF Model ::=
     CHAN IN Chan1, Chan2
     CHAN OUT Chan3
+    SYNC {Chan1}, {Chan2}, {Chan3}
     BEHAVIOUR LPE[Chan1, Chan2, Chan3](0, 0, 0, 0, 0)
 ENDDEF
