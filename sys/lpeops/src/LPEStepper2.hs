@@ -73,6 +73,7 @@ doLPESteps lpe states lastSmd possibleSuccessorMap n stepNr = do
               Nothing -> IOC.putMsgs [ EnvData.TXS_CORE_ANY ("DEADLOCK") ]
   where
     showChans :: LPEParamEqs -> [(ChanId.ChanId, [VarId.VarId])] -> String
+    showChans _ [] = "ISTEP"
     showChans sol vidsPerCid = List.intercalate " | " (map (showChan sol) vidsPerCid)
     
     showChan :: LPEParamEqs -> (ChanId.ChanId, [VarId.VarId]) -> String
@@ -93,9 +94,11 @@ getRandomNextStates lpe currentStates lastSmd possibleSuccessorMap = do
     shuffledSmds <- MonadState.liftIO $ knuthShuffle (Set.toList (getEnabledSummands lastSmd))
     maybeSES <- getSummandEnablingState shuffledStates shuffledSmds
     case maybeSES of
-      Just (state, smd, sol) -> do let solState = Map.union sol state
-                                   nextStates <- Monad.mapM (getStateAfterSummand smd solState) shuffledSmds
-                                   return (Just (smd, sol, Set.fromList (concat nextStates)))
+      Just (_state, smd, sol) -> do nextStates <- getStatesAfterSummand smd (Set.toList currentStates) sol
+                                    return (Just (smd, sol, Set.fromList nextStates))
+                                   -- let solState = Map.union sol state
+                                   -- nextStates <- Monad.mapM (getStateAfterSummand smd solState) shuffledSmds
+                                   -- return (Just (smd, sol, Set.fromList (concat nextStates)))
       Nothing -> return Nothing
   where
     getEnabledSummands :: Maybe LPESummand -> LPESummands
@@ -120,6 +123,14 @@ getRandomNextStates lpe currentStates lastSmd possibleSuccessorMap = do
           SolveDefs.Solved solMap -> return (Just (smd, solutionToParamEqs solMap))
           _ -> getSummandEnabledByState smds state
     -- getSummandEnabledByState
+    
+    getStatesAfterSummand :: LPESummand -> [LPEParamEqs] -> LPEParamEqs -> IOC.IOC [LPEParamEqs]
+    getStatesAfterSummand _ [] _ = return []
+    getStatesAfterSummand solSmd (state:states) sol = do
+        nextStates <- Monad.mapM (getStateAfterSummand solSmd (Map.union sol state)) (Set.toList (lpeSummands lpe))
+        andSoForth <- getStatesAfterSummand solSmd states sol
+        return (concat nextStates ++ andSoForth)
+    -- getStatesAfterSummand
     
     getStateAfterSummand :: LPESummand -> LPEParamEqs -> LPESummand -> IOC.IOC [LPEParamEqs]
     getStateAfterSummand solSmd solState appliedSmd = do
@@ -155,7 +166,8 @@ simplifyExpr expr = do
     case expr of
       (ValExpr.view -> ValExpr.Vconst (Constant.Ccstr _ _)) ->
           do envb <- filterEnvCtoEnvB
-             (simplified, _) <- MonadState.lift $ MonadState.runStateT (Eval.eval expr) envb
+             (simplified, envb') <- MonadState.lift $ MonadState.runStateT (Eval.eval expr) envb
+             writeEnvBtoEnvC envb'
              case simplified of
                Left m -> return (Left m)
                Right newExpr -> return (Right (ValExpr.cstrConst newExpr))
@@ -214,5 +226,10 @@ filterEnvCtoEnvB = do
                             }
 -- filterEnvCtoEnvB
 
-
+writeEnvBtoEnvC :: IOB.EnvB -> IOC.IOC ()
+writeEnvBtoEnvC envb = do
+    putMsgs <- MonadState.gets (IOC.putmsgs . IOC.state)
+    putMsgs $ IOB.msgs envb
+    MonadState.modify $ \env -> env { IOC.unid = IOB.unid envb }
+-- writeEnvBtoEnvC
 
