@@ -96,9 +96,9 @@ showLPEInContext f lpe =
       List.intercalate "\n     ## " (map (showLPESummandInContext f g orderedChans orderedParams (lpeChanMap lpe)) (Set.toList (lpeSummands lpe))) ++
       "\nENDDEF\n" ++
       "MODELDEF Model ::=\n" ++
-      "    CHAN IN" ++ showSingleChan (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeInChans lpe))) ++
-      "    CHAN OUT" ++ showSingleChan (Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeOutChans lpe))) ++
-      "    SYNC" ++ showChanSyncs (Set.toList (Set.map (getMultiChannelFromChanMap (lpeChanMap lpe)) (lpeChanParams lpe))) ++
+      "    CHAN IN" ++ showSingleChan (Set.toList (revertSimplChanIdsWithChanMap (lpeChanMap lpe) (lpeInChans lpe))) ++
+      "    CHAN OUT" ++ showSingleChan (Set.toList (revertSimplChanIdsWithChanMap (lpeChanMap lpe) (lpeOutChans lpe))) ++
+      "    SYNC" ++ showChanSyncs (Set.toList (Set.map (revertSimplChanIdWithChanMap (lpeChanMap lpe)) (lpeChanParams lpe))) ++
       -- "    SYNC" ++ showChanSyncs (Set.toList (lpeSyncs lpe)) ++
       "    BEHAVIOUR LPE[" ++ List.intercalate ", " (map (showChanId f) orderedChans) ++ "]" ++
       "(" ++ List.intercalate ", " (map (showValExprInContext f g) (paramEqsLookup orderedParams (lpeInitEqs lpe))) ++ ")" ++
@@ -106,7 +106,7 @@ showLPEInContext f lpe =
   where
     getOrderedChansAndParams :: TxsDefs.TxsDefs -> ([ChanId.ChanId], [VarId.VarId])
     getOrderedChansAndParams tdefs =
-        let orderedChansDefault = Set.toList (getAllChannelsFromChanMap (lpeChanMap lpe) (lpeChanParams lpe)) in
+        let orderedChansDefault = Set.toList (revertSimplChanIdsWithChanMap (lpeChanMap lpe) (lpeChanParams lpe)) in
         let orderedParamsDefault = Map.keys (lpeInitEqs lpe) in
           case [def | (pid, def) <- Map.toList (TxsDefs.procDefs tdefs), ProcId.name pid == lpeName lpe] of
             (ProcDef.ProcDef chans params _):_ -> (orderListByList chans orderedChansDefault, orderListByList params orderedParamsDefault)

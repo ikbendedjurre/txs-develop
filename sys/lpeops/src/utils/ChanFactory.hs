@@ -50,8 +50,11 @@ createFreshChanFromChansAndVars chans vars = createFreshChanFromChansAndSorts ch
 -- Creates a channel that is a combination of the specified channels plus a number of a sorts.
 createFreshChanFromChansAndSorts :: [ChanId.ChanId] -> [SortId.SortId] -> IOC.IOC ChanId.ChanId
 createFreshChanFromChansAndSorts chans extraSorts = do
-    let prefix = List.intercalate "_" (map (Text.unpack . ChanId.name) chans)
     let sorts = concatMap ChanId.chansorts chans ++ extraSorts
-    createFreshChanFromPrefix prefix sorts
+    createFreshChanFromPrefix (getPrefix chans) sorts
+  where
+    getPrefix :: [ChanId.ChanId] -> String
+    getPrefix [] = "__FC"
+    getPrefix xs = List.intercalate "_" (map (Text.unpack . ChanId.name) xs)
 -- createFreshChanFromChansAndSorts
 

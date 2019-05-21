@@ -311,14 +311,6 @@ cmdIntpr cmdname args  =
          ; "systart"       -> cmdSyStart    args
          ; "systop"        -> cmdSyStop     args
 -- ---------------------------------------------------------------------------- unrecognized --
-<<<<<<< HEAD
-         ; _               -> do putErr $ "Unrecognized command `" ++ cmdname ++  "` (enter 'help' for help)!"
-                                 (cmdhin:cmdhins) <- lift $ gets uihins
-                                 if  cmdhin == stdin
-                                    then    cmdsIntpr
-                                    else do lift $ modify ( \e -> e { uihins = cmdhins } )
-                                            cmdsIntpr
-=======
          ; _               -> do putErr $ "unrecognized command `" ++ cmdname ++  "` (enter 'help' for help)"
                                  x <- lift $ gets uihins
                                  case x of
@@ -327,7 +319,6 @@ cmdIntpr cmdname args  =
                                                             else do lift $ modify ( \e -> e { uihins = cmdhins } )
                                                                     cmdsIntpr
                                     _                -> error "unrecognized command handling failed"
->>>>>>> origin/lpeBug
          }
 
 -- ----------------------------------------------------------------------------------------- --
