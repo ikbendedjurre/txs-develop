@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 module Satisfiability (
 getRandomSolution,
 getSomeSolution,
+getSomeSolution2,
 getPartiallySolvedExpr,
 isTautology,
 isSatisfiable,

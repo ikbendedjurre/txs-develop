@@ -45,6 +45,7 @@ import           BlindSubst
 import           ModelIdFactory
 import           LPEChanMap
 import           VarFactory
+import           ChanFactory
 import           LPEBlindSubst
 
 -- Constructs an LPEModel from a process expression (unless there are problems).
@@ -73,13 +74,16 @@ model2lpe modelId = do
                                                              IOC.putMsgs [ EnvData.TXS_CORE_ANY ("INS = {" ++ concatMap bla inChans ++ "}") ]
                                                              IOC.putMsgs [ EnvData.TXS_CORE_ANY ("OUTS = {" ++ concatMap bla outChans ++ "}") ]
                                                              IOC.putMsgs [ EnvData.TXS_CORE_ANY ("ALPHABET = {" ++ concatMap bla (Set.toList chanAlphabet) ++ "}") ]
-                                                             (lpe', msgs) <- Monad.foldM (foldSummandDataIntoLPE chanAlphabet) (lpe, []) summandData
-                                                             let lpe'' = lpe' { lpeInChans = Map.keysSet (permittedChanMap (lpeChanMap lpe') inChans)
-                                                                              , lpeOutChans = Map.keysSet (permittedChanMap (lpeChanMap lpe') outChans)
-                                                                              }
-                                                             let problems = msgs ++ validateLPEModel lpe''
+                                                             summandData' <- ensureFreshCommVars (filterSummandDataByChanAlphabet chanAlphabet summandData)
+                                                             (refinedSummandData, chanMap) <- refineSummandData summandData'
+                                                             let lpe' = lpe { lpeChanMap = chanMap
+                                                                            , lpeInChans = Map.keysSet (permittedChanMap (lpeChanMap lpe') inChans)
+                                                                            , lpeOutChans = Map.keysSet (permittedChanMap (lpeChanMap lpe') outChans)
+                                                                            , lpeSummands = Set.fromList (map (constructFromRefinedSummandData chanMap) refinedSummandData)
+                                                                            }
+                                                             let problems = validateLPEModel lpe'
                                                              if null problems
-                                                             then return (Right lpe'')
+                                                             then return (Right lpe')
                                                              else return (Left problems)
               Nothing -> do let definedProcessNames = List.intercalate " or " (map (Text.unpack . ProcId.name) (Map.keys pdefs))
                             return (Left ["Expected " ++ definedProcessNames ++ ", found " ++ show (Text.unpack (ProcId.name procId)) ++ "!"])
@@ -90,46 +94,112 @@ model2lpe modelId = do
     bla cids = "[[ " ++ concatMap (\s -> "{" ++ Text.unpack (ChanId.name s) ++ "}") (Set.toList cids) ++ " ]]"
 -- toLPEModel
 
-foldSummandDataIntoLPE :: Set.Set (Set.Set ChanId.ChanId) -> (LPE, [String]) -> (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (LPE, [String])
-foldSummandDataIntoLPE chanAlphabet (lpe, earlierMsgs) (actOffer, paramEqs) = do
-    -- Ignore summands with a channel that is not in the channel alphabet:
-    if isActOfferInChanAlphabet chanAlphabet actOffer
-    then case concatEitherList (map getSmdVars (Set.toList (TxsDefs.offers actOffer))) of
-           Left msgs -> return (lpe, ["Action offer " ++ TxsShow.fshow actOffer ++ " is invalid because"] ++ msgs)
-           Right smdVars -> do -- If the chanmap already contains the channel signature, obtain the corresponding (fresh) channel.
-                               -- If the chanmap does not yet contain the channel signature, add it and create a fresh channel:
-                               (smdChan, newChanMap) <- addToChanMap (lpeChanMap lpe) actOffer
-                               -- Guarantee that all local variables of the summand are fresh:
-                               let vids = smdVars ++ Set.toList (TxsDefs.hiddenvars actOffer)
-                               freshVars <- createFreshVars (Set.fromList vids)
-                               let freshVarSubst = Map.map ValExpr.cstrVar freshVars
-                               freshVarGuard <- doBlindSubst freshVarSubst (TxsDefs.constraint actOffer)
-                               freshVarParamEqs <- doBlindParamEqsSubst freshVarSubst paramEqs
-                               -- Combine into summand data:
-                               let lpeSummand = LPESummand { lpeSmdChan = smdChan
-                                                           , lpeSmdVars = map (\v -> freshVars Map.! v) vids
-                                                           , lpeSmdPriority = False
-                                                           , lpeSmdQuiescent = False
-                                                           , lpeSmdInvisible = False
-                                                           , lpeSmdGuard = freshVarGuard
-                                                           , lpeSmdEqs = freshVarParamEqs
-                                                           , lpeSmdDebug = ""
-                                                           }
-                               -- Add into LPE that is being folded:
-                               return (lpe { lpeChanMap = newChanMap, lpeSummands = Set.insert lpeSummand (lpeSummands lpe) }, earlierMsgs)
-    else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Deleted non-SYNCS channel (" ++ TxsShow.fshow actOffer ++ ")!") ]
-            return (lpe, earlierMsgs)
-  where
-    getSmdVars :: TxsDefs.Offer -> Either [String] [VarId.VarId]
-    getSmdVars TxsDefs.Offer { TxsDefs.chanoffers = chanoffers } =
-        concatEitherList (map offerToVar chanoffers)
-      where
-        offerToVar :: TxsDefs.ChanOffer -> Either [String] [VarId.VarId]
-        offerToVar (TxsDefs.Quest varId) = Right [varId]
-        offerToVar chanOffer = Left ["Invalid channel format, found " ++ TxsShow.fshow chanOffer ++ "!"]
--- foldSummandDataIntoLPE
+constructFromRefinedSummandData :: LPEChanMap -> (ChanId.ChanId, [VarId.VarId], TxsDefs.VExpr, LPEParamEqs) -> LPESummand
+constructFromRefinedSummandData chanMap (cid, vids, guard, paramEqs) =
+    LPESummand { lpeSmdChan = cid
+               , lpeSmdVars = vids
+               , lpeSmdPriority = False
+               , lpeSmdQuiescent = False
+               , lpeSmdInvisible = List.null (getChanDataFromChanMap chanMap cid)
+               , lpeSmdGuard = guard
+               , lpeSmdEqs = paramEqs
+               , lpeSmdDebug = ""
+               }
+-- constructFromRefinedSummandData
 
--- Collects all required data for each summand from n hierarchical process expression.
+-- Refines summand data by removing multiple offers.
+refineSummandData :: [(TxsDefs.ActOffer, LPEParamEqs)] -> IOC.IOC ([(ChanId.ChanId, [VarId.VarId], TxsDefs.VExpr, LPEParamEqs)], LPEChanMap)
+refineSummandData summandData = do
+    let hiddenVidsPerChan = getHiddenVidsPerChan Map.empty summandData
+    chanMap <- Map.fromList <$> Monad.mapM getChanMapEntry (Map.toList hiddenVidsPerChan)
+    refinedSummandData <- Monad.mapM (getRefinedSummandData hiddenVidsPerChan chanMap) summandData
+    return (refinedSummandData, chanMap)
+  where
+    getHiddenVidsPerChan :: Map.Map [ChanId.ChanId] [VarId.VarId] -> [(TxsDefs.ActOffer, LPEParamEqs)] -> Map.Map [ChanId.ChanId] [VarId.VarId]
+    getHiddenVidsPerChan soFar [] = soFar
+    getHiddenVidsPerChan soFar ((x, _):xs) =
+        let cids = Set.toList (getActOfferChans x) in
+        let hiddenVids = Set.toList (TxsDefs.hiddenvars x) in
+          case soFar Map.!? cids of
+            Just vids -> getHiddenVidsPerChan (Map.insert cids (vids ++ hiddenVids) soFar) xs
+            Nothing -> getHiddenVidsPerChan (Map.insert cids hiddenVids soFar) xs
+    -- getHiddenVidsPerChan
+    
+    getChanMapEntry :: ([ChanId.ChanId], [VarId.VarId]) -> IOC.IOC (ChanId.ChanId, LPEChanSignature)
+    getChanMapEntry (cids, hiddenVids) = do
+        let visibleSorts = concatMap ChanId.chansorts cids
+        let hiddenSorts = map SortOf.sortOf hiddenVids
+        freshChan <- createFreshChanFromChansAndSorts cids (visibleSorts ++ hiddenSorts)
+        return (freshChan, (cids, visibleSorts, hiddenSorts))
+    -- getChanMapEntry
+    
+    getRefinedSummandData :: Map.Map [ChanId.ChanId] [VarId.VarId] -> LPEChanMap -> (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (ChanId.ChanId, [VarId.VarId], TxsDefs.VExpr, LPEParamEqs)
+    getRefinedSummandData hiddenVidsPerChan chanMap (actOffer, paramEqs) = do
+        let cids = Set.toList (getActOfferChans actOffer)
+        let allHiddenVids = hiddenVidsPerChan Map.! cids
+        newHiddenVids <- Monad.mapM (makeFreshUnlessInSet (TxsDefs.hiddenvars actOffer)) allHiddenVids
+        let matches = Map.filter (\(k, _, _) -> k == cids) chanMap
+        let freshChanId = Map.keys matches !! 0
+        return (freshChanId, getVisibleVars actOffer ++ newHiddenVids, TxsDefs.constraint actOffer, paramEqs)
+    -- getRefinedSummandData
+    
+    getVisibleVars :: TxsDefs.ActOffer -> [VarId.VarId]
+    getVisibleVars actOffer =
+        let chanOffers = concatMap TxsDefs.chanoffers (Set.toList (TxsDefs.offers actOffer)) in
+          concatMap getVisibleVar chanOffers
+    -- getVisibleVars
+    
+    getVisibleVar :: TxsDefs.ChanOffer -> [VarId.VarId]
+    getVisibleVar (TxsDefs.Quest vid) = [vid]
+    getVisibleVar _ = []
+    
+    makeFreshUnlessInSet :: Set.Set VarId.VarId -> VarId.VarId -> IOC.IOC VarId.VarId
+    makeFreshUnlessInSet varSet vid = do
+        if Set.member vid varSet
+        then return vid
+        else createFreshVarFromVar vid
+    -- makeFreshUnlessInSet
+-- getChanMapFromSummandData
+
+-- Ensures that all communication variables are fresh.
+-- Also removes occurrences of invisible actions (ISTEP).
+ensureFreshCommVars :: [(TxsDefs.ActOffer, LPEParamEqs)] -> IOC.IOC [(TxsDefs.ActOffer, LPEParamEqs)]
+ensureFreshCommVars summandData = Monad.mapM ensureInSummand summandData
+  where
+    ensureInSummand :: (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (TxsDefs.ActOffer, LPEParamEqs)
+    ensureInSummand (actOffer, paramEqs) = do
+        freshHiddenVids <- (Set.fromList . Map.elems) <$> createFreshVars (TxsDefs.hiddenvars actOffer)
+        perOffer <- Monad.mapM ensureInOffer (Set.toList (TxsDefs.offers actOffer))
+        let (newOffers, freshVidSubst) = (concatMap fst perOffer, Map.fromList (concatMap snd perOffer))
+        newConstraint <- doBlindSubst freshVidSubst (TxsDefs.constraint actOffer)
+        newParamEqs <- doBlindParamEqsSubst freshVidSubst paramEqs
+        return (TxsDefs.ActOffer { TxsDefs.offers = Set.fromList (newOffers)
+                                 , TxsDefs.hiddenvars = freshHiddenVids
+                                 , TxsDefs.constraint = newConstraint
+                                 }, newParamEqs)
+    -- ensureInSummand
+    
+    ensureInOffer :: TxsDefs.Offer -> IOC.IOC ([TxsDefs.Offer], [(VarId.VarId, TxsDefs.VExpr)])
+    ensureInOffer offer = do
+        if isInvisibleOffer offer 
+        then return ([], [])
+        else do perChanOffer <- Monad.mapM ensureInChanOffer (TxsDefs.chanoffers offer)
+                let (newChanOffers, freshVidSubst) = (concatMap fst perChanOffer, concatMap snd perChanOffer)
+                return ([offer { TxsDefs.chanoffers = newChanOffers }], freshVidSubst)
+    -- ensureInOffer
+    
+    ensureInChanOffer :: TxsDefs.ChanOffer -> IOC.IOC ([TxsDefs.ChanOffer], [(VarId.VarId, TxsDefs.VExpr)])
+    ensureInChanOffer (TxsDefs.Quest vid) = do
+        freshVid <- createFreshVarFromVar vid
+        return ([TxsDefs.Quest freshVid], [(vid, ValExpr.cstrVar freshVid)])
+    ensureInChanOffer _ = return ([], []) -- Should not happen!
+-- ensureFreshCommVars
+
+-- Only keeps data from summand that use a channel that is in the given channel alphabet.
+filterSummandDataByChanAlphabet :: Set.Set (Set.Set ChanId.ChanId) -> [(TxsDefs.ActOffer, LPEParamEqs)] -> [(TxsDefs.ActOffer, LPEParamEqs)]
+filterSummandDataByChanAlphabet chanAlphabet summandData = filter (\(a, _) -> isActOfferInChanAlphabet chanAlphabet a) summandData
+
+-- Collects all required data per summand from a hierarchical process expression.
 getSummandData :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [(TxsDefs.ActOffer, LPEParamEqs)]
 getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
     case TxsDefs.view expr of
@@ -141,9 +211,22 @@ getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds 
                 | chanIds /= defChanIds -> Left ["Signature mismatch in channels, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"]
                 | otherwise -> case getParamEqs tdefs "process instantiation" params paramValues of
                                  Left msgs -> Left msgs
-                                 Right paramEqs -> Right [(actOffer, paramEqs)]
+                                 Right paramEqs -> let msgs = validateActOffer actOffer in
+                                                     if null msgs
+                                                     then Left msgs
+                                                     else Right [(actOffer, paramEqs)]
             _ -> Left ["Expected process instantiation, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"]
       _ -> Left ["Expected choice or action prefix, found " ++ TxsShow.fshow (TxsDefs.view expr) ++ "!"]
+  where
+    validateActOffer :: TxsDefs.ActOffer -> [String]
+    validateActOffer actOffer =
+        let offers = Set.toList (TxsDefs.offers actOffer) in
+          concatMap validateChanOffer (concatMap TxsDefs.chanoffers offers)
+    -- validateActOffer
+    
+    validateChanOffer :: TxsDefs.ChanOffer -> [String]
+    validateChanOffer (TxsDefs.Quest _) = []
+    validateChanOffer other = ["Expected communication variable, found " ++ show other ++ "!"]
 -- getSummandData
 
 -- Constructs an LPEParamEqs from given input.

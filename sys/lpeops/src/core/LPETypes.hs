@@ -27,6 +27,7 @@ lpeSmdVarSet,
 lpeSmdParams,
 lpeSmdParamList,
 emptyLPESummand,
+getSmdVarPartition,
 LPEParamEqs,
 LPEOperation,
 paramEqsLookup,
@@ -122,6 +123,12 @@ lpeSmdParamList = Set.toList . lpeSmdParams
 lpeSmdVarSet :: LPESummand -> Set.Set VarId.VarId
 lpeSmdVarSet = Set.fromList . lpeSmdVars
 
+getSmdVarPartition :: LPEChanMap -> LPESummand -> ([VarId.VarId], [VarId.VarId])
+getSmdVarPartition chanMap summand =
+    let (varsPerChan, hiddenVars) = getActOfferDataFromChanMap chanMap (lpeSmdChan summand) (lpeSmdVars summand) in
+      (concatMap snd varsPerChan, hiddenVars)
+-- getSmdVarPartition
+
 emptyLPESummand :: LPESummand
 emptyLPESummand = LPESummand { lpeSmdChan = TxsDefs.chanIdIstep
                              , lpeSmdVars = []
@@ -197,7 +204,7 @@ newLPE :: ([TxsDefs.ChanId], [(VarId.VarId, TxsDefs.VExpr)], [LPESummand]) -> LP
 newLPE (chanIds, initParamEqs, summands) =
     LPE { lpeContext = TxsDefs.empty
         , lpeSplSyncs = []
-        , lpeChanMap = Map.fromList (map (\x -> (x, ([x], ChanId.chansorts x))) chanIds)
+        , lpeChanMap = Map.fromList (map (\x -> (x, ([x], ChanId.chansorts x, []))) chanIds)
         , lpeInChans = Set.empty
         , lpeOutChans = Set.fromList chanIds
         , lpeName = Text.pack "LPE"

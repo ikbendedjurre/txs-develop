@@ -19,11 +19,12 @@ isInvisibleChan,
 isInvisibleOffer,
 getChanAlphabet,
 isInChanAlphabet,
+getActOfferChans,
 isActOfferInChanAlphabet,
 LPEChanSignature,
 LPEChanMap,
-addToChanMap,
 permittedChanMap,
+getChanDataFromChanMap,
 getActOfferFromChanMap,
 getActOfferDataFromChanMap,
 revertSimplChanIdWithChanMap,
@@ -34,14 +35,15 @@ getObjectIdsFromChanMap
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified EnvCore as IOC
 import qualified TxsDefs
 import qualified ChanId
 import qualified VarId
 import qualified SortId
-import qualified SortOf
 import qualified BehExprDefs
-import ChanFactory
+
+-- The ActOffer of an LPE summand can consist of multiple Offers (each with its own ChanId and [SortId]) and hidden variables.
+-- This is inconvenient for comparing LPE summands, and so we replace them by a fresh ChanId that is always used with the same [SortId] signature.
+-- TODO
 
 -- A 'channel signature' is more precisely the signature of a number of an ActOffer, which
 -- can consist of multiple Offers (each with its own ChanId and [SortId]) and hidden variables.
@@ -50,7 +52,7 @@ import ChanFactory
 -- The first list of this data type defines the ChanIds of all visible channels in an ActOffer.
 -- The second list defines the sorts of the communication variables that the ActOffer uses.
 -- (There is some overlap in the information provided by the two lists, which is for convenience.)
-type LPEChanSignature = ([ChanId.ChanId], [SortId.SortId])
+type LPEChanSignature = ([ChanId.ChanId], [SortId.SortId], [SortId.SortId])
 
 -- ActOffers are frequently replaced by a simplified ActOffer in which multiple Offers are expressed by one Offer which a fresh ChanId.
 -- A 'channel map' makes it possible to trace such fresh ChanIds back to their ActOffer of origin.
@@ -73,49 +75,19 @@ getChanAlphabet inChans outChans = Set.fromList (map removeInvisibleChans ([Set.
 isInChanAlphabet :: Set.Set (Set.Set ChanId.ChanId) -> Set.Set ChanId.ChanId -> Bool
 isInChanAlphabet chanAlphabet candidateChans = Set.member (removeInvisibleChans candidateChans) chanAlphabet
 
+getActOfferChans :: BehExprDefs.ActOffer -> Set.Set ChanId.ChanId
+getActOfferChans actOffer = removeInvisibleChans (Set.map BehExprDefs.chanid (BehExprDefs.offers actOffer))
+
 isActOfferInChanAlphabet :: Set.Set (Set.Set ChanId.ChanId) -> BehExprDefs.ActOffer -> Bool
-isActOfferInChanAlphabet chanAlphabet candidate = isInChanAlphabet chanAlphabet (Set.map BehExprDefs.chanid (BehExprDefs.offers candidate))
+isActOfferInChanAlphabet chanAlphabet candidate = isInChanAlphabet chanAlphabet (getActOfferChans candidate)
 
 -- Restricts the given ChanMap to entries that originate from one of the specified sets of ChanIds.
 permittedChanMap :: LPEChanMap -> [Set.Set ChanId.ChanId] -> LPEChanMap
 permittedChanMap chanMap permittedChanSets = Map.filter onlyUsesPermittedChanSets chanMap
   where
     onlyUsesPermittedChanSets :: LPEChanSignature -> Bool
-    onlyUsesPermittedChanSets (chans, _) = List.elem (Set.fromList chans) (map removeInvisibleChans permittedChanSets)
+    onlyUsesPermittedChanSets (chans, _, _) = List.elem (Set.fromList chans) (map removeInvisibleChans permittedChanSets)
 -- permittedChanMap
-
--- Adds an ActOffer to a given ChanMap.
-addToChanMap :: LPEChanMap -> BehExprDefs.ActOffer -> IOC.IOC (ChanId.ChanId, LPEChanMap)
-addToChanMap chanMap actOffer = do
-    -- Get a list of all offers:
-    let orderedOffers = Set.toList (BehExprDefs.offers actOffer)
-    
-    -- Distinguish between visible (/=ISTEP) and invisible (==ISTEP) offers:
-    let (invisibleOffers, visibleOffers) = List.partition isInvisibleOffer orderedOffers
-    
-    -- Concatenate the chanIds and sorts of all visible channels:
-    let visibleChans = map BehExprDefs.chanid visibleOffers
-    let visibleSorts = concatMap getOfferSorts visibleOffers
-    
-    -- Concatenate the sorts of all invisible channels, and
-    -- also add hidden communication variables (since those are also 'invisible'):
-    let hiddenVarSorts = map SortOf.sortOf (Set.toList (BehExprDefs.hiddenvars actOffer))
-    let invisibleSorts = concatMap getOfferSorts invisibleOffers ++ hiddenVarSorts
-    
-    -- Compose the channel signature:
-    let chanSignature = (visibleChans, visibleSorts ++ invisibleSorts)
-    
-    -- Check if the channel signature already exists in the given map:
-    let matches = Map.filter (\v -> v == chanSignature) chanMap
-    if matches /= Map.empty
-    then return (Map.keys matches !! 0, chanMap)
-    else do freshChan <- createFreshChanFromChansAndSorts visibleChans invisibleSorts
-            return (freshChan, Map.insert freshChan chanSignature chanMap)
-  where
-    -- Obtains the sorts of the communication variables of a specific offer(/channel).
-    getOfferSorts :: BehExprDefs.Offer -> [SortId.SortId]
-    getOfferSorts offer = map SortOf.sortOf (BehExprDefs.chanoffers offer)
--- addToChanMap
 
 -- Constructs (often 'reconstructs') a new ActOffer from
 --  - a given ChanMap;
@@ -138,16 +110,20 @@ getActOfferFromChanMap chanMap chanId chanVars guard =
     -- varsPerChanToOffer
 -- getActOfferFromChanMap
 
+getChanDataFromChanMap :: LPEChanMap -> ChanId.ChanId -> [ChanId.ChanId]
+getChanDataFromChanMap chanMap chanId =
+    --Defensive programming:
+    case chanMap Map.!? chanId of
+      Just (origChanIds, _, _) -> origChanIds
+      Nothing -> error ("Could not find channel in LPEChanMap (chanId = " ++ show chanId ++ ")!")
+-- getChanDataFromChanMap
+
 -- Gathers data for a new ActOffer from
 --  - a given ChanMap;
 --  - the ChanId of a simplified ActOffer; and
 --  - a list of variables.
 getActOfferDataFromChanMap :: LPEChanMap -> ChanId.ChanId -> [VarId.VarId] -> ([(ChanId.ChanId, [VarId.VarId])], [VarId.VarId])
-getActOfferDataFromChanMap chanMap chanId chanVars =
-    --Defensive programming, should not happen:
-    case chanMap Map.!? chanId of
-      Just (originalChanIds, _) -> iter originalChanIds chanVars
-      Nothing -> ([(chanId, chanVars)], [])
+getActOfferDataFromChanMap chanMap chanId chanVars = iter (getChanDataFromChanMap chanMap chanId) chanVars
   where
     iter :: [ChanId.ChanId] -> [VarId.VarId] -> ([(ChanId.ChanId, [VarId.VarId])], [VarId.VarId])
     iter [] remainingVars = ([], remainingVars)
@@ -162,12 +138,7 @@ getActOfferDataFromChanMap chanMap chanId chanVars =
 
 -- Converts the ChanId of a simplified ActOffer back to the ChanIds of origin.
 revertSimplChanIdWithChanMap :: LPEChanMap -> ChanId.ChanId -> Set.Set ChanId.ChanId
-revertSimplChanIdWithChanMap chanMap chanId =
-    --Defensive programming, should not happen:
-    case chanMap Map.!? chanId of
-      Just (originalChanIds, _) -> Set.fromList originalChanIds
-      Nothing -> error ("Could not find channel in LPEChanMap (chanId = " ++ show chanId ++ ")!")
--- revertSimplChanIdWithChanMap
+revertSimplChanIdWithChanMap chanMap chanId = Set.fromList (getChanDataFromChanMap chanMap chanId)
 
 -- Obtains all ChanIds that were the origin of the ChanIds in the given set.
 revertSimplChanIdsWithChanMap :: LPEChanMap -> Set.Set ChanId.ChanId -> Set.Set ChanId.ChanId
@@ -177,7 +148,7 @@ revertSimplChanIdsWithChanMap chanMap chanIds = Set.unions (map (revertSimplChan
 getObjectIdsFromChanMap :: LPEChanMap -> ChanId.ChanId -> Set.Set TxsDefs.Ident
 getObjectIdsFromChanMap chanMap chanId =
     case chanMap Map.!? chanId of
-      Just (originalChanIds, originalSortIds) -> Set.fromList ((map TxsDefs.IdChan originalChanIds) ++ (map TxsDefs.IdSort originalSortIds))
+      Just (origChanIds, origVizSortIds, origHidSortIds) -> Set.fromList ((map TxsDefs.IdChan origChanIds) ++ (map TxsDefs.IdSort origVizSortIds) ++ (map TxsDefs.IdSort origHidSortIds))
       Nothing -> Set.fromList (TxsDefs.IdChan chanId : map TxsDefs.IdSort (ChanId.chansorts chanId))
 -- getObjectIdsFromChanMap
 
