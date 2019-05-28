@@ -63,6 +63,7 @@ State :: Entity
 Variable :: Entity
 Sort :: Entity
 Channel :: Entity
+Model :: Entity
 
 -- | In case an error must be generated from a generic function that cannot
 --   have access to the entity type. The error type can be made more
