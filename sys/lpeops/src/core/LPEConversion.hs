@@ -46,6 +46,7 @@ import           ModelIdFactory
 import           LPEChanMap
 import           VarFactory
 import           ChanFactory
+import           ChanAlphabet
 import           LPEBlindSubst
 
 -- Constructs an LPEModel from a process expression (unless there are problems).
@@ -63,7 +64,7 @@ model2lpe modelId = do
               Just procDef@(TxsDefs.ProcDef _chans params body) ->
                 case getParamEqs tdefs "model initiation" params paramValues of
                   Left msgs -> return (Left msgs)
-                  Right initEqs -> case getSummandData tdefs procId procDef body of
+                  Right initEqs -> case getValidatedSummandData tdefs procId procDef body of
                                      Left msgs -> return (Left msgs)
                                      Right summandData -> do let lpe = emptyLPE { lpeContext = tdefs
                                                                                 , lpeSplSyncs = splsyncs -- (We do not really know what this is for, we just remember its value!)
@@ -107,7 +108,9 @@ constructFromRefinedSummandData chanMap (cid, vids, guard, paramEqs) =
                }
 -- constructFromRefinedSummandData
 
--- Refines summand data by removing multiple offers.
+-- Refines summand data by removing multi-channels.
+-- Fresh channels are introduced to accomplish this.
+-- An LPEChanMap is constructed so that the original multi-channels can be retrieved.
 refineSummandData :: [(TxsDefs.ActOffer, LPEParamEqs)] -> IOC.IOC ([(ChanId.ChanId, [VarId.VarId], TxsDefs.VExpr, LPEParamEqs)], LPEChanMap)
 refineSummandData summandData = do
     let hiddenVidsPerChan = getHiddenVidsPerChan Map.empty summandData
@@ -115,6 +118,9 @@ refineSummandData summandData = do
     refinedSummandData <- Monad.mapM (getRefinedSummandData hiddenVidsPerChan chanMap) summandData
     return (refinedSummandData, chanMap)
   where
+    -- Iterates over all summand data.
+    -- Per combination of channels, it gathers all hidden variables that are attached to them.
+    -- Note that hidden variables are always fresh (courtesy of ensureFreshCommVars)!
     getHiddenVidsPerChan :: Map.Map [ChanId.ChanId] [VarId.VarId] -> [(TxsDefs.ActOffer, LPEParamEqs)] -> Map.Map [ChanId.ChanId] [VarId.VarId]
     getHiddenVidsPerChan soFar [] = soFar
     getHiddenVidsPerChan soFar ((x, _):xs) =
@@ -125,14 +131,22 @@ refineSummandData summandData = do
             Nothing -> getHiddenVidsPerChan (Map.insert cids hiddenVids soFar) xs
     -- getHiddenVidsPerChan
     
+    -- Per combination of channels, create a fresh channel to replace it.
+    -- The sort of the fresh channel is constructed by
+    --  - merging the sorts of the original channels;
+    --  - adding the sorts of all hidden variables (throughout the LPE).
     getChanMapEntry :: ([ChanId.ChanId], [VarId.VarId]) -> IOC.IOC (ChanId.ChanId, LPEChanSignature)
     getChanMapEntry (cids, hiddenVids) = do
         let visibleSorts = concatMap ChanId.chansorts cids
         let hiddenSorts = map SortOf.sortOf hiddenVids
-        freshChan <- createFreshChanFromChansAndSorts cids (visibleSorts ++ hiddenSorts)
+        freshChan <- createFreshChanFromChansAndSorts cids hiddenSorts
         return (freshChan, (cids, visibleSorts, hiddenSorts))
     -- getChanMapEntry
     
+    -- Per summand, replace the combination of channels with the corresponding fresh channel.
+    -- The channel requires a certain number of communication variables:
+    --  - Communication variables are copied from the summand's ActOffer as much as possible, both visible ones and hidden ones;
+    --  - Hidden communication variables that are not in the summand's ActOffer are replaced by fresh ones.
     getRefinedSummandData :: Map.Map [ChanId.ChanId] [VarId.VarId] -> LPEChanMap -> (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (ChanId.ChanId, [VarId.VarId], TxsDefs.VExpr, LPEParamEqs)
     getRefinedSummandData hiddenVidsPerChan chanMap (actOffer, paramEqs) = do
         let cids = Set.toList (getActOfferChans actOffer)
@@ -162,48 +176,54 @@ refineSummandData summandData = do
 -- getChanMapFromSummandData
 
 -- Ensures that all communication variables are fresh.
--- Also removes occurrences of invisible actions (ISTEP).
+-- In other words: summands may not share communication variables!
+-- Also removes occurrences of invisible channels (ISTEP).
 ensureFreshCommVars :: [(TxsDefs.ActOffer, LPEParamEqs)] -> IOC.IOC [(TxsDefs.ActOffer, LPEParamEqs)]
 ensureFreshCommVars summandData = Monad.mapM ensureInSummand summandData
   where
     ensureInSummand :: (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (TxsDefs.ActOffer, LPEParamEqs)
     ensureInSummand (actOffer, paramEqs) = do
-        freshHiddenVids <- (Set.fromList . Map.elems) <$> createFreshVars (TxsDefs.hiddenvars actOffer)
         perOffer <- Monad.mapM ensureInOffer (Set.toList (TxsDefs.offers actOffer))
-        let (newOffers, freshVidSubst) = (concatMap fst perOffer, Map.fromList (concatMap snd perOffer))
+        let (newOffers, freshVizVidSubst) = (concatMap fst perOffer, Map.fromList (concatMap snd perOffer))
+        freshHiddenVidSubst <- createFreshVars (TxsDefs.hiddenvars actOffer)
+        let freshVidSubst = Map.map ValExpr.cstrVar (Map.union freshVizVidSubst freshHiddenVidSubst)
         newConstraint <- doBlindSubst freshVidSubst (TxsDefs.constraint actOffer)
         newParamEqs <- doBlindParamEqsSubst freshVidSubst paramEqs
         return (TxsDefs.ActOffer { TxsDefs.offers = Set.fromList (newOffers)
-                                 , TxsDefs.hiddenvars = freshHiddenVids
+                                 , TxsDefs.hiddenvars = Set.fromList (Map.elems freshHiddenVidSubst)
                                  , TxsDefs.constraint = newConstraint
                                  }, newParamEqs)
     -- ensureInSummand
     
-    ensureInOffer :: TxsDefs.Offer -> IOC.IOC ([TxsDefs.Offer], [(VarId.VarId, TxsDefs.VExpr)])
+    ensureInOffer :: TxsDefs.Offer -> IOC.IOC ([TxsDefs.Offer], [(VarId.VarId, VarId.VarId)])
     ensureInOffer offer = do
-        if isInvisibleOffer offer 
-        then return ([], [])
+        if isInvisibleOffer offer
+        then return ([], []) -- Invisible offers cannot have communication variables.
+                             -- Furthermore, we argue that A|ISTEP == A.
+                             -- If a summand uses exactly ISTEP, ActOffer simply contains no Offers.
         else do perChanOffer <- Monad.mapM ensureInChanOffer (TxsDefs.chanoffers offer)
                 let (newChanOffers, freshVidSubst) = (concatMap fst perChanOffer, concatMap snd perChanOffer)
                 return ([offer { TxsDefs.chanoffers = newChanOffers }], freshVidSubst)
     -- ensureInOffer
     
-    ensureInChanOffer :: TxsDefs.ChanOffer -> IOC.IOC ([TxsDefs.ChanOffer], [(VarId.VarId, TxsDefs.VExpr)])
+    ensureInChanOffer :: TxsDefs.ChanOffer -> IOC.IOC ([TxsDefs.ChanOffer], [(VarId.VarId, VarId.VarId)])
     ensureInChanOffer (TxsDefs.Quest vid) = do
         freshVid <- createFreshVarFromVar vid
-        return ([TxsDefs.Quest freshVid], [(vid, ValExpr.cstrVar freshVid)])
-    ensureInChanOffer _ = return ([], []) -- Should not happen!
+        return ([TxsDefs.Quest freshVid], [(vid, freshVid)])
+    ensureInChanOffer _ = return ([], []) -- (Should not happen, ensured by getValidatedSummandData.)
 -- ensureFreshCommVars
 
--- Only keeps data from summand that use a channel that is in the given channel alphabet.
+-- Only keeps data from summands that use a channel that is in the given channel alphabet.
 filterSummandDataByChanAlphabet :: Set.Set (Set.Set ChanId.ChanId) -> [(TxsDefs.ActOffer, LPEParamEqs)] -> [(TxsDefs.ActOffer, LPEParamEqs)]
 filterSummandDataByChanAlphabet chanAlphabet summandData = filter (\(a, _) -> isActOfferInChanAlphabet chanAlphabet a) summandData
 
--- Collects all required data per summand from a hierarchical process expression.
-getSummandData :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [(TxsDefs.ActOffer, LPEParamEqs)]
-getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
+-- Extracts core data from a hierarchical process expression.
+-- That is, it adds one entry per summand that contains the summand's action offer and process instantiation.
+-- It also performs validation of the LPEs format.
+getValidatedSummandData :: TxsDefs.TxsDefs -> TxsDefs.ProcId -> TxsDefs.ProcDef -> TxsDefs.BExpr -> Either [String] [(TxsDefs.ActOffer, LPEParamEqs)]
+getValidatedSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds params _body) expr =
     case TxsDefs.view expr of
-      TxsDefs.Choice choices -> concatEitherList (map (getSummandData tdefs expectedProcId expectedProcDef) (Set.toList choices))
+      TxsDefs.Choice choices -> concatEitherList (map (getValidatedSummandData tdefs expectedProcId expectedProcDef) (Set.toList choices))
       TxsDefs.ActionPref actOffer procInst ->
           case TxsDefs.view procInst of
             TxsDefs.ProcInst procId chanIds paramValues
@@ -213,8 +233,8 @@ getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds 
                                  Left msgs -> Left msgs
                                  Right paramEqs -> let msgs = validateActOffer actOffer in
                                                      if null msgs
-                                                     then Left msgs
-                                                     else Right [(actOffer, paramEqs)]
+                                                     then Right [(actOffer, paramEqs)]
+                                                     else Left msgs
             _ -> Left ["Expected process instantiation, found " ++ TxsShow.fshow (TxsDefs.view procInst) ++ "!"]
       _ -> Left ["Expected choice or action prefix, found " ++ TxsShow.fshow (TxsDefs.view expr) ++ "!"]
   where
@@ -227,7 +247,7 @@ getSummandData tdefs expectedProcId expectedProcDef@(TxsDefs.ProcDef defChanIds 
     validateChanOffer :: TxsDefs.ChanOffer -> [String]
     validateChanOffer (TxsDefs.Quest _) = []
     validateChanOffer other = ["Expected communication variable, found " ++ show other ++ "!"]
--- getSummandData
+-- getValidatedSummandData
 
 -- Constructs an LPEParamEqs from given input.
 -- Occurrences of ANY are replaced by default values of the appropriate Sort.

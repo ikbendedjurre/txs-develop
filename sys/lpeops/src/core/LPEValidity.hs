@@ -59,7 +59,7 @@ validateLPEModel lpe =
       concatMap getSmdProblems (zip [1..] summands) ++ getChanProblems
   where
     getSmdProblems :: (Int, LPESummand) -> [String]
-    getSmdProblems (i, smd) = validateLPESummand ("summand " ++ show i) (lpeParams lpe) smd
+    getSmdProblems (_i, smd) = validateLPESummand ("summand " ++ show smd) (lpeParams lpe) smd
     
     getChanProblems :: [String]
     getChanProblems = []
