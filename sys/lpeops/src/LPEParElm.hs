@@ -26,7 +26,7 @@ import qualified FreeVar
 import qualified VarId
 import LPETypes
 import LPEParRemoval
-import UntilFixpoint
+import UntilFixedPoint
 
 -- Eliminates inert parameters (=parameters that do not contribute to the behavior of a process) from an LPE:
 parElm :: LPEOperation
@@ -36,7 +36,7 @@ parElm lpe _out _invariant = do
     let guardParams = Set.fromList (concatMap (FreeVar.freeVars . lpeSmdGuard) (lpeSmdList lpe))
     -- All parameters are initially assumed to be inert, except those used in a guard.
     -- This initial set of inert parameters is reduced until a fixpoint is reached:
-    let inertParams = untilFixpoint (getInertParams (lpeSmdList lpe)) (allParams Set.\\ guardParams)
+    let inertParams = untilFixedPoint (getInertParams (lpeSmdList lpe)) (allParams Set.\\ guardParams)
     -- The remaining inert parameters are removed from the LPE:
     newLpe <- removeParsFromLPE inertParams lpe
     return (Right newLpe)

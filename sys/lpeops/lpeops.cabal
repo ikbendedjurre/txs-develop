@@ -38,8 +38,9 @@ library
                     , SetUnions
                     -- , LPEUGuards
                     , Pairs
+                    , KnuthShuffle
                     , LPEBlindSubst
-                    , UntilFixpoint
+                    , UntilFixedPoint
                     , LPEConfCheck
                     , LPEIsDet
                     -- , LPEAngelic
@@ -116,7 +117,8 @@ test-suite lpeops-test
                       , SetUnions
                       -- , LPEUGuards
                       , Pairs
-                      , UntilFixpoint
+                      , UntilFixedPoint
+                      , KnuthShuffle
                       , LPEConfCheck
                       , LPEIsDet
                       , LPEInfo

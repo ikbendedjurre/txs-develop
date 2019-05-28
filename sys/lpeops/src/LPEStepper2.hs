@@ -37,8 +37,8 @@ import qualified TxsDefs
 import LPESuccessors
 import LPETypes
 import ConcatEither
-import Pairs
 import LPEBlindSubst
+import KnuthShuffle
 
 import qualified Data.List as List
 import qualified Data.Text as Text

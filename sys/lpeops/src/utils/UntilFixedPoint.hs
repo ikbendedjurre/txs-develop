@@ -6,7 +6,7 @@ See LICENSE at root directory of this repository.
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  UntilFixpoint
+-- Module      :  UntilFixedPoint
 -- Copyright   :  TNO and University of Twente
 -- License     :  BSD3
 -- Maintainer  :  djurrevanderwal@gmail.com
@@ -14,46 +14,46 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
-module UntilFixpoint (
-untilFixpoint,
-untilFixpointM,
-untilCounterOrFixpoint,
-untilCounterOrFixpointM
+module UntilFixedPoint (
+untilFixedPoint,
+untilFixedPointM,
+untilCounterOrFixedPoint,
+untilCounterOrFixedPointM
 ) where
 
-untilFixpoint :: Eq t => (t -> t) -> t -> t
-untilFixpoint f value =
+untilFixedPoint :: Eq t => (t -> t) -> t -> t
+untilFixedPoint f value =
     let newValue = f value in
       if newValue /= value
-      then untilFixpoint f newValue
+      then untilFixedPoint f newValue
       else value
--- untilFixpoint
+-- untilFixedPoint
 
-untilFixpointM :: (Monad m, Eq t) => (t -> m t) -> t -> m t
-untilFixpointM f value = do
+untilFixedPointM :: (Monad m, Eq t) => (t -> m t) -> t -> m t
+untilFixedPointM f value = do
     newValue <- f value
     if newValue /= value
-    then untilFixpointM f newValue
+    then untilFixedPointM f newValue
     else return value
--- untilFixpointM
+-- untilFixedPointM
 
-untilCounterOrFixpoint :: Eq t => Int -> (t -> t) -> t -> t
-untilCounterOrFixpoint n f value =
+untilCounterOrFixedPoint :: Eq t => Int -> (t -> t) -> t -> t
+untilCounterOrFixedPoint n f value =
     if n > 0
     then let newValue = f value in
            if newValue /= value
-           then untilCounterOrFixpoint (n - 1) f newValue
+           then untilCounterOrFixedPoint (n - 1) f newValue
            else value
     else value
--- untilCounterOrFixpoint
+-- untilCounterOrFixedPoint
 
-untilCounterOrFixpointM :: (Monad m, Eq t) => Int -> (t -> m t) -> t -> m t
-untilCounterOrFixpointM n f value =
+untilCounterOrFixedPointM :: (Monad m, Eq t) => Int -> (t -> m t) -> t -> m t
+untilCounterOrFixedPointM n f value =
     if n > 0
     then do newValue <- f value
             if newValue /= value
-            then untilCounterOrFixpointM (n - 1) f newValue
+            then untilCounterOrFixedPointM (n - 1) f newValue
             else return value
     else return value
--- untilCounterOrFixpointM
+-- untilCounterOrFixedPointM
 

@@ -15,70 +15,28 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module Pairs (
-knuthShuffle,
-allPairs,
-allPairsNonId,
-halfOfPairs,
-halfOfPairsNonId
+mapPairs,
+mapPairsM
 ) where
 
-import System.Random
-import Control.Monad
+import qualified Control.Monad as Monad
 
--- From https://rosettacode.org/wiki/Knuth_shuffle#Haskell
-replaceAt :: Int -> a -> [a] -> [a]
-replaceAt i c l = let (a,b) = splitAt i l in a++c:(drop 1 b)
-
-swapElems :: (Int, Int) -> [a] -> [a]
-swapElems (i,j) xs | i==j = xs
-                   | otherwise = replaceAt j (xs!!i) $ replaceAt i (xs!!j) xs
-
-knuthShuffle :: [a] -> IO [a]
-knuthShuffle xs =
-    liftM (foldr swapElems xs. zip [1..]) (mkRands (length xs))
+mapPairs :: (a -> b -> c) -> [a] -> [b] -> [c]
+mapPairs f xs ys = iter xs ys
   where
-    mkRands = mapM (randomRIO.(,) 0) . enumFromTo 1 . pred
--- knuthShuffle
+    iter [] _ = []
+    iter (_:us) [] = iter us ys
+    iter (u:us) (v:vs) = f u v : iter (u:us) vs
+-- mapPairs
 
-allPairs :: [a] -> [b] -> [(a, b)]
-allPairs xs ys = pairSearch xs ys
+mapPairsM :: Monad.Monad m => (a -> b -> m c) -> [a] -> [b] -> m [c]
+mapPairsM f xs ys = iter xs ys
   where
-    pairSearch [] _ = []
-    pairSearch [_] [] = []
-    pairSearch (_:u2:us) [] = pairSearch (u2:us) ys
-    pairSearch (u:us) (v:vs) = (u, v) : pairSearch (u:us) vs
--- allPairs
-
-allPairsNonId :: Eq t => [t] -> [t] -> [(t, t)]
-allPairsNonId xs ys = pairSearch xs ys
-  where
-    pairSearch [] _ = []
-    pairSearch [_] [] = []
-    pairSearch (_:u2:us) [] = pairSearch (u2:us) ys
-    pairSearch (u:us) (v:vs) =
-        if u == v
-        then pairSearch (u:us) vs
-        else (u, v) : pairSearch (u:us) vs
--- allPairsNonId
-
-halfOfPairs :: [t] -> [(t, t)]
-halfOfPairs xs = pairSearch xs xs
-  where
-    pairSearch [] _ = []
-    pairSearch [_] [] = []
-    pairSearch (_:u2:us) [] = pairSearch (u2:us) us
-    pairSearch (u:us) (v:vs) = (u, v) : pairSearch (u:us) vs
--- halfOfPairs
-
-halfOfPairsNonId :: Eq t => [t] -> [t] -> [(t, t)]
-halfOfPairsNonId xs ys = pairSearch xs ys
-  where
-    pairSearch [] _ = []
-    pairSearch [_] [] = []
-    pairSearch (_:u2:us) [] = pairSearch (u2:us) us
-    pairSearch (u:us) (v:vs) =
-        if u == v
-        then pairSearch (u:us) vs
-        else (u, v) : pairSearch (u:us) vs
--- halfOfPairsNonId
+    iter [] _ = return []
+    iter (_:us) [] = iter us ys
+    iter (u:us) (v:vs) = do
+        newElem <- f u v
+        otherElems <- iter (u:us) vs
+        return (newElem : otherElems)
+-- mapPairsM
 

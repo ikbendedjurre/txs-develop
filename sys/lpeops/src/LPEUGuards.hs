@@ -36,14 +36,14 @@ import LPETypes
 import LPEBlindSubst
 import LPESuccessors
 import LPEDeterminism
-import UntilFixpoint
+import UntilFixedPoint
 import VarFactory
 
 -- Makes the LPE deterministic by delaying non-deterministic choices by one step until a fixpoint is reached.
 addUGuardsToLPE :: LPEOperation
 addUGuardsToLPE lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<uguard>>" ]
-    newLpe <- untilCounterOrFixpointM 1 (doIteration invariant) lpe
+    newLpe <- untilCounterOrFixedPointM 1 (doIteration invariant) lpe
     return (Right newLpe)
 -- addUGuardsToLPE
 

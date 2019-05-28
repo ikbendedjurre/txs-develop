@@ -32,14 +32,14 @@ import qualified Constant
 import           LPETypes
 import           LPEParRemoval
 import           BlindSubst
-import           UntilFixpoint
+import           UntilFixedPoint
 
 -- LPE rewrite method.
 -- Eliminates parameters that always have the same value from an LPE.
 constElm :: LPEOperation
 constElm lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<cstelm>>" ]
-    constParams <- untilFixpointM (getConstParams lpe invariant) (Map.keysSet (lpeInitEqs lpe))
+    constParams <- untilFixedPointM (getConstParams lpe invariant) (Map.keysSet (lpeInitEqs lpe))
     newLpe <- removeParsFromLPE constParams lpe
     return (Right newLpe)
 -- constElm

@@ -39,7 +39,7 @@ import           ValExpr hiding (subst)
 import           ValExprVisitor
 import           LPETypes
 import           SetUnions
-import           UntilFixpoint
+import           UntilFixedPoint
 import           LPEChanMap
 
 stdIds :: Set.Set TxsDefs.Ident
@@ -47,7 +47,7 @@ stdIds = Set.fromList (map fst StdTDefs.stdTDefs)
 
 getLPEIds :: LPE -> Set.Set TxsDefs.Ident
 getLPEIds lpe =
-    untilFixpoint getNextIds (Set.unions [
+    untilFixedPoint getNextIds (Set.unions [
       getModelChanIds,
       getLPEParamEqsIds (lpeInitEqs lpe),
       setUnions (Set.map (getLPESummandIds (lpeChanMap lpe)) (lpeSummands lpe))

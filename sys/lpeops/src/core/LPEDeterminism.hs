@@ -35,7 +35,7 @@ import qualified ValExpr
 import qualified Satisfiability as Sat
 import LPETypes
 -- import BlindSubst
-import UntilFixpoint
+import UntilFixedPoint
 -- import LPESuccessors
 -- import VarFactory
 
@@ -81,7 +81,7 @@ getNonDeterministicSummandGroup :: TxsDefs.VExpr -> LPESummands -> IOC.IOC (Mayb
 getNonDeterministicSummandGroup invariant summands = do
     maybePair <- getNonDeterministicSummandPair invariant (Set.toList summands)
     case maybePair of
-      Just (summand1, summand2) -> Just <$> untilFixpointM expandGroup (Set.fromList [summand1, summand2])
+      Just (summand1, summand2) -> Just <$> untilFixedPointM expandGroup (Set.fromList [summand1, summand2])
       Nothing -> return Nothing
   where
     expandGroup :: LPESummands -> IOC.IOC LPESummands

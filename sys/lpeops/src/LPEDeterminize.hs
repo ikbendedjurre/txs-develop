@@ -34,7 +34,7 @@ import LPETypes
 import LPEBlindSubst
 import LPESuccessors
 import LPEDeterminism
-import UntilFixpoint
+import UntilFixedPoint
 import VarFactory
 -- import LPEValidity
 
@@ -42,7 +42,7 @@ import VarFactory
 determinizeLPE :: LPEOperation
 determinizeLPE lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<det>>" ]
-    newLpe <- untilCounterOrFixpointM 1 (doDetIteration invariant) lpe
+    newLpe <- untilCounterOrFixedPointM 1 (doDetIteration invariant) lpe
     return (Right newLpe)
 -- determinizeLPE
 

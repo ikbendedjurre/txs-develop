@@ -31,7 +31,7 @@ import qualified VarId
 import LPETypes
 import LPEParUsage
 import LPEPrettyPrint
-import UntilFixpoint
+import UntilFixedPoint
 
 mapGet :: (Show a, Ord a) => Map.Map a b -> a -> b
 mapGet m k =
@@ -60,7 +60,7 @@ dataReset lpe _out invariant = do
                                        [ (dk, dj, s) | (dj', s) <- Map.toList (paramSources paramUsage), dj' == dj ]
                                      | dj <- djs, paramUsage <- Map.elems paramUsagePerSummand, dk `elem` directlyUsedParams paramUsage ]
                                    | (dk, djs) <- Map.toList belongsToRelation ]
-    let relevanceRelation = untilFixpoint (updateRelevanceRelation paramUsagePerSummand controlFlowGraphs belongsToRelation) (Set.fromList initialRelevanceRelation)
+    let relevanceRelation = untilFixedPoint (updateRelevanceRelation paramUsagePerSummand controlFlowGraphs belongsToRelation) (Set.fromList initialRelevanceRelation)
     -- IOC.putMsgs [ EnvData.TXS_CORE_ANY (showRelevanceRelation "Full relevance relation:" relevanceRelation) ]
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "Constructing new LPE..." ]
     let newSummands = map (resetParamsInSummand (lpeInitEqs lpe) paramUsagePerSummand belongsToRelation relevanceRelation) (Set.toList (lpeSummands lpe))

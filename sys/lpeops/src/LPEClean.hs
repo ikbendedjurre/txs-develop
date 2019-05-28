@@ -27,7 +27,7 @@ import LPETypes
 import LPESuccessors
 import LPEEquivalence
 import BlindSubst
-import UntilFixpoint
+import UntilFixedPoint
 
 -- Removes superfluous summands, e.g. summands that do not add new behavior to the LPE.
 -- Also removes summands that are unreachable from the initial state and unreachable from the next-states of all other summands.
@@ -39,7 +39,7 @@ cleanLPE lpe _out invariant = do
     uniqueSummands <- removeContainedSummands summands invariant
     Monad.when (length uniqueSummands < Set.size summands) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Removed " ++ show (Set.size summands - length uniqueSummands) ++ " superfluous summands") ])
     initReachableSummands <- Monad.foldM addSummandIfReachableFromInit Set.empty uniqueSummands
-    reachableSummands <- untilFixpointM (updateReachableSummands uniqueSummands) initReachableSummands
+    reachableSummands <- untilFixedPointM (updateReachableSummands uniqueSummands) initReachableSummands
     Monad.when (length reachableSummands < length uniqueSummands) (IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Removed " ++ show (length uniqueSummands - length reachableSummands) ++ " unreachable summands") ])
     --let unreachableSummands = Set.map (\s -> s { lpeSmdDebug = "UNREACHABLE" }) (uniqueSummands Set.\\ reachableSummands)
     --return (Right (lpe { lpeSummands = Set.union reachableSummands unreachableSummands }))
