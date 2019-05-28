@@ -90,7 +90,7 @@ getRandomNextStates lpe currentStates = do
     --else IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Some state = " ++ showLPEParamEqs ((Set.toList currentStates) !! 0)) ]
     --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("->") ]
     let (tauSummands, nonTauSummands) = List.partition lpeSmdInvisible (lpeSmdList lpe)
-    tauClosure <- untilFixedPointM (doTauClosureIter tauSummands) currentStates
+    (tauClosure, _) <- untilFixedPointM (doTauClosureIter tauSummands) (currentStates, currentStates)
     shuffledStates <- MonadState.liftIO $ knuthShuffle (Set.toList tauClosure)
     shuffledSmds <- MonadState.liftIO $ knuthShuffle nonTauSummands
     maybeSES <- getSummandEnablingState shuffledStates shuffledSmds
@@ -100,10 +100,11 @@ getRandomNextStates lpe currentStates = do
       Nothing -> do --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("No state that enables a summand!") ]
                     return Nothing
   where
-    doTauClosureIter :: [LPESummand] -> LPEStates -> IOC.IOC LPEStates
-    doTauClosureIter tauSummands states = do
-        newStates <- Pairs.mapPairsM getStateAfterTauSummand tauSummands (Set.toList states)
-        return (Set.union states (Set.fromList (concat newStates)))
+    doTauClosureIter :: [LPESummand] -> (LPEStates, LPEStates) -> IOC.IOC (LPEStates, LPEStates)
+    doTauClosureIter tauSummands (states, fringe) = do
+        newStates <- Pairs.mapPairsM getStateAfterTauSummand tauSummands (Set.toList fringe)
+        let newStatesSet = Set.fromList (concat newStates)
+        return (Set.union states newStatesSet, newStatesSet)
     -- doTauClosureIter
     
     getStateAfterTauSummand :: LPESummand -> LPEParamEqs -> IOC.IOC [LPEParamEqs]
