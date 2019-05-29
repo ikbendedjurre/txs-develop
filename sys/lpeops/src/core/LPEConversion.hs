@@ -104,6 +104,7 @@ constructFromRefinedSummandData chanMap (cid, vids, guard, paramEqs) =
                , lpeSmdInvisible = List.null (getChanDataFromChanMap chanMap cid)
                , lpeSmdGuard = guard
                , lpeSmdEqs = paramEqs
+               , lpeSmdRelevantParams = Map.keysSet paramEqs
                , lpeSmdDebug = ""
                }
 -- constructFromRefinedSummandData

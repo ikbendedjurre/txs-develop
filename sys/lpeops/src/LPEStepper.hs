@@ -49,16 +49,19 @@ import LPEChanMap
 import UntilFixedPoint
 import KnuthShuffle
 
-type LPEState = (LPEParamEqs, Maybe LPESummand)
+type LPEState = (LPEParamEqs, [LPESummand])
 type LPEStates = Set.Set LPEState
+
+mapDepth :: Int
+mapDepth = 3
 
 -- Removes superfluous summands, e.g. summands that do not add new behavior to the LPE.
 stepLPE :: Int -> LPEOperation
-stepLPE n lpe _out _invariant = do
+stepLPE n lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY ("<<step " ++ show n ++ ">>") ]
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Computing possible successor map...") ]
-    possibleSuccessorMap <- getPossibleSuccessorMap lpe (ValExpr.cstrConst (Constant.Cbool True))
-    doLPESteps possibleSuccessorMap lpe (Set.singleton (lpeInitEqs lpe, Nothing)) n 1
+    possibleSuccessorMap <- getPossibleSuccessorMap lpe invariant mapDepth
+    -- printPossibleSuccessorMap lpe possibleSuccessorMap
+    doLPESteps possibleSuccessorMap lpe (Set.singleton (lpeInitEqs lpe, [])) n 1
     return (Right lpe)
 -- stepLPE
 
@@ -69,7 +72,8 @@ doLPESteps possibleSuccessorMap lpe states n stepNr = do
     else do maybeNextStates <- getRandomNextStates possibleSuccessorMap lpe states
             case maybeNextStates of
               Just (stepSmd, stepSol, nextStates) -> do let (varsPerChan, hiddenVars) = getActOfferDataFromChanMap (lpeChanMap lpe) (lpeSmdChan stepSmd) (lpeSmdVars stepSmd)
-                                                        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("STEP " ++ show stepNr ++ ": " ++ showChans stepSol varsPerChan ++ showHiddenVars stepSol hiddenVars ++ " [" ++ show (Set.size states) ++ " -> " ++ show (Set.size nextStates) ++ "]") ]
+                                                        IOC.putMsgs [ EnvData.TXS_CORE_ANY ("STEP " ++ show stepNr ++ " (" ++ show (List.elemIndex stepSmd (lpeSmdList lpe)) ++ "): " ++ showChans stepSol varsPerChan ++ showHiddenVars stepSol hiddenVars ++ " [" ++ show (Set.size states) ++ " -> " ++ show (Set.size nextStates) ++ "]") ]
+                                                        --[" ++ List.intercalate "; " (map (\(_, v) -> showSummandIndexList lpe v) (Set.toList nextStates)) ++ "]") ]
                                                         doLPESteps possibleSuccessorMap lpe nextStates (n - 1) (stepNr + 1)
               Nothing -> IOC.putMsgs [ EnvData.TXS_CORE_ANY ("DEADLOCK") ]
   where
@@ -92,60 +96,71 @@ getRandomNextStates possibleSuccessorMap lpe currentStates = do
     --else IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Some state = " ++ showLPEParamEqs ((Set.toList currentStates) !! 0)) ]
     --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("->") ]
     
-    let (tauSummands, nonTauSummands) = Set.partition lpeSmdInvisible (lpeSummands lpe)
+    let (tauSummands, nonTauSummands) = List.partition lpeSmdInvisible (lpeSmdList lpe)
     (tauClosure, _) <- untilFixedPointM (doTauClosureIter tauSummands) (currentStates, currentStates)
+    --let nonTauSummands = lpeSmdList lpe
+    --let tauClosure = currentStates
+    
     shuffledStates <- MonadState.liftIO $ knuthShuffle (Set.toList tauClosure)
-    shuffledSmds <- Set.fromList <$> (MonadState.liftIO $ knuthShuffle (Set.toList nonTauSummands))
+    shuffledSmds <- MonadState.liftIO $ knuthShuffle nonTauSummands
     maybeNextStep <- Pairs.searchWithFuncM getRandomNextStep (getSuccSummands shuffledSmds) shuffledStates
     case maybeNextStep of
       Just (_state, smd, sol) -> do nextStates <- Pairs.mapWithFuncM (getStateAfterSummand smd sol) (getSuccSummands nonTauSummands) shuffledStates
                                     return (Just (smd, sol, Set.fromList (concat nextStates)))
       Nothing -> return Nothing
   where
-    doTauClosureIter :: LPESummands -> (LPEStates, LPEStates) -> IOC.IOC (LPEStates, LPEStates)
+    doTauClosureIter :: [LPESummand] -> (LPEStates, LPEStates) -> IOC.IOC (LPEStates, LPEStates)
     doTauClosureIter tauSummands (states, fringe) = do
         newStates <- Pairs.mapWithFuncM getStateAfterTauSummand (getSuccSummands tauSummands) (Set.toList fringe)
         let newStatesSet = Set.fromList (concat newStates)
         return (Set.union states newStatesSet, newStatesSet Set.\\ states)
     -- doTauClosureIter
     
-    getSuccSummands :: LPESummands -> LPEState -> [LPESummand]
-    getSuccSummands smds (_, Nothing) = Set.toList smds
-    getSuccSummands smds (_, Just prevSmd) = Set.toList (Set.intersection (possibleSuccessorMap Map.! prevSmd) smds)
+    getSuccSummands :: [LPESummand] -> LPEState -> [LPESummand]
+    getSuccSummands smds (_, prevSmds) = List.intersect smds (Set.toList (possibleSuccessorMap Map.! prevSmds))
+    
+    addPrevSmd :: [LPESummand] -> LPESummand -> [LPESummand]
+    addPrevSmd prevSmds prevSmd =
+        if length prevSmds < mapDepth
+        then prevSmds ++ [prevSmd]
+        else addPrevSmd (tail prevSmds) prevSmd
+    -- addPrevSmd
     
     getStateAfterTauSummand :: LPEState -> LPESummand -> IOC.IOC [LPEState]
-    getStateAfterTauSummand (state, _) tauSummand = do
+    getStateAfterTauSummand (state, prevSmds) tauSummand = do
         guardAfterState <- doBlindSubst state (lpeSmdGuard tauSummand)
         -- It is assumed in TorXakis that there is exactly one solution:
-        sol <- Sat.getSomeSolution2 guardAfterState (ValExpr.cstrConst (Constant.Cbool True)) (lpeSmdVars tauSummand)
+        sol <- Sat.getSomeSolution2 guardAfterState Sat.defaultInvariant (lpeSmdVars tauSummand)
         case sol of
           SolveDefs.Solved solMap -> do let solEqs = Map.union state (solutionToParamEqs solMap)
                                         paramEqsAfterSolEqs <- doBlindParamEqsSubst solEqs (lpeSmdEqs tauSummand)
                                         evaluated <- evalParamEqs paramEqsAfterSolEqs
                                         case evaluated of
-                                          Just eqs -> return [(eqs, Just tauSummand)]
+                                          Just eqs -> return [(eqs, addPrevSmd prevSmds tauSummand)]
                                           Nothing -> return []
-          _ -> return []
+          SolveDefs.Unsolvable -> return []
+          SolveDefs.UnableToSolve -> return []
     -- getStateAfterTauSummand
     
     getRandomNextStep :: LPEState -> LPESummand -> IOC.IOC (Maybe (LPEState, LPESummand, LPEParamEqs))
-    getRandomNextStep (state, maybePrevSmd) candidate = do
+    getRandomNextStep (state, prevSmds) candidate = do
+        -- IOC.putMsgs [ EnvData.TXS_CORE_ANY ("getRandomNextStep " ++ show (List.elemIndex candidate (lpeSmdList lpe))) ]
         guardInCurrentState <- doBlindSubst state (lpeSmdGuard candidate)
-        sol <- Sat.getRandomSolution guardInCurrentState (ValExpr.cstrConst (Constant.Cbool True)) (lpeSmdVars candidate)
+        sol <- Sat.getRandomSolution guardInCurrentState Sat.defaultInvariant (lpeSmdVars candidate)
         case sol of
-          SolveDefs.Solved solMap -> return (Just ((state, maybePrevSmd), candidate, solutionToParamEqs solMap))
+          SolveDefs.Solved solMap -> return (Just ((state, prevSmds), candidate, solutionToParamEqs solMap))
           _ -> return Nothing
     -- getRandomNextStep
     
     getStateAfterSummand :: LPESummand -> LPEParamEqs -> LPEState -> LPESummand -> IOC.IOC [LPEState]
-    getStateAfterSummand solSmd sol (state, _) candidate = do
+    getStateAfterSummand solSmd sol (state, prevSmds) candidate = do
         if lpeSmdChan candidate /= lpeSmdChan solSmd
         then return []
         else do let solState = Map.union sol state
                 let varSubst = Map.fromList (zip (lpeSmdVars candidate) (map ValExpr.cstrVar (lpeSmdVars solSmd)))
                 guardAfterVarSubst <- doBlindSubst varSubst (lpeSmdGuard candidate)
                 guardAfterSolState <- doBlindSubst solState guardAfterVarSubst
-                someSol <- Sat.getSomeSolution2 guardAfterSolState (ValExpr.cstrConst (Constant.Cbool True)) (Set.toList ((lpeSmdVarSet candidate) Set.\\ (lpeSmdVarSet solSmd)))
+                someSol <- Sat.getSomeSolution2 guardAfterSolState Sat.defaultInvariant (Set.toList ((lpeSmdVarSet candidate) Set.\\ (lpeSmdVarSet solSmd)))
                 case someSol of
                   SolveDefs.Solved someSolMap -> do --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Guard: " ++ showValExpr (lpeSmdGuard candidate)) ]
                                                     --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("guardAfterVarSubst: " ++ showValExpr guardAfterVarSubst) ]
@@ -159,7 +174,7 @@ getRandomNextStates possibleSuccessorMap lpe currentStates = do
                                                     --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("paramEqsAfterSolState: " ++ showLPEParamEqs paramEqsAfterSolState) ]
                                                     evaluated <- evalParamEqs paramEqsAfterSolState
                                                     case evaluated of
-                                                      Just eqs -> return [(eqs, Just candidate)]
+                                                      Just eqs -> return [(eqs, addPrevSmd prevSmds candidate)]
                                                       Nothing -> return []
                   SolveDefs.Unsolvable -> return []
                   SolveDefs.UnableToSolve -> return []

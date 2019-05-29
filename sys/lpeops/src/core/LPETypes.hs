@@ -110,6 +110,8 @@ data LPESummand = LPESummand { -- Communication channel:
                              , lpeSmdGuard :: TxsDefs.VExpr
                                -- Values per parameter for the process instantiation:
                              , lpeSmdEqs :: LPEParamEqs
+                               -- Which parameter assignments are actually relevant AFTER this summand?
+                             , lpeSmdRelevantParams :: Set.Set VarId.VarId
                              , lpeSmdDebug :: String
                              } deriving (Eq, Ord, Show)
 -- LPESummand
@@ -118,7 +120,7 @@ lpeSmdParams :: LPESummand -> Set.Set VarId.VarId
 lpeSmdParams = Map.keysSet . lpeSmdEqs
 
 lpeSmdParamList :: LPESummand -> [VarId.VarId]
-lpeSmdParamList = Set.toList . lpeSmdParams
+lpeSmdParamList = Map.keys . lpeSmdEqs
 
 lpeSmdVarSet :: LPESummand -> Set.Set VarId.VarId
 lpeSmdVarSet = Set.fromList . lpeSmdVars
@@ -137,6 +139,7 @@ emptyLPESummand = LPESummand { lpeSmdChan = TxsDefs.chanIdIstep
                              , lpeSmdInvisible = False
                              , lpeSmdGuard = ValExpr.cstrConst (Constant.Cbool True)
                              , lpeSmdEqs = Map.empty
+                             , lpeSmdRelevantParams = Set.empty
                              , lpeSmdDebug = ""
                              }
 -- emptyLPESummand
@@ -181,6 +184,7 @@ newLPESummand chanId chanVars guard procInstParamEqs =
                , lpeSmdInvisible = False
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
+               , lpeSmdRelevantParams = Set.fromList (map fst procInstParamEqs)
                , lpeSmdDebug = ""
                }
 -- newLPESummand
@@ -195,6 +199,7 @@ newPrioritizedLPESummand chanId chanVars guard procInstParamEqs =
                , lpeSmdInvisible = False
                , lpeSmdGuard = guard
                , lpeSmdEqs = Map.fromList procInstParamEqs
+               , lpeSmdRelevantParams = Set.fromList (map fst procInstParamEqs)
                , lpeSmdDebug = ""
                }
 -- newPrioritizedLPESummand
