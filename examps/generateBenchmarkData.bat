@@ -101,8 +101,8 @@ exit /B 0
 :WriteCommands
 echo lpe %~1 > _lpeExec.txscmd
 echo lpeop export* LPE_proxyModel %~2-lpe-only >> _lpeExec.txscmd
-echo lpeop confelm-^>export* LPE_proxyModel %~2-lpe-reduced >> _lpeExec.txscmd
-::echo lpeop clean-^>cstelm-^>parelm-^>parreset-^>datareset-^>export* LPE_proxyModel %~2-lpe-reduced >> _lpeExec.txscmd
+::echo lpeop confelm-^>export* LPE_proxyModel %~2-lpe-reduced >> _lpeExec.txscmd
+echo lpeop clean-^>cstelm-^>parelm-^>parreset-^>datareset-^>loop-^>export* LPE_proxyModel %~2-lpe-reduced >> _lpeExec.txscmd
 echo quit >> _lpeExec.txscmd
 exit /B 0
 
@@ -116,21 +116,21 @@ copy /b/v/y %~1.txs %BENCHDIR%
 del /q %BENCHDIR%%~3-original.txs
 ren %BENCHDIR%%~1.txs %~3-original.txs
 :: Generate new models from the original model and copy them to the benchmark directory
-:: call :WriteCommands "%~2" "%~3"
-:: echo run _lpeExec.txscmd | torxakis %~1.txs
-:: move /y %~3-lpe-only.txs %BENCHDIR%
-:: move /y %~3-lpe-reduced.txs %BENCHDIR%
-:: call :DeleteCommands
+call :WriteCommands "%~2" "%~3"
+echo run _lpeExec.txscmd | torxakis %~1.txs
+move /y %~3-lpe-only.txs %BENCHDIR%
+move /y %~3-lpe-reduced.txs %BENCHDIR%
+call :DeleteCommands
 :: Create a file that instructs the benchmark on how to test the ORIGINAL model (because its model name may be different for each file)
-::echo lpe %~2 > %BENCHDIR%%~3-original-stepper.txscmd
-::echo stepper %~2 > %BENCHDIR%%~3-original-stepper.txscmd
-::echo step 100 >> %BENCHDIR%%~3-original-stepper.txscmd
-::echo exit >> %BENCHDIR%%~3-original-stepper.txscmd
+echo lpe %~2 > %BENCHDIR%%~3-original-stepper.txscmd
+echo stepper %~2 > %BENCHDIR%%~3-original-stepper.txscmd
+echo step 20 >> %BENCHDIR%%~3-original-stepper.txscmd
+echo exit >> %BENCHDIR%%~3-original-stepper.txscmd
 echo lpe %~2 > %BENCHDIR%%~3-original-stepper-2.txscmd
-echo lpeop step2*100 LPE_proxyModel Dummy >> %BENCHDIR%%~3-original-stepper-2.txscmd
+echo lpeop step*20 LPE_proxyModel Dummy >> %BENCHDIR%%~3-original-stepper-2.txscmd
 echo exit >> %BENCHDIR%%~3-original-stepper-2.txscmd
 echo lpe %~2 > %BENCHDIR%%~3-original-stepper-3.txscmd
-echo lpeop step2*0 LPE_proxyModel Dummy >> %BENCHDIR%%~3-original-stepper-3.txscmd
+echo lpeop step*0 LPE_proxyModel Dummy >> %BENCHDIR%%~3-original-stepper-3.txscmd
 echo exit >> %BENCHDIR%%~3-original-stepper-3.txscmd
 exit /B 0
 

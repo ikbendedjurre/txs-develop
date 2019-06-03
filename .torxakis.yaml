@@ -27,6 +27,7 @@ available-solvers:
   executable-name: "yices-smt2"
   flags:
   - "--incremental"
+smt-log: True
 parameters:
 - name: "ImpRel"
   value: "IOCO"       # IOCO

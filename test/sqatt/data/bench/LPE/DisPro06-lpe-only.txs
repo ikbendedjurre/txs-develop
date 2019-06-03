@@ -1,76 +1,243 @@
 -- LPE_proxyModel_LPE_proxyProcess --
 -- Finish was renamed to Chan1
--- ISTEP was renamed to Chan2
--- Job was renamed to Chan3
--- Finish$1 was renamed to v4
--- Job$1 was renamed to v5
--- Job$2 was renamed to v6
--- Job2Proc$1_-100 was renamed to v7
--- Job2Proc$1_-78 was renamed to v8
--- Job2Proc$1_-80 was renamed to v9
--- Job2Proc$1_-82 was renamed to v10
--- Job2Proc$1_-84 was renamed to v11
--- Job2Proc$1_-86 was renamed to v12
--- Job2Proc$1_-88 was renamed to v13
--- Job2Proc$1_-90 was renamed to v14
--- Job2Proc$1_-92 was renamed to v15
--- Job2Proc$1_-94 was renamed to v16
--- Job2Proc$1_-96 was renamed to v17
--- Job2Proc$1_-98 was renamed to v18
--- Job2Proc$2_-101 was renamed to v19
--- Job2Proc$2_-79 was renamed to v20
--- Job2Proc$2_-81 was renamed to v21
--- Job2Proc$2_-83 was renamed to v22
--- Job2Proc$2_-85 was renamed to v23
--- Job2Proc$2_-87 was renamed to v24
--- Job2Proc$2_-89 was renamed to v25
--- Job2Proc$2_-91 was renamed to v26
--- Job2Proc$2_-93 was renamed to v27
--- Job2Proc$2_-95 was renamed to v28
--- Job2Proc$2_-97 was renamed to v29
--- Job2Proc$2_-99 was renamed to v30
--- pc$proxyProcess was renamed to v31
--- proxyProcess$pre1$Finish$Job$pc$proxyProcess$pre1 was renamed to v32
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op1$dispatcher$gnf1$Job$Dispatch$dispatcher$gnf1$x was renamed to v33
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op1$dispatcher$gnf1$Job$Dispatch$dispatcher$gnf1$y was renamed to v34
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op1$pc$dispatcher was renamed to v35
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$pc$processors was renamed to v36
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op1$pc$processor was renamed to v37
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op1$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v38
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op1$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v39
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op2$pc$processor was renamed to v40
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op2$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v41
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op2$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v42
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op3$pc$processor was renamed to v43
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op3$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v44
--- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op3$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v45
+-- Job was renamed to Chan2
+-- Finish$1132 was renamed to v3
+-- Finish$1133 was renamed to v4
+-- Finish$1134 was renamed to v5
+-- Finish$1135 was renamed to v6
+-- Finish$1138 was renamed to v7
+-- Finish$1141 was renamed to v8
+-- Finish$1144 was renamed to v9
+-- Finish$1147 was renamed to v10
+-- Finish$1150 was renamed to v11
+-- Job$1153 was renamed to v12
+-- Job$1155 was renamed to v13
+-- Job$1157 was renamed to v14
+-- Job$2154 was renamed to v15
+-- Job$2156 was renamed to v16
+-- Job$2158 was renamed to v17
+-- Job2Proc$1_-100120 was renamed to v18
+-- Job2Proc$1_-100120172 was renamed to v19
+-- Job2Proc$1_-100120182 was renamed to v20
+-- Job2Proc$1_-100120192 was renamed to v21
+-- Job2Proc$1_-100120202 was renamed to v22
+-- Job2Proc$1_-100120212 was renamed to v23
+-- Job2Proc$1_-78136 was renamed to v24
+-- Job2Proc$1_-78136222 was renamed to v25
+-- Job2Proc$1_-78136234 was renamed to v26
+-- Job2Proc$1_-78136246 was renamed to v27
+-- Job2Proc$1_-78136268 was renamed to v28
+-- Job2Proc$1_-78136278 was renamed to v29
+-- Job2Proc$1_-78136288 was renamed to v30
+-- Job2Proc$1_-78136298 was renamed to v31
+-- Job2Proc$1_-78136308 was renamed to v32
+-- Job2Proc$1_-80139 was renamed to v33
+-- Job2Proc$1_-80139224 was renamed to v34
+-- Job2Proc$1_-80139236 was renamed to v35
+-- Job2Proc$1_-80139248 was renamed to v36
+-- Job2Proc$1_-80139258 was renamed to v37
+-- Job2Proc$1_-80139280 was renamed to v38
+-- Job2Proc$1_-80139290 was renamed to v39
+-- Job2Proc$1_-80139300 was renamed to v40
+-- Job2Proc$1_-80139310 was renamed to v41
+-- Job2Proc$1_-82142 was renamed to v42
+-- Job2Proc$1_-82142226 was renamed to v43
+-- Job2Proc$1_-82142238 was renamed to v44
+-- Job2Proc$1_-82142250 was renamed to v45
+-- Job2Proc$1_-82142260 was renamed to v46
+-- Job2Proc$1_-82142270 was renamed to v47
+-- Job2Proc$1_-82142292 was renamed to v48
+-- Job2Proc$1_-82142302 was renamed to v49
+-- Job2Proc$1_-82142312 was renamed to v50
+-- Job2Proc$1_-84145 was renamed to v51
+-- Job2Proc$1_-84145228 was renamed to v52
+-- Job2Proc$1_-84145240 was renamed to v53
+-- Job2Proc$1_-84145252 was renamed to v54
+-- Job2Proc$1_-84145262 was renamed to v55
+-- Job2Proc$1_-84145272 was renamed to v56
+-- Job2Proc$1_-84145282 was renamed to v57
+-- Job2Proc$1_-84145304 was renamed to v58
+-- Job2Proc$1_-84145314 was renamed to v59
+-- Job2Proc$1_-86148 was renamed to v60
+-- Job2Proc$1_-86148230 was renamed to v61
+-- Job2Proc$1_-86148242 was renamed to v62
+-- Job2Proc$1_-86148254 was renamed to v63
+-- Job2Proc$1_-86148264 was renamed to v64
+-- Job2Proc$1_-86148274 was renamed to v65
+-- Job2Proc$1_-86148284 was renamed to v66
+-- Job2Proc$1_-86148294 was renamed to v67
+-- Job2Proc$1_-86148316 was renamed to v68
+-- Job2Proc$1_-88151 was renamed to v69
+-- Job2Proc$1_-88151232 was renamed to v70
+-- Job2Proc$1_-88151244 was renamed to v71
+-- Job2Proc$1_-88151256 was renamed to v72
+-- Job2Proc$1_-88151266 was renamed to v73
+-- Job2Proc$1_-88151276 was renamed to v74
+-- Job2Proc$1_-88151286 was renamed to v75
+-- Job2Proc$1_-88151296 was renamed to v76
+-- Job2Proc$1_-88151306 was renamed to v77
+-- Job2Proc$1_-90122 was renamed to v78
+-- Job2Proc$1_-90122162 was renamed to v79
+-- Job2Proc$1_-90122184 was renamed to v80
+-- Job2Proc$1_-90122194 was renamed to v81
+-- Job2Proc$1_-90122204 was renamed to v82
+-- Job2Proc$1_-90122214 was renamed to v83
+-- Job2Proc$1_-92124 was renamed to v84
+-- Job2Proc$1_-92124164 was renamed to v85
+-- Job2Proc$1_-92124174 was renamed to v86
+-- Job2Proc$1_-92124196 was renamed to v87
+-- Job2Proc$1_-92124206 was renamed to v88
+-- Job2Proc$1_-92124216 was renamed to v89
+-- Job2Proc$1_-94126 was renamed to v90
+-- Job2Proc$1_-94126166 was renamed to v91
+-- Job2Proc$1_-94126176 was renamed to v92
+-- Job2Proc$1_-94126186 was renamed to v93
+-- Job2Proc$1_-94126208 was renamed to v94
+-- Job2Proc$1_-94126218 was renamed to v95
+-- Job2Proc$1_-96128 was renamed to v96
+-- Job2Proc$1_-96128168 was renamed to v97
+-- Job2Proc$1_-96128178 was renamed to v98
+-- Job2Proc$1_-96128188 was renamed to v99
+-- Job2Proc$1_-96128198 was renamed to v100
+-- Job2Proc$1_-96128220 was renamed to v101
+-- Job2Proc$1_-98130 was renamed to v102
+-- Job2Proc$1_-98130170 was renamed to v103
+-- Job2Proc$1_-98130180 was renamed to v104
+-- Job2Proc$1_-98130190 was renamed to v105
+-- Job2Proc$1_-98130200 was renamed to v106
+-- Job2Proc$1_-98130210 was renamed to v107
+-- Job2Proc$2_-101121 was renamed to v108
+-- Job2Proc$2_-101121173 was renamed to v109
+-- Job2Proc$2_-101121183 was renamed to v110
+-- Job2Proc$2_-101121193 was renamed to v111
+-- Job2Proc$2_-101121203 was renamed to v112
+-- Job2Proc$2_-101121213 was renamed to v113
+-- Job2Proc$2_-79137 was renamed to v114
+-- Job2Proc$2_-79137223 was renamed to v115
+-- Job2Proc$2_-79137235 was renamed to v116
+-- Job2Proc$2_-79137247 was renamed to v117
+-- Job2Proc$2_-79137269 was renamed to v118
+-- Job2Proc$2_-79137279 was renamed to v119
+-- Job2Proc$2_-79137289 was renamed to v120
+-- Job2Proc$2_-79137299 was renamed to v121
+-- Job2Proc$2_-79137309 was renamed to v122
+-- Job2Proc$2_-81140 was renamed to v123
+-- Job2Proc$2_-81140225 was renamed to v124
+-- Job2Proc$2_-81140237 was renamed to v125
+-- Job2Proc$2_-81140249 was renamed to v126
+-- Job2Proc$2_-81140259 was renamed to v127
+-- Job2Proc$2_-81140281 was renamed to v128
+-- Job2Proc$2_-81140291 was renamed to v129
+-- Job2Proc$2_-81140301 was renamed to v130
+-- Job2Proc$2_-81140311 was renamed to v131
+-- Job2Proc$2_-83143 was renamed to v132
+-- Job2Proc$2_-83143227 was renamed to v133
+-- Job2Proc$2_-83143239 was renamed to v134
+-- Job2Proc$2_-83143251 was renamed to v135
+-- Job2Proc$2_-83143261 was renamed to v136
+-- Job2Proc$2_-83143271 was renamed to v137
+-- Job2Proc$2_-83143293 was renamed to v138
+-- Job2Proc$2_-83143303 was renamed to v139
+-- Job2Proc$2_-83143313 was renamed to v140
+-- Job2Proc$2_-85146 was renamed to v141
+-- Job2Proc$2_-85146229 was renamed to v142
+-- Job2Proc$2_-85146241 was renamed to v143
+-- Job2Proc$2_-85146253 was renamed to v144
+-- Job2Proc$2_-85146263 was renamed to v145
+-- Job2Proc$2_-85146273 was renamed to v146
+-- Job2Proc$2_-85146283 was renamed to v147
+-- Job2Proc$2_-85146305 was renamed to v148
+-- Job2Proc$2_-85146315 was renamed to v149
+-- Job2Proc$2_-87149 was renamed to v150
+-- Job2Proc$2_-87149231 was renamed to v151
+-- Job2Proc$2_-87149243 was renamed to v152
+-- Job2Proc$2_-87149255 was renamed to v153
+-- Job2Proc$2_-87149265 was renamed to v154
+-- Job2Proc$2_-87149275 was renamed to v155
+-- Job2Proc$2_-87149285 was renamed to v156
+-- Job2Proc$2_-87149295 was renamed to v157
+-- Job2Proc$2_-87149317 was renamed to v158
+-- Job2Proc$2_-89152 was renamed to v159
+-- Job2Proc$2_-89152233 was renamed to v160
+-- Job2Proc$2_-89152245 was renamed to v161
+-- Job2Proc$2_-89152257 was renamed to v162
+-- Job2Proc$2_-89152267 was renamed to v163
+-- Job2Proc$2_-89152277 was renamed to v164
+-- Job2Proc$2_-89152287 was renamed to v165
+-- Job2Proc$2_-89152297 was renamed to v166
+-- Job2Proc$2_-89152307 was renamed to v167
+-- Job2Proc$2_-91123 was renamed to v168
+-- Job2Proc$2_-91123163 was renamed to v169
+-- Job2Proc$2_-91123185 was renamed to v170
+-- Job2Proc$2_-91123195 was renamed to v171
+-- Job2Proc$2_-91123205 was renamed to v172
+-- Job2Proc$2_-91123215 was renamed to v173
+-- Job2Proc$2_-93125 was renamed to v174
+-- Job2Proc$2_-93125165 was renamed to v175
+-- Job2Proc$2_-93125175 was renamed to v176
+-- Job2Proc$2_-93125197 was renamed to v177
+-- Job2Proc$2_-93125207 was renamed to v178
+-- Job2Proc$2_-93125217 was renamed to v179
+-- Job2Proc$2_-95127 was renamed to v180
+-- Job2Proc$2_-95127167 was renamed to v181
+-- Job2Proc$2_-95127177 was renamed to v182
+-- Job2Proc$2_-95127187 was renamed to v183
+-- Job2Proc$2_-95127209 was renamed to v184
+-- Job2Proc$2_-95127219 was renamed to v185
+-- Job2Proc$2_-97129 was renamed to v186
+-- Job2Proc$2_-97129169 was renamed to v187
+-- Job2Proc$2_-97129179 was renamed to v188
+-- Job2Proc$2_-97129189 was renamed to v189
+-- Job2Proc$2_-97129199 was renamed to v190
+-- Job2Proc$2_-97129221 was renamed to v191
+-- Job2Proc$2_-99131 was renamed to v192
+-- Job2Proc$2_-99131171 was renamed to v193
+-- Job2Proc$2_-99131181 was renamed to v194
+-- Job2Proc$2_-99131191 was renamed to v195
+-- Job2Proc$2_-99131201 was renamed to v196
+-- Job2Proc$2_-99131211 was renamed to v197
+-- pc$proxyProcess was renamed to v198
+-- proxyProcess$pre1$Finish$Job$pc$proxyProcess$pre1 was renamed to v199
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op1$dispatcher$gnf1$Job$Dispatch$dispatcher$gnf1$x was renamed to v200
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op1$dispatcher$gnf1$Job$Dispatch$dispatcher$gnf1$y was renamed to v201
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op1$pc$dispatcher was renamed to v202
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$pc$processors was renamed to v203
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op1$pc$processor was renamed to v204
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op1$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v205
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op1$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v206
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op2$pc$processor was renamed to v207
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op2$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v208
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op2$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v209
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op3$pc$processor was renamed to v210
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op3$processor$gnf1$Start$Finish$processor$gnf1$x was renamed to v211
+-- proxyProcess$pre1$Finish$Job$proxyProcess$pre1$pre1$Finish$Job$op2$processors$pre1$Start$Finish$op3$processor$gnf1$Start$Finish$processor$gnf1$y was renamed to v212
 CHANDEF ChanDefs
     ::= Chan1 :: Int
-      ; Chan3 :: Int # Int
+      ; Chan2 :: Int # Int
 ENDDEF
-PROCDEF LPE[Chan1 :: Int; Chan3 :: Int # Int](v31 :: Int; v32 :: Int; v33 :: Int; v34 :: Int; v35 :: Int; v36 :: Int; v37 :: Int; v38 :: Int; v39 :: Int; v40 :: Int; v41 :: Int; v42 :: Int; v43 :: Int; v44 :: Int; v45 :: Int) ::=
-         Chan1 ? v4 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN IF (1==v36) THEN (1==v37) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} 1, {- v37 = -} 0, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44, {- v45 = -} v45)
-     ##  Chan1 ? v4 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN IF (1==v36) THEN (1==v40) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} 1, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} 0, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44, {- v45 = -} v45)
-     ##  Chan1 ? v4 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN IF (1==v36) THEN (1==v43) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} v35, {- v36 = -} 1, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} 0, {- v44 = -} v44, {- v45 = -} v45)
-     ## HIDE [ HiddenChannel :: Int # Int ] IN Chan1 ? v4 :: Int | HiddenChannel ? v8 :: Int ? v20 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v8==v33) /\ (v20==v34)) ELSE False FI /\ IF (1==v36) THEN ((1==v37) /\ IF (0==v40) THEN (not((((v8*(-1)))>=0)) /\ not((((v20*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 0, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} 1, {- v41 = -} v8, {- v42 = -} v20, {- v43 = -} v43, {- v44 = -} v44, {- v45 = -} v45) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN Chan1 ? v4 :: Int | HiddenChannel ? v9 :: Int ? v21 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v9==v33) /\ (v21==v34)) ELSE False FI /\ IF (1==v36) THEN ((1==v37) /\ IF (0==v43) THEN (not((((v9*(-1)))>=0)) /\ not((((v21*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 0, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} 1, {- v44 = -} v9, {- v45 = -} v21) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN Chan1 ? v4 :: Int | HiddenChannel ? v10 :: Int ? v22 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v10==v33) /\ (v22==v34)) ELSE False FI /\ IF (1==v36) THEN ((1==v40) /\ IF (0==v37) THEN (not((((v10*(-1)))>=0)) /\ not((((v22*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 1, {- v38 = -} v10, {- v39 = -} v22, {- v40 = -} 0, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44, {- v45 = -} v45) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN Chan1 ? v4 :: Int | HiddenChannel ? v11 :: Int ? v23 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v11==v33) /\ (v23==v34)) ELSE False FI /\ IF (1==v36) THEN ((1==v40) /\ IF (0==v43) THEN (not((((v11*(-1)))>=0)) /\ not((((v23*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} 0, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} 1, {- v44 = -} v11, {- v45 = -} v23) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN Chan1 ? v4 :: Int | HiddenChannel ? v12 :: Int ? v24 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v12==v33) /\ (v24==v34)) ELSE False FI /\ IF (1==v36) THEN ((1==v43) /\ IF (0==v37) THEN (not((((v12*(-1)))>=0)) /\ not((((v24*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 1, {- v38 = -} v12, {- v39 = -} v24, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} 0, {- v44 = -} v44, {- v45 = -} v45) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN Chan1 ? v4 :: Int | HiddenChannel ? v13 :: Int ? v25 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v13==v33) /\ (v25==v34)) ELSE False FI /\ IF (1==v36) THEN ((1==v43) /\ IF (0==v40) THEN (not((((v13*(-1)))>=0)) /\ not((((v25*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} 1, {- v41 = -} v13, {- v42 = -} v25, {- v43 = -} 0, {- v44 = -} v44, {- v45 = -} v45) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN ISTEP | HiddenChannel ? v7 :: Int ? v19 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v7==v33) /\ (v19==v34)) ELSE False FI /\ IF (1==v36) THEN IF (0==v43) THEN (not((((v7*(-1)))>=0)) /\ not((((v19*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} 1, {- v44 = -} v7, {- v45 = -} v19) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN ISTEP | HiddenChannel ? v14 :: Int ? v26 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (0==v36) THEN (not((((v14*(-1)))>=0)) /\ not((((v26*(-1)))>=0))) ELSE False FI /\ IF (1==v35) THEN ((v14==v33) /\ (v26==v34)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 0, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 1, {- v44 = -} v14, {- v45 = -} v26) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN ISTEP | HiddenChannel ? v15 :: Int ? v27 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (0==v36) THEN (not((((v15*(-1)))>=0)) /\ not((((v27*(-1)))>=0))) ELSE False FI /\ IF (1==v35) THEN ((v15==v33) /\ (v27==v34)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 0, {- v40 = -} 1, {- v41 = -} v15, {- v42 = -} v27, {- v43 = -} 0, {- v44 = -} 0, {- v45 = -} 0) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN ISTEP | HiddenChannel ? v16 :: Int ? v28 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (0==v36) THEN (not((((v16*(-1)))>=0)) /\ not((((v28*(-1)))>=0))) ELSE False FI /\ IF (1==v35) THEN ((v16==v33) /\ (v28==v34)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 1, {- v38 = -} v16, {- v39 = -} v28, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} 0, {- v45 = -} 0) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN ISTEP | HiddenChannel ? v17 :: Int ? v29 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v17==v33) /\ (v29==v34)) ELSE False FI /\ IF (1==v36) THEN IF (0==v37) THEN (not((((v17*(-1)))>=0)) /\ not((((v29*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} 1, {- v38 = -} v17, {- v39 = -} v29, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44, {- v45 = -} v45) NI
-     ## HIDE [ HiddenChannel :: Int # Int ] IN ISTEP | HiddenChannel ? v18 :: Int ? v30 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN (IF (1==v35) THEN ((v18==v33) /\ (v30==v34)) ELSE False FI /\ IF (1==v36) THEN IF (0==v40) THEN (not((((v18*(-1)))>=0)) /\ not((((v30*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v33, {- v34 = -} v34, {- v35 = -} 0, {- v36 = -} 1, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} 1, {- v41 = -} v18, {- v42 = -} v30, {- v43 = -} v43, {- v44 = -} v44, {- v45 = -} v45) NI
-     ##  Chan3 ? v5 :: Int ? v6 :: Int [[ IF (0==v31) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v5, {- v34 = -} v6, {- v35 = -} 1, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 0, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} 0, {- v45 = -} 0)
-     ##  Chan3 ? v5 :: Int ? v6 :: Int [[ IF (1==v31) THEN IF (0==v32) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v5, {- v34 = -} v6, {- v35 = -} 1, {- v36 = -} 0, {- v37 = -} 0, {- v38 = -} 0, {- v39 = -} 0, {- v40 = -} 0, {- v41 = -} 0, {- v42 = -} 0, {- v43 = -} 0, {- v44 = -} 0, {- v45 = -} 0)
-     ##  Chan3 ? v5 :: Int ? v6 :: Int [[ IF (1==v31) THEN IF (1==v32) THEN IF (0==v35) THEN (not((((v5*(-1)))>=0)) /\ not((((v6*(-1)))>=0))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan3]({- v31 = -} 1, {- v32 = -} 1, {- v33 = -} v5, {- v34 = -} v6, {- v35 = -} 1, {- v36 = -} v36, {- v37 = -} v37, {- v38 = -} v38, {- v39 = -} v39, {- v40 = -} v40, {- v41 = -} v41, {- v42 = -} v42, {- v43 = -} v43, {- v44 = -} v44, {- v45 = -} v45)
+PROCDEF LPE[Chan1 :: Int; Chan2 :: Int # Int](v198 :: Int; v199 :: Int; v200 :: Int; v201 :: Int; v202 :: Int; v203 :: Int; v204 :: Int; v205 :: Int; v206 :: Int; v207 :: Int; v208 :: Int; v209 :: Int; v210 :: Int; v211 :: Int; v212 :: Int) ::=
+        HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v3 :: Int | HiddenChannel ? v25 :: Int ? v115 :: Int ? v34 :: Int ? v124 :: Int ? v43 :: Int ? v133 :: Int ? v52 :: Int ? v142 :: Int ? v61 :: Int ? v151 :: Int ? v70 :: Int ? v160 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN IF (1==v203) THEN (1==v204) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} v202, {- v203 = -} 1, {- v204 = -} 0, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} v207, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} v210, {- v211 = -} v211, {- v212 = -} v212) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v4 :: Int | HiddenChannel ? v26 :: Int ? v116 :: Int ? v35 :: Int ? v125 :: Int ? v44 :: Int ? v134 :: Int ? v53 :: Int ? v143 :: Int ? v62 :: Int ? v152 :: Int ? v71 :: Int ? v161 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN IF (1==v203) THEN (1==v207) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} v202, {- v203 = -} 1, {- v204 = -} v204, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} 0, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} v210, {- v211 = -} v211, {- v212 = -} v212) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v5 :: Int | HiddenChannel ? v27 :: Int ? v117 :: Int ? v36 :: Int ? v126 :: Int ? v45 :: Int ? v135 :: Int ? v54 :: Int ? v144 :: Int ? v63 :: Int ? v153 :: Int ? v72 :: Int ? v162 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN IF (1==v203) THEN (1==v210) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} v202, {- v203 = -} 1, {- v204 = -} v204, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} v207, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} 0, {- v211 = -} v211, {- v212 = -} v212) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v6 :: Int | HiddenChannel ? v24 :: Int ? v114 :: Int ? v37 :: Int ? v127 :: Int ? v46 :: Int ? v136 :: Int ? v55 :: Int ? v145 :: Int ? v64 :: Int ? v154 :: Int ? v73 :: Int ? v163 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v24==v200) /\ (v114==v201)) ELSE False FI /\ IF (1==v203) THEN ((1==v204) /\ IF (0==v207) THEN (not((((v24*(-1)))>=0)) /\ not((((v114*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 0, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} 1, {- v208 = -} v24, {- v209 = -} v114, {- v210 = -} v210, {- v211 = -} v211, {- v212 = -} v212) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v7 :: Int | HiddenChannel ? v28 :: Int ? v118 :: Int ? v33 :: Int ? v123 :: Int ? v47 :: Int ? v137 :: Int ? v56 :: Int ? v146 :: Int ? v65 :: Int ? v155 :: Int ? v74 :: Int ? v164 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v33==v200) /\ (v123==v201)) ELSE False FI /\ IF (1==v203) THEN ((1==v204) /\ IF (0==v210) THEN (not((((v33*(-1)))>=0)) /\ not((((v123*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 0, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} v207, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} 1, {- v211 = -} v33, {- v212 = -} v123) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v8 :: Int | HiddenChannel ? v29 :: Int ? v119 :: Int ? v38 :: Int ? v128 :: Int ? v42 :: Int ? v132 :: Int ? v57 :: Int ? v147 :: Int ? v66 :: Int ? v156 :: Int ? v75 :: Int ? v165 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v42==v200) /\ (v132==v201)) ELSE False FI /\ IF (1==v203) THEN ((1==v207) /\ IF (0==v204) THEN (not((((v42*(-1)))>=0)) /\ not((((v132*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 1, {- v205 = -} v42, {- v206 = -} v132, {- v207 = -} 0, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} v210, {- v211 = -} v211, {- v212 = -} v212) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v9 :: Int | HiddenChannel ? v30 :: Int ? v120 :: Int ? v39 :: Int ? v129 :: Int ? v48 :: Int ? v138 :: Int ? v51 :: Int ? v141 :: Int ? v67 :: Int ? v157 :: Int ? v76 :: Int ? v166 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v51==v200) /\ (v141==v201)) ELSE False FI /\ IF (1==v203) THEN ((1==v207) /\ IF (0==v210) THEN (not((((v51*(-1)))>=0)) /\ not((((v141*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} v204, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} 0, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} 1, {- v211 = -} v51, {- v212 = -} v141) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v10 :: Int | HiddenChannel ? v31 :: Int ? v121 :: Int ? v40 :: Int ? v130 :: Int ? v49 :: Int ? v139 :: Int ? v58 :: Int ? v148 :: Int ? v60 :: Int ? v150 :: Int ? v77 :: Int ? v167 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v60==v200) /\ (v150==v201)) ELSE False FI /\ IF (1==v203) THEN ((1==v210) /\ IF (0==v204) THEN (not((((v60*(-1)))>=0)) /\ not((((v150*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 1, {- v205 = -} v60, {- v206 = -} v150, {- v207 = -} v207, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} 0, {- v211 = -} v211, {- v212 = -} v212) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN Chan1 ? v11 :: Int | HiddenChannel ? v32 :: Int ? v122 :: Int ? v41 :: Int ? v131 :: Int ? v50 :: Int ? v140 :: Int ? v59 :: Int ? v149 :: Int ? v68 :: Int ? v158 :: Int ? v69 :: Int ? v159 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v69==v200) /\ (v159==v201)) ELSE False FI /\ IF (1==v203) THEN ((1==v210) /\ IF (0==v207) THEN (not((((v69*(-1)))>=0)) /\ not((((v159*(-1)))>=0))) ELSE False FI) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} v204, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} 1, {- v208 = -} v69, {- v209 = -} v159, {- v210 = -} 0, {- v211 = -} v211, {- v212 = -} v212) NI
+     ##  Chan2 ? v12 :: Int ? v15 :: Int [[ IF (0==v198) THEN (not((((v12*(-1)))>=0)) /\ not((((v15*(-1)))>=0))) ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v12, {- v201 = -} v15, {- v202 = -} 1, {- v203 = -} 0, {- v204 = -} 0, {- v205 = -} 0, {- v206 = -} 0, {- v207 = -} 0, {- v208 = -} 0, {- v209 = -} 0, {- v210 = -} 0, {- v211 = -} 0, {- v212 = -} 0)
+     ##  Chan2 ? v13 :: Int ? v16 :: Int [[ IF (1==v198) THEN IF (0==v199) THEN (not((((v13*(-1)))>=0)) /\ not((((v16*(-1)))>=0))) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v13, {- v201 = -} v16, {- v202 = -} 1, {- v203 = -} 0, {- v204 = -} 0, {- v205 = -} 0, {- v206 = -} 0, {- v207 = -} 0, {- v208 = -} 0, {- v209 = -} 0, {- v210 = -} 0, {- v211 = -} 0, {- v212 = -} 0)
+     ##  Chan2 ? v14 :: Int ? v17 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN IF (0==v202) THEN (not((((v14*(-1)))>=0)) /\ not((((v17*(-1)))>=0))) ELSE False FI ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v14, {- v201 = -} v17, {- v202 = -} 1, {- v203 = -} v203, {- v204 = -} v204, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} v207, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} v210, {- v211 = -} v211, {- v212 = -} v212)
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN HiddenChannel ? v18 :: Int ? v108 :: Int ? v79 :: Int ? v169 :: Int ? v85 :: Int ? v175 :: Int ? v91 :: Int ? v181 :: Int ? v97 :: Int ? v187 :: Int ? v103 :: Int ? v193 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v18==v200) /\ (v108==v201)) ELSE False FI /\ IF (1==v203) THEN IF (0==v210) THEN (not((((v18*(-1)))>=0)) /\ not((((v108*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} v204, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} v207, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} 1, {- v211 = -} v18, {- v212 = -} v108) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN HiddenChannel ? v19 :: Int ? v109 :: Int ? v78 :: Int ? v168 :: Int ? v86 :: Int ? v176 :: Int ? v92 :: Int ? v182 :: Int ? v98 :: Int ? v188 :: Int ? v104 :: Int ? v194 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (0==v203) THEN (not((((v78*(-1)))>=0)) /\ not((((v168*(-1)))>=0))) ELSE False FI /\ IF (1==v202) THEN ((v78==v200) /\ (v168==v201)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 0, {- v205 = -} 0, {- v206 = -} 0, {- v207 = -} 0, {- v208 = -} 0, {- v209 = -} 0, {- v210 = -} 1, {- v211 = -} v78, {- v212 = -} v168) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN HiddenChannel ? v20 :: Int ? v110 :: Int ? v80 :: Int ? v170 :: Int ? v84 :: Int ? v174 :: Int ? v93 :: Int ? v183 :: Int ? v99 :: Int ? v189 :: Int ? v105 :: Int ? v195 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (0==v203) THEN (not((((v84*(-1)))>=0)) /\ not((((v174*(-1)))>=0))) ELSE False FI /\ IF (1==v202) THEN ((v84==v200) /\ (v174==v201)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 0, {- v205 = -} 0, {- v206 = -} 0, {- v207 = -} 1, {- v208 = -} v84, {- v209 = -} v174, {- v210 = -} 0, {- v211 = -} 0, {- v212 = -} 0) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN HiddenChannel ? v21 :: Int ? v111 :: Int ? v81 :: Int ? v171 :: Int ? v87 :: Int ? v177 :: Int ? v90 :: Int ? v180 :: Int ? v100 :: Int ? v190 :: Int ? v106 :: Int ? v196 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (0==v203) THEN (not((((v90*(-1)))>=0)) /\ not((((v180*(-1)))>=0))) ELSE False FI /\ IF (1==v202) THEN ((v90==v200) /\ (v180==v201)) ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 1, {- v205 = -} v90, {- v206 = -} v180, {- v207 = -} 0, {- v208 = -} 0, {- v209 = -} 0, {- v210 = -} 0, {- v211 = -} 0, {- v212 = -} 0) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN HiddenChannel ? v22 :: Int ? v112 :: Int ? v82 :: Int ? v172 :: Int ? v88 :: Int ? v178 :: Int ? v94 :: Int ? v184 :: Int ? v96 :: Int ? v186 :: Int ? v107 :: Int ? v197 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v96==v200) /\ (v186==v201)) ELSE False FI /\ IF (1==v203) THEN IF (0==v204) THEN (not((((v96*(-1)))>=0)) /\ not((((v186*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} 1, {- v205 = -} v96, {- v206 = -} v186, {- v207 = -} v207, {- v208 = -} v208, {- v209 = -} v209, {- v210 = -} v210, {- v211 = -} v211, {- v212 = -} v212) NI
+     ## HIDE [ HiddenChannel :: Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int # Int ] IN HiddenChannel ? v23 :: Int ? v113 :: Int ? v83 :: Int ? v173 :: Int ? v89 :: Int ? v179 :: Int ? v95 :: Int ? v185 :: Int ? v101 :: Int ? v191 :: Int ? v102 :: Int ? v192 :: Int [[ IF (1==v198) THEN IF (1==v199) THEN (IF (1==v202) THEN ((v102==v200) /\ (v192==v201)) ELSE False FI /\ IF (1==v203) THEN IF (0==v207) THEN (not((((v102*(-1)))>=0)) /\ not((((v192*(-1)))>=0))) ELSE False FI ELSE False FI) ELSE False FI ELSE False FI ]] >-> LPE[Chan1, Chan2]({- v198 = -} 1, {- v199 = -} 1, {- v200 = -} v200, {- v201 = -} v201, {- v202 = -} 0, {- v203 = -} 1, {- v204 = -} v204, {- v205 = -} v205, {- v206 = -} v206, {- v207 = -} 1, {- v208 = -} v102, {- v209 = -} v192, {- v210 = -} v210, {- v211 = -} v211, {- v212 = -} v212) NI
 ENDDEF
 MODELDEF Model ::=
-    CHAN IN Chan3
+    CHAN IN Chan2
     CHAN OUT Chan1
-    SYNC {Chan1}, {Chan3}
-    BEHAVIOUR LPE[Chan1, Chan3](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    SYNC {Chan1}, {Chan2}
+    BEHAVIOUR LPE[Chan1, Chan2](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 ENDDEF

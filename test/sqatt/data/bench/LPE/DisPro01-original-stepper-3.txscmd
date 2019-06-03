@@ -1,3 +1,3 @@
 lpe Model 
-lpeop step2*0 LPE_proxyModel Dummy 
+lpeop step*0 LPE_proxyModel Dummy 
 exit 

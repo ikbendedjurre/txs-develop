@@ -57,15 +57,15 @@ lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ exam
     example2 :: TxsExample
     example2 = emptyExample
         { exampleName = coreName ++ " (LPEStepper)"
-        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-original")) ]
+        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-only")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-2")) ]
         , expectedResult = Pass
         }
     
     example3 :: TxsExample
     example3 = emptyExample
-        { exampleName = coreName ++ " (LPEStepper0)"
-        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-original")) ]
+        { exampleName = coreName ++ " (ReducedLPEStepper)"
+        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-reduced")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-3")) ]
         , expectedResult = Pass
         }

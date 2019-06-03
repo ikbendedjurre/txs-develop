@@ -43,11 +43,11 @@ allExamples = [ --Choice.benchmarksSet
         --w      , LPEBenchmarkSets.lpeBenchmarkSet "DisPro05" -- Fails because of hidden variables?
         --w      , LPEBenchmarkSets.lpeBenchmarkSet "DisPro06a" -- Takes too long!
         --w      , LPEBenchmarkSets.lpeBenchmarkSet "DisPro06" -- Fails because of hidden variables?
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro07" -- Fails because of hidden variables? + Too short, quiescence!
-              --, LPEBenchmarkSets.lpeBenchmarkSet "DisPro08" -- Fails because of hidden variables? + Too short, quiescence!
+                LPEBenchmarkSets.lpeBenchmarkSet "DisPro07" -- Fails because of hidden variables? + Too short, quiescence! -> Should be fixed now
+              , LPEBenchmarkSets.lpeBenchmarkSet "DisPro08" -- Fails because of hidden variables? + Too short, quiescence! -> Should be fixed now
    ---             , LPEBenchmarkSets.lpeBenchmarkSet "Echo" -- Works
-                LPEBenchmarkSets.lpeBenchmarkSet "EchoDelay" -- Works (sometimes fails?!)
-              , LPEBenchmarkSets.lpeBenchmarkSet "Lossy" -- Works (sometimes fails?!)
+              --  LPEBenchmarkSets.lpeBenchmarkSet "EchoDelay" -- Works (sometimes fails?!)
+              --, LPEBenchmarkSets.lpeBenchmarkSet "Lossy" -- Works (sometimes fails?!)
    ---             , LPEBenchmarkSets.lpeBenchmarkSet "LuckyPeople" -- Takes too long!
    ---             , LPEBenchmarkSets.lpeBenchmarkSet "MovingArm" -- Works
    ---             , LPEBenchmarkSets.lpeBenchmarkSet "Point" -- Works
