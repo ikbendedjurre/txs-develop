@@ -47,5 +47,7 @@ library
                       , value
                       , lpe
                       , lpeops
+                      , lpeq
+                      , lpeutils
                       
   default-language:     Haskell2010

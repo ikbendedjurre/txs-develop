@@ -116,6 +116,9 @@ module TxsCore
   -- * LPE transformation
 , txsLPE
 
+  -- * LPEQ transformation
+, txsLPEQ
+
   -- * LPE manipulation
 , txsLPEOp
 
@@ -187,6 +190,7 @@ import qualified Eval
 -- import from lpe
 import qualified LPE
 import qualified LPEOps
+import qualified LPEQ
 import ModelIdFactory
 
 -- import from valexpr
@@ -1165,6 +1169,19 @@ txsLPE (Right modelid@(TxsDefs.ModelId modname _moduid))  =  do
                    return Nothing
     _ -> do IOC.putMsgs [ EnvData.TXS_CORE_USER_ERROR "LPE: only allowed if initialized" ]
             return Nothing
+
+-- ----------------------------------------------------------------------------------------- --
+
+txsLPEQ :: String -> String -> IOC.IOC [String]
+txsLPEQ inName outName = do
+    msgsOrInModel <- getMsgOrModelFromName (T.pack inName)
+    case msgsOrInModel of
+      Left msg -> return [msg]
+      Right (modelId, modelDef) -> do r <- LPEQ.lpeqModelDef modelId modelDef outName
+                                      case r of
+                                        Left msgs -> return msgs
+                                        Right (mid, _) -> do return ["LPEQ transformation complete; result saved to model " ++ T.unpack (ModelId.name mid)]
+-- txsLPEQ
 
 -- ----------------------------------------------------------------------------------------- --
 

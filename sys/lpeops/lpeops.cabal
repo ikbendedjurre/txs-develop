@@ -24,9 +24,7 @@ library
                     , LPEContexts
                     , LPEContextIds
                     , LPEClean
-                    , MonadAny
                     , LPEChanMap
-                    , ChanFactory
                     , LPEConstElm
                     , LPEParElm
                     -- , LPEIStepElm
@@ -35,12 +33,8 @@ library
                     , LPETypes
                     , LPEConversion
                     , LPEEquivalence
-                    , SetUnions
                     -- , LPEUGuards
-                    , Pairs
-                    , KnuthShuffle
                     , LPEBlindSubst
-                    , UntilFixedPoint
                     , LPEConfCheck
                     , LPEIsDet
                     -- , LPEAngelic
@@ -55,10 +49,6 @@ library
                     , LPEInfo
                     , Satisfiability
                     , ValExprVisitor
-                    , ModelIdFactory
-                    , ValFactory
-                    , VarFactory
-                    , ConcatEither
                     , ChanAlphabet
                     , MCRL2Defs
                     , MCRL2Env
@@ -82,6 +72,7 @@ library
                       , bexpr
                       , valexpr
                       , value
+                      , lpeutils
 
   default-language:     Haskell2010
 
@@ -103,8 +94,6 @@ test-suite lpeops-test
                       , LPEContextIds
                       , LPEClean
                       , LPEChanMap
-                      , MonadAny
-                      , ChanFactory
                       , LPEConstElm
                       , LPEParElm
                       -- , LPEIStepElm
@@ -114,11 +103,7 @@ test-suite lpeops-test
                       , LPEConversion
                       , LPEEquivalence
                       , LPEBlindSubst
-                      , SetUnions
                       -- , LPEUGuards
-                      , Pairs
-                      , UntilFixedPoint
-                      , KnuthShuffle
                       , LPEConfCheck
                       , LPEIsDet
                       , LPEInfo
@@ -133,10 +118,6 @@ test-suite lpeops-test
                       , LPEStepper2
                       , Satisfiability
                       , ValExprVisitor
-                      , ModelIdFactory
-                      , ValFactory
-                      , VarFactory
-                      , ConcatEither
                       , ChanAlphabet
                       , MCRL2Defs
                       , MCRL2Env
@@ -167,5 +148,6 @@ test-suite lpeops-test
                      , bexpr
                      , valexpr
                      , value
+                     , lpeutils
 
   default-language:    Haskell2010

@@ -224,7 +224,7 @@ showLPESummandInContext f g orderedChans orderedParams chanMap summand =
       (if null hiddenVars then (if lpeSmdPriority summand then "{- PRIORITIZED -}" else "")
       else (if lpeSmdPriority summand then "{- PRIORITIZED -} " else "") ++ "HIDE [ HiddenChannel" ++ showOfferSorts hiddenVars ++ " ] IN") ++
       List.intercalate " |" (map showOffer varsPerChan) ++
-      (if null hiddenVars then "" else ((if null varsPerChan then "" else " |") ++ " HiddenChannel" ++ showOfferVars hiddenVars)) ++
+      (if null hiddenVars then (if null varsPerChan then " ISTEP" else "") else ((if null varsPerChan then " ISTEP |" else " |") ++ " HiddenChannel" ++ showOfferVars hiddenVars)) ++
       " [[ " ++ showValExprInContext f g (lpeSmdGuard summand) ++ " ]] >-> " ++
       "LPE" ++ showChanRefs orderedChans ++
       "(" ++ showLPEParamEqsInContext f g orderedParams (lpeSmdEqs summand) ++ ")" ++

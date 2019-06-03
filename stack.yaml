@@ -17,6 +17,8 @@ packages:
 - location: sys/lexregexxsd
 - location: sys/lpe
 - location: sys/lpeops
+- location: sys/lpeq
+- location: sys/lpeutils
 - location: sys/server
 - location: sys/serverenv
 - location: sys/solve

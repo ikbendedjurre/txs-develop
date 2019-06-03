@@ -30,7 +30,6 @@ import qualified EnvData
 import qualified Satisfiability as Sat
 import qualified SolveDefs
 import qualified ValExpr
-import qualified Constant
 import qualified Eval
 import qualified Sigs
 import qualified TxsDefs
@@ -53,7 +52,7 @@ type LPEState = (LPEParamEqs, [LPESummand])
 type LPEStates = Set.Set LPEState
 
 mapDepth :: Int
-mapDepth = 3
+mapDepth = 1
 
 -- Removes superfluous summands, e.g. summands that do not add new behavior to the LPE.
 stepLPE :: Int -> LPEOperation
@@ -194,15 +193,14 @@ evalParamEqs eqs = do
 simplifyExpr :: TxsDefs.VExpr -> IOC.IOC (Either String TxsDefs.VExpr)
 simplifyExpr expr = do
     case expr of
-      (ValExpr.view -> ValExpr.Vconst (Constant.Ccstr _ _)) ->
-          do envb <- filterEnvCtoEnvB
-             (simplified, envb') <- MonadState.lift $ MonadState.runStateT (Eval.eval expr) envb
-             writeEnvBtoEnvC envb'
-             case simplified of
-               Left m -> return (Left m)
-               Right newExpr -> return (Right (ValExpr.cstrConst newExpr))
       (ValExpr.view -> ValExpr.Vconst _) -> return (Right expr)
-      _ -> return (Left ("Not a constant expression (\"" ++ showValExpr expr ++ "\")!"))
+      _ -> do envb <- filterEnvCtoEnvB
+              (simplified, envb') <- MonadState.lift $ MonadState.runStateT (Eval.eval expr) envb
+              writeEnvBtoEnvC envb'
+              case simplified of
+                Left m -> return (Left m)
+                Right newExpr -> return (Right (ValExpr.cstrConst newExpr))
+                -- return (Left ("Not a constant expression (\"" ++ showValExpr expr ++ "\")!"))
 -- simplifyExpr
 
 filterEnvCtoEnvB :: IOC.IOC IOB.EnvB
