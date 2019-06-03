@@ -44,7 +44,7 @@ benchDir = "LPE"
 -- -- lpeBenchmarkSet
 
 lpeBenchmarkSet :: String -> TxsExampleSet
-lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ example1, example2, example3 ]
+lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ example1, example2, example3, example4 ]
   where
     example1 :: TxsExample
     example1 = emptyExample
@@ -53,20 +53,28 @@ lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ exam
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper")) ]
         , expectedResult = Pass
         }
-
+    
     example2 :: TxsExample
     example2 = emptyExample
-        { exampleName = coreName ++ " (LPEStepper)"
-        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-only")) ]
+        { exampleName = coreName ++ " (linearized stepper)"
+        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-original")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-2")) ]
         , expectedResult = Pass
         }
-    
+
     example3 :: TxsExample
     example3 = emptyExample
-        { exampleName = coreName ++ " (ReducedLPEStepper)"
-        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-reduced")) ]
+        { exampleName = coreName ++ " (LPEStepper)"
+        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-only")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-3")) ]
+        , expectedResult = Pass
+        }
+    
+    example4 :: TxsExample
+    example4 = emptyExample
+        { exampleName = coreName ++ " (LPEStepper-base)"
+        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-only")) ]
+        , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-4")) ]
         , expectedResult = Pass
         }
 -- lpeBenchmarkSet

@@ -15,6 +15,7 @@ library
   hs-source-dirs:       src
 
   exposed-modules:      ModelIdFactory
+                      , ProcIdFactory
                       , VarFactory
                       , ValFactory
                       , MonadAny
