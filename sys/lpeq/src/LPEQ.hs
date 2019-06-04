@@ -30,15 +30,17 @@ import qualified Data.Text as Text
 import qualified EnvCore as IOC
 -- import qualified EnvData
 import qualified TxsDefs
-import qualified ProcId
+-- import qualified ProcId
 import qualified LPEQAdmin
 import ModelIdFactory
-import ProcIdFactory
-import BehExprDefs
+-- import ProcIdFactory
+-- import BehExprDefs
+import ProcessReachability
 
 -- Linearizes a model definition and (if successful) saves it to the current context.
 lpeqModelDef :: TxsDefs.ModelId -> TxsDefs.ModelDef -> String -> IOC.IOC (Either [String] (TxsDefs.ModelId, TxsDefs.ModelDef))
 lpeqModelDef _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName = do
+    _procMap <- getReachableProcMap bexpr
     let adminData = LPEQAdmin.AdminData { LPEQAdmin.inChans = Set.fromList (concatMap Set.toList insyncs)
                                         , LPEQAdmin.outChans = Set.fromList (concatMap Set.toList outsyncs)
                                         , LPEQAdmin.newProcs = Map.empty
@@ -56,6 +58,8 @@ lpeqModelDef _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputM
                                             IOC.modifyCS (\st -> st { IOC.tdefs = tdefs'' })
                                             return (Right (newModelId, newModelDef))
 -- lpeqModelDef
+
+
 
 -- Linearizes a behavioral expression.
 -- However, it first checks whether the linearization of the expression
@@ -79,24 +83,24 @@ lpeqBExpr adminData bexpr = do
 -- Linearizes a behavioral expression.
 -- Does NOT perform any safety checks (like lpeqBExpr does)!
 lpeq :: LPEQAdmin.AdminData -> TxsDefs.BExpr -> IOC.IOC (Either [String] TxsDefs.BExpr, LPEQAdmin.AdminData)
-lpeq adminData bexpr = do
-    case bexpr of
-      (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
-          do r <- getMsgOrProcFromName (ProcId.name pid)
-             case r of
-               Left msg -> return (Left ["Could not find instantiated process!", msg], adminData)
-               Right (_, ProcDef.ProcDef _cids _vids body) -> lpeqBExpr adminData body
-      (TxsDefs.view -> Guard _guard _bexpr) -> return (Left ["No implementation yet for Guard!"], adminData)
-      (TxsDefs.view -> Choice _bexprs) -> return (Left ["No implementation yet for Choice!"], adminData)
-      (TxsDefs.view -> Parallel _cidSet _bexprs) -> return (Left ["No implementation yet for Parallel!"], adminData)
-      (TxsDefs.view -> Hide _cidSet _bexpr) -> return (Left ["No implementation yet for Hide!"], adminData)
-      (TxsDefs.view -> Enable _bexpr1 _acceptOffers _bexpr2) -> return (Left ["No implementation yet for Enable!"], adminData)
-      (TxsDefs.view -> Disable _bexpr1 _bexpr2) -> return (Left ["No implementation yet for Disable!"], adminData)
-      (TxsDefs.view -> Interrupt _bexpr1 _bexpr2) -> return (Left ["No implementation yet for Interrupt!"], adminData)
-      (TxsDefs.view -> ActionPref _offer _bexpr) -> return (Left ["No implementation yet for ActionPref!"], adminData)
-      (TxsDefs.view -> ValueEnv _venv _bexpr) -> return (Left ["No implementation yet for ValueEnv!"], adminData)
-      (TxsDefs.view -> StAut {}) -> return (Left ["No implementation yet for StAut!"], adminData)
-      _ -> return (Left ["Behavioral expression not accounted for (\"" ++ show bexpr ++ "\")!"], adminData)
+lpeq adminData bexpr = do return (Right bexpr, adminData)
+    -- case bexpr of
+      -- (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
+          -- do r <- getMsgOrProcFromName (ProcId.name pid)
+             -- case r of
+               -- Left msg -> return (Left ["Could not find instantiated process!", msg], adminData)
+               -- Right (_, ProcDef.ProcDef _cids _vids body) -> lpeqBExpr adminData body
+      -- (TxsDefs.view -> Guard _guard _bexpr) -> return (Left ["No implementation yet for Guard!"], adminData)
+      -- (TxsDefs.view -> Choice _bexprs) -> return (Left ["No implementation yet for Choice!"], adminData)
+      -- (TxsDefs.view -> Parallel _cidSet _bexprs) -> return (Left ["No implementation yet for Parallel!"], adminData)
+      -- (TxsDefs.view -> Hide _cidSet _bexpr) -> return (Left ["No implementation yet for Hide!"], adminData)
+      -- (TxsDefs.view -> Enable _bexpr1 _acceptOffers _bexpr2) -> return (Left ["No implementation yet for Enable!"], adminData)
+      -- (TxsDefs.view -> Disable _bexpr1 _bexpr2) -> return (Left ["No implementation yet for Disable!"], adminData)
+      -- (TxsDefs.view -> Interrupt _bexpr1 _bexpr2) -> return (Left ["No implementation yet for Interrupt!"], adminData)
+      -- (TxsDefs.view -> ActionPref _offer _bexpr) -> return (Left ["No implementation yet for ActionPref!"], adminData)
+      -- (TxsDefs.view -> ValueEnv _venv _bexpr) -> return (Left ["No implementation yet for ValueEnv!"], adminData)
+      -- (TxsDefs.view -> StAut {}) -> return (Left ["No implementation yet for StAut!"], adminData)
+      -- _ -> return (Left ["Behavioral expression not accounted for (\"" ++ show bexpr ++ "\")!"], adminData)
 -- lpeq
 
 

@@ -17,7 +17,9 @@ library
   exposed-modules:      LPEQ
                       , LPEQAdmin
 
-  other-modules:      
+  other-modules:        ProcessReachability
+                      , Scopes
+                      , PBranchInst
 
   ghc-options:        -Werror -Wall -O2 -optc-O3 -optc-ffast-math
 

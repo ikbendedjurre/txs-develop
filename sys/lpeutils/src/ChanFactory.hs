@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 module ChanFactory (
 createFreshChan,
 createFreshChanFromPrefix,
+createFreshChanFromChan,
 createFreshChanFromChansAndVars,
 createFreshChanFromChansAndSorts
 ) where
@@ -42,6 +43,10 @@ createFreshChanFromPrefix prefix sorts = do
     let absId = if idAsInt >= 0 then idAsInt else -idAsInt
     return ChanId.ChanId { ChanId.name = Text.pack (prefix ++ show absId), ChanId.unid = chanUnid, ChanId.chansorts = sorts }
 -- createFreshChanFromPrefix
+
+-- Creates a clone of a given channel.
+createFreshChanFromChan :: ChanId.ChanId -> IOC.IOC ChanId.ChanId
+createFreshChanFromChan cid = createFreshChanFromPrefix (Text.unpack (ChanId.name cid)) (ChanId.chansorts cid)
 
 -- Creates a channel that is a combination of the specified channels plus the sorts of a number of variables.
 createFreshChanFromChansAndVars :: [ChanId.ChanId] -> [VarId.VarId] -> IOC.IOC ChanId.ChanId
