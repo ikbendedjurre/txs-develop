@@ -38,76 +38,66 @@ import qualified VarEnv
 
 doPBranchInst :: TxsDefs.BExpr -> IOC.IOC (Either [String] TxsDefs.BExpr)
 doPBranchInst startBExpr = do
-    r <- lookForPBranches Scopes.empty startBExpr
+    r <- lookForPBranch Scopes.empty startBExpr
     case r of
       Left msgs -> return (Left msgs)
       Right (bexpr, _exit) -> return (Right bexpr) -- Maybe check if EXIT has correct type?
 -- doPBranchInst
 
-lookForPBranches :: Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (Either [String] (TxsDefs.BExpr, ProcId.ExitSort))
-lookForPBranches scope currentBExpr = do
+lookForPBranch :: Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (Either [String] (TxsDefs.BExpr, ProcId.ExitSort))
+lookForPBranch scope currentBExpr = do
     case currentBExpr of
-      (TxsDefs.view -> Parallel cidSet bexprs) ->
-          do r <- concatEither <$> Monad.mapM (instPBranch scope) bexprs
-             case r of
-               Left msgs -> return (Left (concat msgs))
-               Right rs -> if allTheSame (map snd rs)
-                           then return (Right (parallel (Scopes.applyToChanSet scope cidSet) (map fst rs), snd (head rs)))
-                           else return (Left ["Inconsistent EXIT signatures (\"" ++ show currentBExpr ++ "\")!"])
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
           return (Right (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid))
+      (TxsDefs.view -> Parallel cidSet bexprs) ->
+          do r <- forAllBExprs (instPBranch scope) bexprs
+             case r of
+               Left msgs -> return (Left msgs)
+               Right (bexprs', exit') -> return (Right (parallel (Scopes.applyToChanSet scope cidSet) bexprs', exit'))
       (TxsDefs.view -> Guard g bexpr) ->
-          do r <- lookForPBranchesInMultiple scope [bexpr]
+          do r <- lookForPBranch scope bexpr
              case r of
                Left msgs -> return (Left msgs)
-               Right (scope', exit', [bexpr']) -> return (Right (guard (Scopes.applyToVExpr scope' g) bexpr', exit'))
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+               Right (bexpr', exit') -> return (Right (guard (Scopes.applyToVExpr scope g) bexpr', exit'))
       (TxsDefs.view -> Choice bexprs) ->
-          do r <- lookForPBranchesInMultiple scope (Set.toList bexprs)
+          do r <- forAllBExprs (lookForPBranch scope) (Set.toList bexprs)
              case r of
                Left msgs -> return (Left msgs)
-               Right (_scope', exit', bexprs') -> return (Right (choice (Set.fromList bexprs'), exit'))
+               Right (bexprs', exit') -> return (Right (choice (Set.fromList bexprs'), exit'))
       (TxsDefs.view -> Hide cidSet bexpr) ->
-          do r <- lookForPBranchesInMultiple scope [bexpr]
+          do r <- lookForPBranch scope bexpr
              case r of
                Left msgs -> return (Left msgs)
-               Right (scope', exit', [bexpr']) -> return (Right (hide (Scopes.applyToChanSet scope' cidSet) bexpr', exit'))
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+               Right (bexpr', exit') -> return (Right (hide (Scopes.applyToChanSet scope cidSet) bexpr', exit'))
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
-          do r <- lookForPBranchesInMultiple scope [bexpr1, bexpr2]
+          do r <- forAllBExprs (instPBranch scope) [bexpr1, bexpr2]
              case r of
                Left msgs -> return (Left msgs)
-               Right (scope', exit', [bexpr1', bexpr2']) -> return (Right (enable bexpr1' (map (Scopes.applyToChanOffer scope') acceptOffers) bexpr2', exit'))
+               Right ([bexpr1', bexpr2'], exit') -> return (Right (enable bexpr1' (map (Scopes.applyToChanOffer scope) acceptOffers) bexpr2', exit')) -- TODO exit values are not (always) correct!
                _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          do r <- lookForPBranchesInMultiple scope [bexpr1, bexpr2]
+          do r <- forAllBExprs (instPBranch scope) [bexpr1, bexpr2]
              case r of
                Left msgs -> return (Left msgs)
-               Right (_scope', exit', [bexpr1', bexpr2']) -> return (Right (disable bexpr1' bexpr2', exit'))
+               Right ([bexpr1', bexpr2'], exit') -> return (Right (disable bexpr1' bexpr2', exit'))
                _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          do r <- lookForPBranchesInMultiple scope [bexpr1, bexpr2]
+          do r <- forAllBExprs (instPBranch scope) [bexpr1, bexpr2]
              case r of
                Left msgs -> return (Left msgs)
-               Right (_scope', exit', [bexpr1', bexpr2']) -> return (Right (interrupt bexpr1' bexpr2', exit'))
+               Right ([bexpr1', bexpr2'], exit') -> return (Right (interrupt bexpr1' bexpr2', exit'))
                _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
       (TxsDefs.view -> ActionPref actOffer bexpr) ->
-          do r <- lookForPBranchesInMultiple scope [bexpr]
+          do r <- lookForPBranch scope bexpr
              case r of
                Left msgs -> return (Left msgs)
-               Right (scope', exit', [bexpr']) -> return (Right (actionPref (Scopes.applyToActOffer scope' actOffer) bexpr', exit'))
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+               Right (bexpr', exit') -> return (Right (actionPref (Scopes.applyToActOffer scope actOffer) bexpr', exit'))
       (TxsDefs.view -> ValueEnv {}) ->
           instPBranch scope currentBExpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- foldProcesses soFar (map actoffer transitions)
       _ -> return (Left ["Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"])
-  where
-    allTheSame :: Eq a => [a] -> Bool
-    allTheSame [] = True
-    allTheSame [_] = True
-    allTheSame (x1:x2:xs) = (x1 == x2) && allTheSame (x2:xs)
--- lookForPBranches
+-- lookForPBranch
 
 instPBranch :: Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (Either [String] (TxsDefs.BExpr, ProcId.ExitSort))
 instPBranch scope currentBExpr = do
@@ -126,7 +116,7 @@ instPBranch scope currentBExpr = do
                Left msgs -> return (Left msgs)
                Right (scope', exit', bexprs') -> Right <$> regAndInstProc scope' exit' (choice (Set.fromList bexprs'))
       (TxsDefs.view -> Parallel {}) ->
-          lookForPBranches scope currentBExpr
+          lookForPBranch scope currentBExpr
       (TxsDefs.view -> Hide cidSet bexpr) ->
           do r <- lookForPBranchesInMultiple scope [bexpr]
              case r of
@@ -168,26 +158,25 @@ instPBranch scope currentBExpr = do
       _ -> return (Left ["Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"])
 -- instPBranch
 
--- Parallel branches are instantiated recursively by this function.
-lookForPBranchesInMultiple :: Scopes.Scope -> [TxsDefs.BExpr] -> IOC.IOC (Either [String] (Scopes.Scope, ProcId.ExitSort, [TxsDefs.BExpr]))
-lookForPBranchesInMultiple scope bexprs = do
-    scope' <- Scopes.cloneScope scope
-    rs <- concatEither <$> Monad.mapM (lookForPBranches scope') bexprs
-    case rs of
+-- Multiple branches are evaluated in the same manner with this function.
+forAllBExprs :: (TxsDefs.BExpr -> IOC.IOC (Either [String] (TxsDefs.BExpr, ProcId.ExitSort))) -> [TxsDefs.BExpr] -> IOC.IOC (Either [String] ([TxsDefs.BExpr], ProcId.ExitSort))
+forAllBExprs f bexprs = do
+    rs <- Monad.mapM f bexprs
+    case concatEither rs of
       Left msgs -> return (Left (concat msgs))
       Right bs -> if null bs
-                  then return (Right (Scopes.empty, ProcId.NoExit, []))
+                  then return (Right ([], ProcId.NoExit))
                   else do let bexprs' = map fst bs
                           let exits' = map snd bs
                           if allTheSame exits'
-                          then return (Right (scope', head exits', bexprs'))
+                          then return (Right (bexprs', head exits'))
                           else return (Left ["Inconsistent EXIT signatures (\"" ++ show bexprs ++ "\")!"])
   where
     allTheSame :: Eq a => [a] -> Bool
     allTheSame [] = True
     allTheSame [_] = True
     allTheSame (x1:x2:xs) = (x1 == x2) && allTheSame (x2:xs)
--- lookForPBranchesInMultiple
+-- forAllBExprs
 
 -- Creates a process definition from the given scope and body and registers it.
 -- It also creates an instantiation of the process, which is returned.

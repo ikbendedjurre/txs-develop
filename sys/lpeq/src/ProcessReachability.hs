@@ -22,6 +22,7 @@ getReachableProcMap
 ) where
 
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
 import qualified TxsDefs
@@ -30,45 +31,56 @@ import qualified ProcDef
 import BehExprDefs
 import ProcIdFactory
 
-type ReachableProcMap = Map.Map ProcId.ProcId ProcDef.ProcDef
+type ReachableProcMap = Map.Map ProcId.ProcId Int
+type ParProcMap = (ReachableProcMap, [ProcId.ProcId], Set.Set ProcId.ProcId)
 
 getReachableProcMap :: TxsDefs.BExpr -> IOC.IOC (Either [String] ReachableProcMap)
-getReachableProcMap = getProcesses (Right Map.empty)
+getReachableProcMap startBExpr = do
+    r <- getParProcMap (Right (Map.empty, [], Set.empty)) startBExpr
+    case r of
+      Left msgs -> return (Left msgs)
+      Right (m, _, _) -> return (Right m)
+-- getReachableProcMap
 
-getProcesses :: Either [String] ReachableProcMap -> TxsDefs.BExpr -> IOC.IOC (Either [String] ReachableProcMap)
-getProcesses soFar@(Left _) _ = return soFar
-getProcesses soFar@(Right m) currentBExpr = do
+getParProcMap :: Either [String] ParProcMap -> TxsDefs.BExpr -> IOC.IOC (Either [String] ParProcMap)
+getParProcMap soFar@(Left _) _ = return soFar
+getParProcMap soFar@(Right (m, parProcStack, branchPids)) currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
-          do if Map.member pid m
-             then return soFar
-             else do r <- getProcById pid
-                     case r of
-                       Just (pdef@(ProcDef.ProcDef _cids _vids body)) -> getProcesses (Right (Map.insert pid pdef m)) body
-                       Nothing -> return (Left ["Could not find process definition (\"" ++ show pid ++ "\")!"])
+          do if elem pid parProcStack
+             then return (Left ["Unable to handle recursive parallelization (\"" ++ show pid ++ "\")!"])
+             else if Set.member pid branchPids
+                  then return soFar
+                  else do r <- getProcById pid
+                          case r of
+                            Just (ProcDef.ProcDef _cids _vids body) -> do
+                                let m' = Map.insert pid (Map.findWithDefault 0 pid m + 1) m
+                                let parProcStack' = if Set.null branchPids then pid:parProcStack else parProcStack
+                                getParProcMap (Right (m', parProcStack', Set.insert pid branchPids)) body
+                            Nothing -> return (Left ["Could not find process definition (\"" ++ show pid ++ "\")!"])
       (TxsDefs.view -> Guard _guard bexpr) ->
-          getProcesses soFar bexpr
+          getParProcMap soFar bexpr
       (TxsDefs.view -> Choice bexprs) ->
-          foldProcesses soFar bexprs
+          foldParProcMaps soFar bexprs
       (TxsDefs.view -> Parallel _cidSet bexprs) ->
-          foldProcesses soFar bexprs
+          foldParProcMaps (Right (m, parProcStack, Set.empty)) bexprs
       (TxsDefs.view -> Hide _cidSet bexpr) ->
-          getProcesses soFar bexpr
+          getParProcMap soFar bexpr
       (TxsDefs.view -> Enable bexpr1 _acceptOffers bexpr2) ->
-          foldProcesses soFar [bexpr1, bexpr2]
+          foldParProcMaps soFar [bexpr1, bexpr2]
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          foldProcesses soFar [bexpr1, bexpr2]
+          foldParProcMaps soFar [bexpr1, bexpr2]
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          foldProcesses soFar [bexpr1, bexpr2]
+          foldParProcMaps soFar [bexpr1, bexpr2]
       (TxsDefs.view -> ActionPref _offer bexpr) ->
-          getProcesses soFar bexpr
+          getParProcMap soFar bexpr
       (TxsDefs.view -> ValueEnv _venv bexpr) ->
-          getProcesses soFar bexpr
+          getParProcMap soFar bexpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
-          -- foldProcesses soFar (map actoffer transitions)
+          -- foldParProcMaps soFar (map actoffer transitions)
       _ -> return (Left ["Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"])
--- getProcesses
+-- getParProcMap
 
-foldProcesses :: Foldable t => Either [String] ReachableProcMap -> t TxsDefs.BExpr -> IOC.IOC (Either [String] ReachableProcMap)
-foldProcesses = Monad.foldM getProcesses
+foldParProcMaps :: Foldable t => Either [String] ParProcMap -> t TxsDefs.BExpr -> IOC.IOC (Either [String] ParProcMap)
+foldParProcMaps = Monad.foldM getParProcMap
 

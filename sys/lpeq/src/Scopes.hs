@@ -89,11 +89,23 @@ applyToVExpr scope = Subst.subst (Map.map ValExpr.cstrVar (varMap scope)) Map.em
 applyToVExprs :: Scope -> [TxsDefs.VExpr] -> [TxsDefs.VExpr]
 applyToVExprs scope = map (applyToVExpr scope)
 
+applyToActOffer :: Scope -> TxsDefs.ActOffer -> TxsDefs.ActOffer
+applyToActOffer scope actOffer =
+    actOffer { TxsDefs.offers = Set.map (applyToOffer scope) (TxsDefs.offers actOffer)
+             , TxsDefs.constraint = applyToVExpr scope (TxsDefs.constraint actOffer)
+             }
+-- applyToActOffer
+
+applyToOffer :: Scope -> TxsDefs.Offer -> TxsDefs.Offer
+applyToOffer scope offer =
+    TxsDefs.Offer { TxsDefs.chanid = applyToChan scope (TxsDefs.chanid offer)
+                  , TxsDefs.chanoffers = map (applyToChanOffer scope) (TxsDefs.chanoffers offer)
+                  }
+-- applyToOffer
+
 applyToChanOffer :: Scope -> TxsDefs.ChanOffer -> TxsDefs.ChanOffer
 applyToChanOffer _scope chanOffer = chanOffer
-
-applyToActOffer :: Scope -> TxsDefs.ActOffer -> TxsDefs.ActOffer
-applyToActOffer _scope actOffer = actOffer
+    
 
 
 
