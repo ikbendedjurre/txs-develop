@@ -15,13 +15,12 @@ library
   hs-source-dirs:       src
 
   exposed-modules:      LPEQ
-                      , LPEQAdmin
 
   other-modules:        ExclamToQuest
                       , Scopes
                       , PBranchInst
                       , ProcDepTree
-                      , ProcessReachability
+                      , ProgramCounters
 
   ghc-options:        -Werror -Wall -O2 -optc-O3 -optc-ffast-math
 

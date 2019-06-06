@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 module Scopes (
 Scope(..),
 empty,
+fromChans,
 cloneScope,
 applyToChan,
 applyToChans,
@@ -50,6 +51,9 @@ data Scope = Scope { chanMap :: Map.Map ChanId.ChanId ChanId.ChanId
 empty :: Scope
 empty = Scope { chanMap = Map.empty, varMap = Map.empty }
 
+fromChans :: Set.Set ChanId.ChanId -> Scope
+fromChans cids = empty { chanMap = Map.fromSet id cids }
+
 cloneScope :: Scope -> IOC.IOC Scope
 cloneScope s = do
     chanMap' <- mapValuesM createFreshChanFromChan (chanMap s)
@@ -66,7 +70,13 @@ mapValuesM f mp = Map.fromList <$> Monad.mapM applyToEntry (Map.toList mp)
 -- mapValuesM
 
 applyToChan :: Scope -> ChanId.ChanId -> ChanId.ChanId
-applyToChan scope cid = chanMap scope Map.! cid
+applyToChan _ cid | cid == TxsDefs.chanIdExit = cid
+applyToChan _ cid | cid == TxsDefs.chanIdIstep = cid
+applyToChan scope cid | otherwise =
+    case chanMap scope Map.!? cid of
+      Just c -> c
+      Nothing -> error ("Could not find channel " ++ show cid ++ " in " ++ show (chanMap scope))
+-- applyToChan
 
 applyToChans :: Scope -> [ChanId.ChanId] -> [ChanId.ChanId]
 applyToChans scope = map (applyToChan scope)
@@ -75,7 +85,11 @@ applyToChanSet :: Scope -> Set.Set ChanId.ChanId -> Set.Set ChanId.ChanId
 applyToChanSet scope = Set.map (applyToChan scope)
 
 applyToVar :: Scope -> VarId.VarId -> VarId.VarId
-applyToVar scope cid = varMap scope Map.! cid
+applyToVar scope vid =
+    case varMap scope Map.!? vid of
+      Just v -> v
+      Nothing -> error ("Could not find variable " ++ show vid ++ " in " ++ show (varMap scope))
+-- applyToVar
 
 applyToVars :: Scope -> [VarId.VarId] -> [VarId.VarId]
 applyToVars scope = map (applyToVar scope)

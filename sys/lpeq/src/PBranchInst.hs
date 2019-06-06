@@ -30,6 +30,7 @@ import qualified TxsDefs
 import qualified ValExpr
 import qualified ProcId
 import qualified ProcDef
+import qualified ChanId
 import BehExprDefs
 import ProcIdFactory
 import ConcatEither
@@ -41,9 +42,11 @@ import qualified VarEnv
 -- Sub-expressions are replaced by instantiations of corresponding process definitions.
 -- 
 -- (Later, a dependency tree will be inferred for the process definitions.)
-doPBranchInst :: TxsDefs.BExpr -> IOC.IOC (Either [String] TxsDefs.BExpr)
-doPBranchInst startBExpr = do
-    r <- instPBranch Scopes.empty startBExpr
+-- 
+-- The given behavioral expression should be closed except for channels, which must be provided as well.
+doPBranchInst :: Set.Set ChanId.ChanId -> TxsDefs.BExpr -> IOC.IOC (Either [String] TxsDefs.BExpr)
+doPBranchInst cids startBExpr = do
+    r <- instPBranch (Scopes.fromChans cids) startBExpr
     case r of
       Left msgs -> return (Left msgs)
       Right (bexpr, _exit) -> return (Right bexpr) -- Maybe check if EXIT has correct type?
@@ -142,9 +145,12 @@ instPBranch scope currentBExpr = do
                Left msgs -> return (Left msgs)
                Right (bexpr', exit') -> do Right <$> regAndInstProc scope' exit' (hide (Scopes.applyToChanSet scope' cidSet) bexpr')
        -- Parallel expression can also contain parallel expressions:
-      (TxsDefs.view -> Parallel {}) ->
-          -- Nested parallel expressions are delegated:
-          lookForPBranch scope currentBExpr
+      (TxsDefs.view -> Parallel cidSet bexprs) ->
+          do scope' <- Scopes.cloneScope scope
+             r <- forAllBExprs (instPBranch scope') bexprs
+             case r of
+               Left msgs -> return (Left msgs)
+               Right (bexprs', exit') -> do Right <$> regAndInstProc scope' exit' (parallel (Scopes.applyToChanSet scope' cidSet) bexprs')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
           do scope' <- Scopes.cloneScope scope
              r <- forAllBExprs (instPBranch scope') [bexpr1, bexpr2]

@@ -73,9 +73,10 @@ type TreeBuildState = (ProcDepTree, [ProcId.ProcId], Set.Set ProcId.ProcId, [Str
 getProcDepTree :: TxsDefs.BExpr -> IOC.IOC (Either [String] ProcDepTree)
 getProcDepTree startBExpr = do
     (tree, _, _, msgs) <- buildTree (ProcDepTree Nothing Set.empty, [], Set.empty, []) startBExpr
-    if List.null msgs
-    then return (Right tree)
-    else return (Left (msgs ++ ["Process dependency tree:"] ++ showProcDepTree "" "" tree))
+    -- if List.null msgs
+    -- then return (Right tree)
+    -- else return (Left (msgs ++ ["Process dependency tree:"] ++ showProcDepTree "" "" tree))
+    return (Left (msgs ++ ["Process dependency tree:"] ++ showProcDepTree "" "" tree))
 -- getProcDepTree
 
 buildTree :: TreeBuildState -> TxsDefs.BExpr -> IOC.IOC TreeBuildState
@@ -84,7 +85,7 @@ buildTree buildState@(ProcDepTree maybePid dependencies, bpStack, inProgress, ms
       (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
           do -- Detect (and avoid) infinite recursion:
              if List.elem pid bpStack
-             then return (ProcDepTree maybePid dependencies, bpStack, inProgress, msgs ++ ["Recursive parallelization => Circular dependency => Cannot be linearized (\"" ++ show pid ++ "\")!"])
+             then return (ProcDepTree maybePid dependencies, bpStack, inProgress, msgs ++ ["Recursive parallelization => Circular dependency => Cannot be linearized (\"" ++ show pid ++ "\" <= " ++ show bpStack ++ ")!"])
              else -- Avoid infinite recursion within the same branch:
                   if Set.member pid inProgress
                   then return buildState
@@ -94,7 +95,7 @@ buildTree buildState@(ProcDepTree maybePid dependencies, bpStack, inProgress, ms
                                 case maybePid of
                                   -- This is the first process instantiation of the current branch, and so
                                   -- we adopt the process id as the 'owner' of the branch:
-                                  Nothing -> buildTree (ProcDepTree (Just pid) Set.empty, pid:bpStack, Set.singleton pid, msgs) body
+                                  Nothing -> buildTree (ProcDepTree (Just pid) Set.empty, bpStack, Set.singleton pid, msgs) body
                                   -- There already is a process that owns the current branch.
                                   -- The process that is called, is a dependency of that process:
                                   Just _ -> do let dependencies' = Set.insert (leaf pid) dependencies
@@ -115,24 +116,28 @@ buildTree buildState@(ProcDepTree maybePid dependencies, bpStack, inProgress, ms
       (TxsDefs.view -> Parallel _cidSet bexprs) ->
           if List.null bexprs
           then return (ProcDepTree maybePid dependencies, bpStack, inProgress, msgs ++ ["Parallel expression without sub-expressions (\"" ++ show currentBExpr ++ "\")!"])
-          else addParallelDependencies buildState bexprs
+          else addParallelDependencies buildState currentBExpr bexprs
       (TxsDefs.view -> Enable bexpr1 _acceptOffers bexpr2) ->
-          addParallelDependencies buildState [bexpr1, bexpr2]
+          addParallelDependencies buildState currentBExpr [bexpr1, bexpr2]
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          addParallelDependencies buildState [bexpr1, bexpr2]
+          addParallelDependencies buildState currentBExpr [bexpr1, bexpr2]
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          addParallelDependencies buildState [bexpr1, bexpr2]
+          addParallelDependencies buildState currentBExpr [bexpr1, bexpr2]
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- foldParProcMaps soFar (map actoffer transitions)
       _ -> return (ProcDepTree maybePid dependencies, bpStack, inProgress, msgs ++ ["Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"])
 -- buildTree
 
-addParallelDependencies :: TreeBuildState -> [TxsDefs.BExpr] -> IOC.IOC TreeBuildState
-addParallelDependencies (ProcDepTree maybePid dependencies, bpStack, inProgress, msgs) bexprs = do
-    rs <- Monad.mapM (buildTree (emptyTree, bpStack, Set.empty, [])) bexprs
-    let dependencies' = Set.union dependencies (Set.fromList (map getBuildStateTree rs))
-    let msgs' = msgs ++ concatMap getBuildStateMsgs rs
-    return (ProcDepTree maybePid dependencies', bpStack, inProgress, msgs')
+addParallelDependencies :: TreeBuildState -> TxsDefs.BExpr -> [TxsDefs.BExpr] -> IOC.IOC TreeBuildState
+addParallelDependencies (ProcDepTree maybePid dependencies, bpStack, inProgress, msgs) currentBExpr bexprs = do
+    case maybePid of
+      Just pid -> do -- Here, we add the process that owns the branch to the process/branch stack
+                     -- so that we can detect infinite recursion:
+                     rs <- Monad.mapM (buildTree (emptyTree, pid:bpStack, Set.empty, [])) bexprs
+                     let dependencies' = Set.union dependencies (Set.fromList (map getBuildStateTree rs))
+                     let msgs' = msgs ++ concatMap getBuildStateMsgs rs
+                     return (ProcDepTree maybePid dependencies', bpStack, inProgress, msgs')
+      Nothing -> return (ProcDepTree maybePid dependencies, bpStack, inProgress, msgs ++ ["[INTERNAL ERROR] Branch does not have an owner (stack = " ++ show bpStack ++ ", expr = " ++ show currentBExpr ++ ")!"])
   where
     getBuildStateTree :: TreeBuildState -> ProcDepTree
     getBuildStateTree (tree, _, _, _) = tree

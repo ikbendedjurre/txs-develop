@@ -1177,7 +1177,7 @@ txsLPEQ inName outName = do
     msgsOrInModel <- getMsgOrModelFromName (T.pack inName)
     case msgsOrInModel of
       Left msg -> return [msg]
-      Right (modelId, modelDef) -> do r <- LPEQ.lpeqModelDef modelId modelDef outName
+      Right (modelId, modelDef) -> do r <- LPEQ.lpeq modelId modelDef outName
                                       case r of
                                         Left msgs -> return msgs
                                         Right (mid, _) -> do return ["LPEQ transformation complete; result saved to model " ++ T.unpack (ModelId.name mid)]
