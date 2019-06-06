@@ -6,7 +6,7 @@ See LICENSE at root directory of this repository.
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  ProgramCounters
+-- Module      :  ProcCounterValues
 -- Copyright   :  TNO and University of Twente
 -- License     :  BSD3
 -- Maintainer  :  djurrevanderwal@gmail.com
@@ -16,24 +16,26 @@ See LICENSE at root directory of this repository.
 
 {-# LANGUAGE ViewPatterns        #-}
 
-module ProgramCounters (
-addProgramCounters
+module ProcCounterValues (
+
 ) where
 
-import qualified Data.Map as Map
+import qualified Data.List as List
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Control.Monad as Monad
-import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
+-- import qualified EnvData
 import qualified TxsDefs
-import qualified ValExpr
-import qualified Constant
 import qualified ProcId
 import qualified ProcDef
 import BehExprDefs
 import ProcIdFactory
-import VarFactory
-import SortFactory
+
+import ProcDepTree
+
+type ProcMaxDepthMap = Map.Map ProcId.ProcId Int
+
 
 addProgramCounters :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 addProgramCounters bexpr = do
@@ -97,5 +99,4 @@ addProgCounters (prevBExprs, replacedProcs) currentBExpr = do
           -- foldParProcMaps soFar (map actoffer transitions)
       _ -> return (error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"))
 -- addProgCounters
-
 

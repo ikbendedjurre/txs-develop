@@ -42,7 +42,7 @@ emptyTree = ProcDepTree Nothing Set.empty Set.empty
 
 showProcDepTree :: String -> String -> ProcDepTree -> [String]
 showProcDepTree pidPrefix depsPrefix (ProcDepTree maybePid reachablePids dependencies) =
-    let pidStrs = [pidPrefix ++ showMaybePid maybePid ++ "=" ++ List.intercalate "+" (map (Text.unpack . ProcId.name) (Set.toList reachablePids))] in
+    let pidStrs = [pidPrefix ++ showMaybePid maybePid ++ " := " ++ List.intercalate " + " (map (Text.unpack . ProcId.name) (Set.toList reachablePids))] in
       if Set.null dependencies
       then pidStrs
       else let depsList = Set.toList dependencies in
@@ -65,7 +65,7 @@ instance Show ProcDepTree where
 --       We depend on PBranchInst having been applied.
 --       Therefore, each parallel branch is a process instantiation.
 --       When searching a branch, we do not want to see the same process being instantiated again (= circular dependency).
---  3. The dependency tree that is currently being constructed (a new tree is started for every branch).
+--  3. Error messages.
 type TreeBuildState = (ProcDepTree, [ProcId.ProcId], [String])
 
 -- Builds the process dependency tree for a given behavioral expression.

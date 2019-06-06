@@ -17,6 +17,7 @@ library
   exposed-modules:      LPEQ
 
   other-modules:        ExclamToQuest
+                      , VEnvElim
                       , Scopes
                       , PBranchInst
                       , ProcDepTree

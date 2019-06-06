@@ -29,13 +29,12 @@ import qualified Control.Monad as Monad
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
-import qualified Data.Maybe as Maybe
 import qualified EnvCore as IOC
 import qualified SortId
 import qualified SortOf
 import qualified Id
-import StdTDefs (stdSortTable)
 import VarId
+import SortFactory
 
 createFreshVars :: Set.Set VarId.VarId -> IOC.IOC (Map.Map VarId.VarId VarId.VarId)
 createFreshVars vids = Map.fromList <$> Monad.mapM createFreshVarPair (Set.toList vids)
@@ -63,17 +62,14 @@ createFreshVarFromVar :: VarId -> IOC.IOC VarId.VarId
 createFreshVarFromVar varId = createFreshVarFromPrefix (Text.unpack (name varId)) (SortOf.sortOf varId)
 
 createFreshIntVar :: IOC.IOC VarId.VarId
-createFreshIntVar = createFreshVar (getStdSort "Int")
+createFreshIntVar = createFreshVar getIntSort
 
 createFreshIntVarFromPrefix :: String -> IOC.IOC VarId.VarId
-createFreshIntVarFromPrefix prefix = createFreshVarFromPrefix prefix (getStdSort "Int")
+createFreshIntVarFromPrefix prefix = createFreshVarFromPrefix prefix getIntSort
 
 createFreshBoolVar :: IOC.IOC VarId.VarId
-createFreshBoolVar = createFreshVar (getStdSort "Bool")
+createFreshBoolVar = createFreshVar getBoolSort
 
 createFreshBoolVarFromPrefix :: String -> IOC.IOC VarId.VarId
-createFreshBoolVarFromPrefix prefix = createFreshVarFromPrefix prefix (getStdSort "Bool")
-
-getStdSort :: String -> SortId.SortId
-getStdSort sortName = Maybe.fromMaybe (error ("Could not find standard sort " ++ sortName ++ "!")) (Map.lookup (Text.pack sortName) stdSortTable)
+createFreshBoolVarFromPrefix prefix = createFreshVarFromPrefix prefix getBoolSort
 

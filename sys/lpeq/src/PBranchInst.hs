@@ -31,11 +31,11 @@ import qualified ValExpr
 import qualified ProcId
 import qualified ProcDef
 import qualified ChanId
+import qualified VarEnv
 import BehExprDefs
 import ProcIdFactory
 import ConcatEither
 import qualified Scopes
-import qualified VarEnv
 
 -- Recursively identifies parallel sub-expressions in a given behavioral expression, and
 -- creates process definitions for each of those sub-expressions (including program counters).

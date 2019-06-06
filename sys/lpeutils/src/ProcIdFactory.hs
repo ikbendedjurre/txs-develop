@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 module ProcIdFactory (
 createFreshProcIdFromProcId,
 createFreshProcIdFromChansAndVars,
+createFreshProcIdWithDifferentVars,
 getProcById,
 getProcsByName,
 getMsgOrProcFromName
@@ -30,6 +31,7 @@ import qualified Data.Text as Text
 import qualified ProcId
 import qualified ChanId
 import qualified VarId
+import qualified SortId
 import qualified SortOf
 import qualified TxsDefs
 
@@ -52,6 +54,12 @@ createFreshProcIdFromChansAndVars procName cids vids exit = do
     i <- IOC.initUnid
     createFreshProcIdFromProcId (ProcId.ProcId procName i (map ProcId.toChanSort cids) (map SortOf.sortOf vids) exit)
 -- createFreshProcIdFromChansAndVars
+
+createFreshProcIdWithDifferentVars :: ProcId.ProcId -> [SortId.SortId] -> IOC.IOC ProcId.ProcId
+createFreshProcIdWithDifferentVars (ProcId.ProcId name _ cids _ exit) sids = do
+    i <- IOC.initUnid
+    createFreshProcIdFromProcId (ProcId.ProcId name i cids sids exit)
+-- createFreshProcIdWithDifferentVars
 
 -- Gets all processes with a given name:
 getProcById :: ProcId.ProcId -> IOC.IOC (Maybe TxsDefs.ProcDef)

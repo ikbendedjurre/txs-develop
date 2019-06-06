@@ -30,6 +30,7 @@ import qualified TxsDefs
 import ModelIdFactory
 
 import ExclamToQuest
+import VEnvElim
 import PBranchInst
 import ProcDepTree
 import ProgramCounters
@@ -38,8 +39,9 @@ import ProgramCounters
 lpeq :: TxsDefs.ModelId -> TxsDefs.ModelDef -> String -> IOC.IOC (Either [String] (TxsDefs.ModelId, TxsDefs.ModelDef))
 lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName = do
     bexpr' <- exclamToQuest bexpr
+    bexpr'' <- eliminateVEnvs bexpr'
     let cids = concatMap Set.toList (insyncs ++ outsyncs)
-    msgsOrInst <- doPBranchInst (Set.fromList cids) bexpr'
+    msgsOrInst <- doPBranchInst (Set.fromList cids) bexpr''
     case msgsOrInst of
       Left msgs -> return (Left msgs)
       Right inst -> do inst' <- addProgramCounters inst

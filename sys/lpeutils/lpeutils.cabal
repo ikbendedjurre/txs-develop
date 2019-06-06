@@ -25,6 +25,7 @@ library
                       , ConcatEither
                       , UntilFixedPoint
                       , SetUnions
+                      , SortFactory
 
   other-modules:      
 
