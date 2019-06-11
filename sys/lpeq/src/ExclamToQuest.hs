@@ -20,10 +20,8 @@ module ExclamToQuest (
 exclamToQuest
 ) where
 
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Control.Monad as Monad
-import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
 import qualified TxsDefs
 import qualified ValExpr
@@ -34,60 +32,65 @@ import BehExprDefs
 import ProcIdFactory
 import VarFactory
 
-exclamToQuest :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-exclamToQuest = exclamToQst Set.empty
+import ProcSearch
 
-exclamToQst :: Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-exclamToQst beenHere currentBExpr = do
+-- Recursively replaces occurrences of !x with ?x.
+exclamToQuest :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
+exclamToQuest bexpr = do
+    procIds <- getProcsInBExpr bexpr
+    Monad.mapM_ doProc (Set.toList procIds)
+    exclamToQst bexpr
+  where
+    doProc :: ProcId.ProcId -> IOC.IOC ()
+    doProc pid = do
+        r <- getProcById pid
+        case r of
+          Just (ProcDef.ProcDef cids vids body) -> do
+              body' <- exclamToQst body
+              registerProc pid (ProcDef.ProcDef cids vids body')
+          Nothing -> return ()
+-- exclamToQuest
+
+exclamToQst :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
+exclamToQst currentBExpr = do
     case currentBExpr of
-      (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
-          do if Set.member pid beenHere
-             then return currentBExpr
-             else do r <- getProcById pid
-                     case r of
-                       Just (ProcDef.ProcDef cids vids body) -> do
-                           body' <- exclamToQst (Set.insert pid beenHere) body
-                           tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
-                           let newPDef = ProcDef.ProcDef cids vids body'
-                           let tdefs' = tdefs { TxsDefs.procDefs = Map.insert pid newPDef (TxsDefs.procDefs tdefs) }
-                           IOC.modifyCS (\st -> st { IOC.tdefs = tdefs' })
-                           return currentBExpr
-                       Nothing -> return currentBExpr
+      (TxsDefs.view -> ProcInst _pid _cids _vexprs) ->
+          do return currentBExpr
       (TxsDefs.view -> Guard g bexpr) ->
-          do bexpr' <- exclamToQst beenHere bexpr
+          do bexpr' <- exclamToQst bexpr
              return (guard g bexpr')
       (TxsDefs.view -> Choice bexprs) ->
-          do bexprs' <- Set.fromList <$> Monad.mapM (exclamToQst beenHere) (Set.toList bexprs)
+          do bexprs' <- Set.fromList <$> Monad.mapM exclamToQst (Set.toList bexprs)
              return (choice bexprs')
       (TxsDefs.view -> Parallel cidSet bexprs) ->
-          do bexprs' <- Monad.mapM (exclamToQst beenHere) bexprs
+          do bexprs' <- Monad.mapM exclamToQst bexprs
              return (parallel cidSet bexprs')
       (TxsDefs.view -> Hide cidSet bexpr) ->
-          do bexpr' <- exclamToQst beenHere bexpr
+          do bexpr' <- exclamToQst bexpr
              return (hide cidSet bexpr')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
-          do bexpr1' <- exclamToQst beenHere bexpr1
+          do bexpr1' <- exclamToQst bexpr1
              (acceptOffers', extraConditions) <- doChanOffers acceptOffers
-             bexpr2' <- exclamToQst beenHere bexpr2
+             bexpr2' <- exclamToQst bexpr2
              return (enable bexpr1' acceptOffers' (guard (ValExpr.cstrAnd (Set.fromList extraConditions)) bexpr2'))
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          do bexpr1' <- exclamToQst beenHere bexpr1
-             bexpr2' <- exclamToQst beenHere bexpr2
+          do bexpr1' <- exclamToQst bexpr1
+             bexpr2' <- exclamToQst bexpr2
              return (disable bexpr1' bexpr2')
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          do bexpr1' <- exclamToQst beenHere bexpr1
-             bexpr2' <- exclamToQst beenHere bexpr2
+          do bexpr1' <- exclamToQst bexpr1
+             bexpr2' <- exclamToQst bexpr2
              return (interrupt bexpr1' bexpr2')
       (TxsDefs.view -> ActionPref actOffer bexpr) ->
           do actOffer' <- doActOffer actOffer
-             bexpr' <- exclamToQst beenHere bexpr
+             bexpr' <- exclamToQst bexpr
              return (actionPref actOffer' bexpr')
       (TxsDefs.view -> ValueEnv venv bexpr) ->
-          do bexpr' <- exclamToQst beenHere bexpr
+          do bexpr' <- exclamToQst bexpr
              return (valueEnv venv bexpr')
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
-          -- foldParProcMaps soFar (map actoffer transitions)
-      _ -> return (error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"))
+          -- ...
+      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- exclamToQst
 
 doActOffer :: TxsDefs.ActOffer -> IOC.IOC TxsDefs.ActOffer

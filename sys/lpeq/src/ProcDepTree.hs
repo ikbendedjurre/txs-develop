@@ -124,7 +124,7 @@ buildTree buildState@(ProcDepTree maybePid reachablePids dependencies, bpStack, 
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
           addParallelDependencies buildState currentBExpr [bexpr1, bexpr2]
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
-          -- foldParProcMaps soFar (map actoffer transitions)
+          -- ...
       _ -> return (ProcDepTree maybePid reachablePids dependencies, bpStack, msgs ++ ["Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"])
 -- buildTree
 

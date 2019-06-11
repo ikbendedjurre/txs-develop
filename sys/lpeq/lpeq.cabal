@@ -19,6 +19,9 @@ library
   other-modules:        ExclamToQuest
                       , VEnvElim
                       , Scopes
+                      , ProcSearch
+                      , ProcCopy
+                      , FlattenedChannels
                       , PBranchInst
                       , ProcDepTree
                       , ProgramCounters

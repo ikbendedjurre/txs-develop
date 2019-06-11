@@ -23,32 +23,39 @@ eliminateVEnvs
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Control.Monad as Monad
-import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
 import qualified TxsDefs
+import qualified ProcId
 import qualified ProcDef
 import qualified VarEnv
 import qualified Subst
 import BehExprDefs
 import ProcIdFactory
 
+import ProcSearch
+
+-- Recursively eliminates variable environments from the given behavioral expression.
 eliminateVEnvs :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-eliminateVEnvs = elimVEnvs Map.empty
+eliminateVEnvs bexpr = do
+    procIds <- getProcsInBExpr bexpr
+    Monad.mapM_ doProc (Set.toList procIds)
+    elimVEnvs Map.empty bexpr
+  where
+    doProc :: ProcId.ProcId -> IOC.IOC ()
+    doProc pid = do
+        r <- getProcById pid
+        case r of
+          Just (ProcDef.ProcDef cids vids body) -> do
+              body' <- elimVEnvs Map.empty body
+              registerProc pid (ProcDef.ProcDef cids vids body')
+          Nothing -> return ()
+-- eliminateVEnvs
 
 elimVEnvs :: VarEnv.VEnv -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 elimVEnvs currentVEnv currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
-          do r <- getProcById pid
-             case r of
-               Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
-                   body' <- elimVEnvs currentVEnv body
-                   tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
-                   let newPDef = ProcDef.ProcDef cidDecls vidDecls body'
-                   let tdefs' = tdefs { TxsDefs.procDefs = Map.insert pid newPDef (TxsDefs.procDefs tdefs) }
-                   IOC.modifyCS (\st -> st { IOC.tdefs = tdefs' })
-                   return (procInst pid cids (map (Subst.subst currentVEnv Map.empty) vexprs))
-               Nothing -> return currentBExpr
+          do return (procInst pid cids (map (Subst.subst currentVEnv Map.empty) vexprs))
       (TxsDefs.view -> Guard g bexpr) ->
           do bexpr' <- elimVEnvs currentVEnv bexpr
              return (guard (Subst.subst currentVEnv Map.empty g) bexpr')
@@ -82,8 +89,8 @@ elimVEnvs currentVEnv currentBExpr = do
              -- (This means that same-name variables are replaced correctly, assuming that this is even allowed.)
              elimVEnvs (Map.union venv' currentVEnv) bexpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
-          -- foldParProcMaps soFar (map actoffer transitions)
-      _ -> return (error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"))
+          -- ...
+      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- elimVEnvs
 
 doActOffer :: VarEnv.VEnv -> TxsDefs.ActOffer -> TxsDefs.ActOffer

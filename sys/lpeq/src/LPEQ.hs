@@ -29,6 +29,7 @@ import qualified EnvCore as IOC
 import qualified TxsDefs
 import ModelIdFactory
 
+import ProcCopy
 import ExclamToQuest
 import VEnvElim
 import PBranchInst
@@ -38,13 +39,20 @@ import ProgramCounters
 -- Linearizes a model definition and (if successful) saves it to the current context.
 lpeq :: TxsDefs.ModelId -> TxsDefs.ModelDef -> String -> IOC.IOC (Either [String] (TxsDefs.ModelId, TxsDefs.ModelDef))
 lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName = do
-    bexpr' <- exclamToQuest bexpr
-    bexpr'' <- eliminateVEnvs bexpr'
+    -- 1. Create copies of all processes (we do not want to affect existing processes):
+    bexpr' <- replaceProcsInBExpr bexpr
+    -- 2. Convert !x to ?x:
+    bexpr'' <- exclamToQuest bexpr'
+    -- Eliminate variable environments through substitution:
+    bexpr''' <- eliminateVEnvs bexpr''
+    -- 3. Create process instantiations for parallel branches:
     let cids = concatMap Set.toList (insyncs ++ outsyncs)
-    msgsOrInst <- doPBranchInst (Set.fromList cids) bexpr''
+    msgsOrInst <- doPBranchInst (Set.fromList cids) bexpr'''
     case msgsOrInst of
       Left msgs -> return (Left msgs)
-      Right inst -> do inst' <- addProgramCounters inst
+      Right inst -> do -- 4. Add program counters to the signatures of processes:
+                       inst' <- addProgramCounters inst
+                       -- 5. 
                        msgsOrTree <- getProcDepTree inst'
                        case msgsOrTree of
                          Left msgs -> return (Left msgs)

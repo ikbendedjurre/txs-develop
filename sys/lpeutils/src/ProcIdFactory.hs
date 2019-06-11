@@ -17,10 +17,12 @@ See LICENSE at root directory of this repository.
 module ProcIdFactory (
 createFreshProcIdFromProcId,
 createFreshProcIdFromChansAndVars,
+createFreshProcIdWithDifferentChans,
 createFreshProcIdWithDifferentVars,
 getProcById,
 getProcsByName,
-getMsgOrProcFromName
+getMsgOrProcFromName,
+registerProc
 ) where
 
 import qualified Control.Monad.State as MonadState
@@ -54,6 +56,12 @@ createFreshProcIdFromChansAndVars procName cids vids exit = do
     i <- IOC.initUnid
     createFreshProcIdFromProcId (ProcId.ProcId procName i (map ProcId.toChanSort cids) (map SortOf.sortOf vids) exit)
 -- createFreshProcIdFromChansAndVars
+
+createFreshProcIdWithDifferentChans :: ProcId.ProcId -> [ChanId.ChanId] -> IOC.IOC ProcId.ProcId
+createFreshProcIdWithDifferentChans (ProcId.ProcId name _ _ vids exit) cids = do
+    i <- IOC.initUnid
+    createFreshProcIdFromProcId (ProcId.ProcId name i (map ProcId.toChanSort cids) vids exit)
+-- createFreshProcIdWithDifferentChans
 
 createFreshProcIdWithDifferentVars :: ProcId.ProcId -> [SortId.SortId] -> IOC.IOC ProcId.ProcId
 createFreshProcIdWithDifferentVars (ProcId.ProcId name _ cids _ exit) sids = do
@@ -95,4 +103,12 @@ getMsgOrProcFromName procName = do
            else return (Right (Map.toList matchingProcs !! 0))
       _ -> return (Left "TorXakis core is not initialized!")
 -- getMsgOrProcFromName
+
+registerProc :: TxsDefs.ProcId -> TxsDefs.ProcDef -> IOC.IOC ()
+registerProc pid pdef = do
+    tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
+    let tdefs' = tdefs { TxsDefs.procDefs = Map.insert pid pdef (TxsDefs.procDefs tdefs) }
+    IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
+-- registerProc
+
 
