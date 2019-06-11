@@ -28,7 +28,11 @@ applyToVarSet,
 applyToVExpr,
 applyToVExprs,
 applyToChanOffer,
-applyToActOffer
+applyToActOffer,
+addActOffer,
+addOffer,
+addChanOffers,
+addChanOffer
 ) where
 
 import qualified Data.Map as Map
@@ -51,8 +55,8 @@ data Scope = Scope { chanMap :: Map.Map ChanId.ChanId ChanId.ChanId
 empty :: Scope
 empty = Scope { chanMap = Map.empty, varMap = Map.empty }
 
-fromChans :: Set.Set ChanId.ChanId -> Scope
-fromChans cids = empty { chanMap = Map.fromSet id cids }
+fromChans :: [ChanId.ChanId] -> Scope
+fromChans cids = empty { chanMap = Map.fromList (zip cids cids) }
 
 cloneScope :: Scope -> IOC.IOC Scope
 cloneScope s = do
@@ -119,28 +123,17 @@ applyToOffer scope offer =
 
 applyToChanOffer :: Scope -> TxsDefs.ChanOffer -> TxsDefs.ChanOffer
 applyToChanOffer _scope chanOffer = chanOffer
-    
 
+addActOffer :: Scope -> TxsDefs.ActOffer -> Scope
+addActOffer scope actOffer = foldl addOffer scope (TxsDefs.offers actOffer)
 
+addOffer :: Scope -> TxsDefs.Offer -> Scope
+addOffer scope offer = addChanOffers scope (TxsDefs.chanoffers offer)
 
+addChanOffers :: Foldable t => Scope -> t TxsDefs.ChanOffer -> Scope
+addChanOffers scope chanOffers = foldl addChanOffer scope chanOffers
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+addChanOffer :: Scope -> TxsDefs.ChanOffer -> Scope
+addChanOffer scope (TxsDefs.Quest v) = scope { varMap = Map.insert v v (varMap scope) }
+addChanOffer scope _ = scope
 

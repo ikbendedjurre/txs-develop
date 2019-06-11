@@ -119,10 +119,10 @@ replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr = do
              return (choice bexprs')
       (TxsDefs.view -> Parallel cidSet bexprs) ->
           do bexprs' <- Monad.mapM (replacePidsInBExpr allChanIds chanMap freshPidMap) bexprs
-             return (parallel cidSet bexprs')
+             return (parallel (Set.map (chanMap Map.!) cidSet) bexprs')
       (TxsDefs.view -> Hide cidSet bexpr) ->
           do bexpr' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr
-             return (hide cidSet bexpr')
+             return (hide (Set.map (chanMap Map.!) cidSet) bexpr')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
           do bexpr1' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr1
              bexpr2' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr2

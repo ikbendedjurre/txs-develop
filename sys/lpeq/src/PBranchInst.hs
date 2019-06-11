@@ -31,192 +31,137 @@ import qualified ValExpr
 import qualified ProcId
 import qualified ProcDef
 import qualified ChanId
-import qualified VarEnv
 import BehExprDefs
 import ProcIdFactory
-import ConcatEither
 import qualified Scopes
 
 -- Recursively identifies parallel sub-expressions in a given behavioral expression, and
 -- creates process definitions for each of those sub-expressions (including program counters).
 -- Sub-expressions are replaced by instantiations of corresponding process definitions.
 -- 
--- (Later, a dependency tree will be inferred for the process definitions.)
+-- (Next, a dependency tree will be inferred from the process definitions.)
 -- 
 -- The given behavioral expression should be closed except for channels, which must be provided as well.
-doPBranchInst :: Set.Set ChanId.ChanId -> TxsDefs.BExpr -> IOC.IOC (Either [String] TxsDefs.BExpr)
-doPBranchInst cids startBExpr = do
-    r <- instPBranch (Scopes.fromChans cids) startBExpr
-    case r of
-      Left msgs -> return (Left msgs)
-      Right (bexpr, _exit) -> return (Right bexpr) -- Maybe check if EXIT has correct type?
+doPBranchInst :: [ChanId.ChanId] -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
+doPBranchInst allChanIds startBExpr = do
+    (bexpr, _exit) <- instPBranch (Scopes.fromChans allChanIds) startBExpr
+    return bexpr -- Maybe check if EXIT has correct type?
 -- doPBranchInst
 
 -- Searches a given expression for parallel sub-expressions.
-lookForPBranch :: Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (Either [String] (TxsDefs.BExpr, ProcId.ExitSort))
+lookForPBranch :: Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
 lookForPBranch scope currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
-          return (Right (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid))
+          return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
       (TxsDefs.view -> Parallel cidSet bexprs) ->
-          do r <- forAllBExprs (instPBranch scope) bexprs
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexprs', exit') -> return (Right (parallel (Scopes.applyToChanSet scope cidSet) bexprs', exit'))
+          do (bexprs', exit') <- forAllBExprs (instPBranch scope) bexprs
+             return (parallel (Scopes.applyToChanSet scope cidSet) bexprs', exit')
       (TxsDefs.view -> Guard g bexpr) ->
-          do r <- lookForPBranch scope bexpr
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexpr', exit') -> return (Right (guard (Scopes.applyToVExpr scope g) bexpr', exit'))
+          do (bexpr', exit') <- lookForPBranch scope bexpr
+             return (guard (Scopes.applyToVExpr scope g) bexpr', exit')
       (TxsDefs.view -> Choice bexprs) ->
-          do r <- forAllBExprs (lookForPBranch scope) (Set.toList bexprs)
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexprs', exit') -> return (Right (choice (Set.fromList bexprs'), exit'))
+          do (bexprs', exit') <- forAllBExprs (lookForPBranch scope) (Set.toList bexprs)
+             return (choice (Set.fromList bexprs'), exit')
       (TxsDefs.view -> Hide cidSet bexpr) ->
-          do r <- lookForPBranch scope bexpr
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexpr', exit') -> return (Right (hide (Scopes.applyToChanSet scope cidSet) bexpr', exit'))
+          do (bexpr', exit') <- lookForPBranch scope bexpr
+             return (hide (Scopes.applyToChanSet scope cidSet) bexpr', exit')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
-          do r <- forAllBExprs (instPBranch scope) [bexpr1, bexpr2]
-             case r of
-               Left msgs -> return (Left msgs)
-               Right ([bexpr1', bexpr2'], exit') -> return (Right (enable bexpr1' (map (Scopes.applyToChanOffer scope) acceptOffers) bexpr2', exit')) -- TODO exit values are not (always) correct!
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+          do (bexpr1', _) <- instPBranch scope bexpr1
+             (bexpr2', exit') <- instPBranch (Scopes.addChanOffers scope acceptOffers) bexpr2
+             return (enable bexpr1' (map (Scopes.applyToChanOffer scope) acceptOffers) bexpr2', exit')
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          do r <- forAllBExprs (instPBranch scope) [bexpr1, bexpr2]
-             case r of
-               Left msgs -> return (Left msgs)
-               Right ([bexpr1', bexpr2'], exit') -> return (Right (disable bexpr1' bexpr2', exit'))
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+          do (bexpr1', _) <- instPBranch scope bexpr1
+             (bexpr2', exit') <- instPBranch scope bexpr2
+             return (disable bexpr1' bexpr2', exit')
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          do r <- forAllBExprs (instPBranch scope) [bexpr1, bexpr2]
-             case r of
-               Left msgs -> return (Left msgs)
-               Right ([bexpr1', bexpr2'], exit') -> return (Right (interrupt bexpr1' bexpr2', exit'))
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+          do (bexpr1', _) <- instPBranch scope bexpr1
+             (bexpr2', exit') <- instPBranch scope bexpr2
+             return (interrupt bexpr1' bexpr2', exit')
       (TxsDefs.view -> ActionPref actOffer bexpr) ->
-          do r <- lookForPBranch scope bexpr
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexpr', exit') -> return (Right (actionPref (Scopes.applyToActOffer scope actOffer) bexpr', exit'))
-      (TxsDefs.view -> ValueEnv {}) ->
-          instPBranch scope currentBExpr
+          do let scope' = Scopes.addActOffer scope actOffer
+             (bexpr', exit') <- instPBranch scope' bexpr
+             return (actionPref (Scopes.applyToActOffer scope' actOffer) bexpr', exit')
+      (TxsDefs.view -> ValueEnv _venv _bexpr) ->
+           error ("ValExpr should have already been rewritten (\"" ++ show currentBExpr ++ "\")!")
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
-          -- foldProcesses soFar (map actoffer transitions)
-      _ -> return (Left ["Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"])
+          -- ...
+      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- lookForPBranch
 
-instPBranch :: Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (Either [String] (TxsDefs.BExpr, ProcId.ExitSort))
+instPBranch :: Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
 instPBranch scope currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
           -- Already is a process instantiation:
-          return (Right (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid))
+          return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
       (TxsDefs.view -> Guard g bexpr) ->
           do scope' <- Scopes.cloneScope scope
-             r <- lookForPBranch scope' bexpr
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexpr', exit') -> do Right <$> regAndInstProc scope' exit' (guard (Scopes.applyToVExpr scope' g) bexpr')
+             (bexpr', exit') <- lookForPBranch scope' bexpr
+             regAndInstProc scope' exit' (guard (Scopes.applyToVExpr scope' g) bexpr')
       (TxsDefs.view -> ActionPref actOffer bexpr) ->
           do scope' <- Scopes.cloneScope scope
-             r <- lookForPBranch scope' bexpr
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexpr', exit') -> do Right <$> regAndInstProc scope' exit' (actionPref (Scopes.applyToActOffer scope' actOffer) bexpr')
-      (TxsDefs.view -> ValueEnv venv bexpr) ->
-          do scope' <- Scopes.cloneScope scope
-             r <- lookForPBranch scope' bexpr
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexpr', exit') -> do Right <$> regAndInstProcUsingVarEnv scope' (Map.map (Scopes.applyToVExpr scope') venv) exit' bexpr'
+             let scope'' = Scopes.addActOffer scope' actOffer
+             (bexpr', exit') <- lookForPBranch scope'' bexpr
+             regAndInstProc scope' exit' (actionPref (Scopes.applyToActOffer scope'' actOffer) bexpr')
+      (TxsDefs.view -> ValueEnv _venv _bexpr) ->
+          error ("ValExpr should have already been rewritten (\"" ++ show currentBExpr ++ "\")!")
       (TxsDefs.view -> Choice bexprs) ->
           do scope' <- Scopes.cloneScope scope
-             r <- forAllBExprs (lookForPBranch scope') (Set.toList bexprs)
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexprs', exit') -> Right <$> regAndInstProc scope' exit' (choice (Set.fromList bexprs'))
+             (bexprs', exit') <- forAllBExprs (lookForPBranch scope') (Set.toList bexprs)
+             regAndInstProc scope' exit' (choice (Set.fromList bexprs'))
       (TxsDefs.view -> Hide cidSet bexpr) ->
           do scope' <- Scopes.cloneScope scope
-             r <- lookForPBranch scope' bexpr
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexpr', exit') -> do Right <$> regAndInstProc scope' exit' (hide (Scopes.applyToChanSet scope' cidSet) bexpr')
-       -- Parallel expression can also contain parallel expressions:
+             (bexpr', exit') <- lookForPBranch scope' bexpr
+             regAndInstProc scope' exit' (hide (Scopes.applyToChanSet scope' cidSet) bexpr')
+       -- Parallel expression can contain parallel sub-expressions:
       (TxsDefs.view -> Parallel cidSet bexprs) ->
           do scope' <- Scopes.cloneScope scope
-             r <- forAllBExprs (instPBranch scope') bexprs
-             case r of
-               Left msgs -> return (Left msgs)
-               Right (bexprs', exit') -> do Right <$> regAndInstProc scope' exit' (parallel (Scopes.applyToChanSet scope' cidSet) bexprs')
+             (bexprs', exit') <- forAllBExprs (instPBranch scope') bexprs
+             regAndInstProc scope' exit' (parallel (Scopes.applyToChanSet scope' cidSet) bexprs')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
-          do scope' <- Scopes.cloneScope scope
-             r <- forAllBExprs (instPBranch scope') [bexpr1, bexpr2]
-             case r of
-               Left msgs -> return (Left msgs)
-               Right ([bexpr1', bexpr2'], exit') -> do Right <$> regAndInstProc scope' exit' (enable bexpr1' (map (Scopes.applyToChanOffer scope') acceptOffers) bexpr2')
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+          do scope1 <- Scopes.cloneScope scope
+             (bexpr1', _) <- instPBranch scope1 bexpr1
+             let scope2 = Scopes.addChanOffers scope1 acceptOffers
+             (bexpr2', exit') <- instPBranch scope2 bexpr2
+             regAndInstProc scope1 exit' (enable bexpr1' (map (Scopes.applyToChanOffer scope2) acceptOffers) bexpr2')
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
           do scope' <- Scopes.cloneScope scope
-             r <- forAllBExprs (instPBranch scope') [bexpr1, bexpr2]
-             case r of
-               Left msgs -> return (Left msgs)
-               Right ([bexpr1', bexpr2'], exit') -> do Right <$> regAndInstProc scope' exit' (disable bexpr1' bexpr2')
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+             (bexpr1', _) <- instPBranch scope' bexpr1
+             (bexpr2', exit') <- instPBranch scope' bexpr2
+             regAndInstProc scope' exit' (disable bexpr1' bexpr2')
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
           do scope' <- Scopes.cloneScope scope
-             r <- forAllBExprs (instPBranch scope') [bexpr1, bexpr2]
-             case r of
-               Left msgs -> return (Left msgs)
-               Right ([bexpr1', bexpr2'], exit') -> do Right <$> regAndInstProc scope' exit' (interrupt bexpr1' bexpr2')
-               _ -> return (Left ["Output not accounted for (\"" ++ show r ++ "\")!"])
+             (bexpr1', _) <- instPBranch scope' bexpr1
+             (bexpr2', exit') <- instPBranch scope' bexpr2
+             regAndInstProc scope' exit' (interrupt bexpr1' bexpr2')
       -- (TxsDefs.view -> StAut _sid _venv transitions) ->
-          -- foldProcesses soFar (map actoffer transitions)
-      _ -> return (Left ["Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!"])
+          -- ...
+      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- instPBranch
 
 -- Multiple branches are evaluated in the same manner with this function.
-forAllBExprs :: (TxsDefs.BExpr -> IOC.IOC (Either [String] (TxsDefs.BExpr, ProcId.ExitSort))) -> [TxsDefs.BExpr] -> IOC.IOC (Either [String] ([TxsDefs.BExpr], ProcId.ExitSort))
+forAllBExprs :: (TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)) -> [TxsDefs.BExpr] -> IOC.IOC ([TxsDefs.BExpr], ProcId.ExitSort)
 forAllBExprs f bexprs = do
     rs <- Monad.mapM f bexprs
-    case concatEither rs of
-      Left msgs -> return (Left (concat msgs))
-      Right bs -> if null bs
-                  then return (Right ([], ProcId.NoExit))
-                  else do let bexprs' = map fst bs
-                          let exits' = map snd bs
-                          if allTheSame exits'
-                          then return (Right (bexprs', head exits'))
-                          else return (Left ["Inconsistent EXIT signatures (\"" ++ show bexprs ++ "\")!"])
-  where
-    allTheSame :: Eq a => [a] -> Bool
-    allTheSame [] = True
-    allTheSame [_] = True
-    allTheSame (x1:x2:xs) = (x1 == x2) && allTheSame (x2:xs)
+    if null rs
+    then return ([], ProcId.NoExit)
+    else return (map fst rs, last (map snd rs))
 -- forAllBExprs
 
 -- Creates a process definition from the given scope and body and registers it.
 -- It also creates an instantiation of the process, which is returned.
 regAndInstProc :: Scopes.Scope -> ProcId.ExitSort -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
-regAndInstProc scope = regAndInstProcUsingVarEnv scope Map.empty
-
--- Creates a process definition from the given scope and body and registers it.
--- It also creates an instantiation of the process, which is returned.
-regAndInstProcUsingVarEnv :: Scopes.Scope -> VarEnv.VEnv -> ProcId.ExitSort -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
-regAndInstProcUsingVarEnv scope venv exit body = do
+regAndInstProc scope exit body = do
     let cids = Map.toList (Scopes.chanMap scope)
     let vids = Map.toList (Scopes.varMap scope)
-    let assignments = Map.toList venv
-    let newProcParams = map snd vids ++ map fst assignments
+    let newProcParams = map snd vids
     newPid <- createFreshProcIdFromChansAndVars (Text.pack "Proc") (map snd cids) newProcParams exit
     let newPDef = ProcDef.ProcDef (map snd cids) newProcParams body
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
     let tdefs' = tdefs { TxsDefs.procDefs = Map.insert newPid newPDef (TxsDefs.procDefs tdefs) }
     IOC.modifyCS (\st -> st { IOC.tdefs = tdefs' })
-    let newProcValues = map (ValExpr.cstrVar . fst) vids ++ map snd assignments
+    let newProcValues = map (ValExpr.cstrVar . fst) vids
     return (procInst newPid (map fst cids) newProcValues, exit)
 -- regAndInstProcUsingVarEnv
-
 
