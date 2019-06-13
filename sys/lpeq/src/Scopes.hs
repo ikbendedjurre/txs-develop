@@ -17,7 +17,7 @@ See LICENSE at root directory of this repository.
 module Scopes (
 Scope(..),
 empty,
-fromChans,
+fromDecls,
 cloneScope,
 applyToChan,
 applyToChans,
@@ -55,8 +55,11 @@ data Scope = Scope { chanMap :: Map.Map ChanId.ChanId ChanId.ChanId
 empty :: Scope
 empty = Scope { chanMap = Map.empty, varMap = Map.empty }
 
-fromChans :: [ChanId.ChanId] -> Scope
-fromChans cids = empty { chanMap = Map.fromList (zip cids cids) }
+fromDecls :: [ChanId.ChanId] -> [VarId.VarId] -> Scope
+fromDecls cidDecls varDecls = Scope { chanMap = Map.fromList (zip cidDecls cidDecls)
+                                    , varMap = Map.fromList (zip varDecls varDecls)
+                                    }
+-- fromDecls
 
 cloneScope :: Scope -> IOC.IOC Scope
 cloneScope s = do

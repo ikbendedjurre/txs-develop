@@ -26,10 +26,14 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
+import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ProcId
 import qualified ProcDef
+import qualified SortId
+import qualified ChanId
+import qualified VarId
 import BehExprDefs
 import ProcIdFactory
 
@@ -63,7 +67,11 @@ getProcDepTree startBExpr = do
     tree <- buildTree Uninitialized [] Set.empty startBExpr
     let problems = getProblems tree
     if null problems
-    then return (Right tree)
+    then do let treeStrs = ["Process dependency tree:"] ++ showProcDepTree "" "" tree
+            procStrs <- showProcs
+            Monad.mapM_ (\m -> IOC.putMsgs [ EnvData.TXS_CORE_ANY m ]) (treeStrs ++ procStrs)
+            -- return (Left (treeStrs ++ procStrs))
+            return (Right tree)
     else do let problemsStrs = ["Encountered problems while constructing process dependency tree:"] ++ map ("|-" ++) (List.init problems) ++ ["\\-" ++ List.last problems]
             let treeStrs = ["Process dependency tree:"] ++ showProcDepTree "" "" tree
             procStrs <- showProcs
@@ -80,9 +88,18 @@ getProcDepTree startBExpr = do
     showProc pid = do
         r <- getProcById pid
         case r of
-          Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> return [Text.unpack (ProcId.name pid) ++ " ::= " ++ TxsShow.fshow body ]
+          -- Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> return [Text.unpack (ProcId.name pid) ++ " ::= " ++ TxsShow.fshow body ]
+          Just (ProcDef.ProcDef cidDecls vidDecls body) -> return ["PROCDEF " ++ showProcSig pid cidDecls vidDecls ++ " ::=", TxsShow.fshow body, "ENDDEF" ]
           Nothing -> return [ show pid ++ " ::= ???" ]
     -- doProc
+    
+    showProcSig :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> String
+    showProcSig pid cidDecls vidDecls =
+        let nameStr = Text.unpack (ProcId.name pid) in
+        let cidDeclsStr = "[" ++ List.intercalate "," (map (Text.unpack . ChanId.name) cidDecls) ++ "]" in
+        let vidDeclsStr = "(" ++ List.intercalate "; " (map (\v -> Text.unpack (VarId.name v) ++ " :: " ++ Text.unpack (SortId.name (VarId.varsort v))) vidDecls) ++ ")" in
+          nameStr ++ " " ++ cidDeclsStr ++ " " ++ vidDeclsStr
+    -- showProcSig
     
     getProblems :: ProcDepTree -> [String]
     getProblems Uninitialized = ["Tree contains uninitialized branches!"]

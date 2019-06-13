@@ -49,12 +49,12 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     -- 3. Eliminate variable environments through substitution:
     bexpr3 <- eliminateVEnvs bexpr2
     
-    -- 4. Flatten channels (so that channel-related part of process signature becomes redundant):
+    -- 4. Create process instantiations for parallel branches:
     let allChanIds = concatMap Set.toList (insyncs ++ outsyncs)
-    bexpr4 <- flattenChannels allChanIds bexpr3
+    bexpr4 <- doPBranchInst allChanIds bexpr3
     
-    -- 5. Create process instantiations for parallel branches:
-    bexpr5 <- doPBranchInst allChanIds bexpr4
+    -- 5. Flatten channels (so that channel-related part of process signature becomes redundant):
+    bexpr5 <- flattenChannels allChanIds bexpr4
     
     -- 6. Add program counters to the signatures of processes:
     bexpr6 <- addProgramCounters bexpr5

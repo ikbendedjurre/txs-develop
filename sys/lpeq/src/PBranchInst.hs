@@ -48,16 +48,16 @@ doPBranchInst :: [ChanId.ChanId] -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 doPBranchInst allChanIds startBExpr = do
     procIds <- getProcsInBExpr startBExpr
     Monad.mapM_ doProc procIds
-    (bexpr, _exit) <- instPBranch "RootProc" (Scopes.fromChans allChanIds) startBExpr
+    (bexpr, _exit) <- instPBranch "RootProc" (Scopes.fromDecls allChanIds []) startBExpr
     return bexpr -- Maybe check if EXIT has correct type?
   where
     doProc :: ProcId.ProcId -> IOC.IOC ()
     doProc pid = do
         r <- getProcById pid
         case r of
-          Just (ProcDef.ProcDef cids vids body) -> do
-              (body', _exit) <- lookForPBranch (Text.unpack (ProcId.name pid)) (Scopes.fromChans allChanIds) body
-              registerProc pid (ProcDef.ProcDef cids vids body')
+          Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
+              (body', _exit) <- lookForPBranch (Text.unpack (ProcId.name pid)) (Scopes.fromDecls cidDecls vidDecls) body
+              registerProc pid (ProcDef.ProcDef cidDecls vidDecls body')
           Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
 -- doPBranchInst
 
