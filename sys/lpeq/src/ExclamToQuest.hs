@@ -48,7 +48,7 @@ exclamToQuest bexpr = do
           Just (ProcDef.ProcDef cids vids body) -> do
               body' <- exclamToQst body
               registerProc pid (ProcDef.ProcDef cids vids body')
-          Nothing -> return ()
+          Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
 -- exclamToQuest
 
 exclamToQst :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr

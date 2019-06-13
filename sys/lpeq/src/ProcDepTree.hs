@@ -26,124 +26,138 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
--- import qualified EnvData
 import qualified TxsDefs
+import qualified TxsShow
 import qualified ProcId
 import qualified ProcDef
 import BehExprDefs
 import ProcIdFactory
-import ConcatEither
-import UntilFixedPoint
+
+import ProcSearch
 
 data ProcDepTree = Uninitialized
-                 | Branch ProcId.ProcId (Set.Set ProcDepTree)
+                 | Branch ProcId.ProcId [ProcDepTree]
                  | Circular ProcId.ProcId
                    deriving (Eq, Ord)
 -- ProcDepTree
 
 showProcDepTree :: String -> String -> ProcDepTree -> [String]
-showProcDepTree pidPrefix depsPrefix Uninitialized = [pidPrefix ++ "UNINIT"]
+showProcDepTree pidPrefix _depsPrefix Uninitialized = [pidPrefix ++ "UNINIT"]
 showProcDepTree pidPrefix depsPrefix (Branch ownerPid dependencies) =
     let pidStrs = [pidPrefix ++ Text.unpack (ProcId.name ownerPid)] in
-      if Set.null dependencies
+      if null dependencies
       then pidStrs
-      else let depsList = Set.toList dependencies in
-           let depsStrs = concatMap (showProcDepTree (depsPrefix ++ "|-") (depsPrefix ++ "| ")) (List.init depsList) in
-           let lastStrs = showProcDepTree (depsPrefix ++ "\\-") (depsPrefix ++ ". ") (List.last depsList) in
+      else let depsStrs = concatMap (showProcDepTree (depsPrefix ++ "|-") (depsPrefix ++ "| ")) (List.init dependencies) in
+           let lastStrs = showProcDepTree (depsPrefix ++ "\\-") (depsPrefix ++ ". ") (List.last dependencies) in
              pidStrs ++ depsStrs ++ lastStrs
-showProcDepTree pidPrefix depsPrefix (Circular ownerPid) = [pidPrefix ++ "CIRCULAR " ++ Text.unpack (ProcId.name ownerPid)]
+showProcDepTree pidPrefix _depsPrefix (Circular ownerPid) = [pidPrefix ++ "CIRCULAR " ++ Text.unpack (ProcId.name ownerPid)]
 
 instance Show ProcDepTree where
     show = List.intercalate "\n" . showProcDepTree "" ""
 -- Show ProcDepTree
 
--- Local helper type. Parameters are:
---  1. The dependency tree that has been constructed so far.
---  2. The branch/process stack:
---       We depend on PBranchInst having been applied.
---       Therefore, each parallel branch is a process instantiation.
---       When searching a branch, we do not want to see the same process being instantiated again (= circular dependency).
---  3. Error messages.
-type TreeBuildState = (ProcDepTree, [ProcId.ProcId], Set.Set ProcId.ProcId)
-
 -- Builds the process dependency tree for a given behavioral expression.
 -- Depends on PBranchInst having been applied first.
 getProcDepTree :: TxsDefs.BExpr -> IOC.IOC (Either [String] ProcDepTree)
 getProcDepTree startBExpr = do
-    (tree, _, _) <- buildTree (Uninitialized, [], Set.empty) startBExpr
-    -- if List.null msgs
-    -- then return (Right tree)
-    -- else return (Left (msgs ++ ["Process dependency tree:"] ++ showProcDepTree "" "" tree))
-    return (Left (["Process dependency tree:"] ++ showProcDepTree "" "" tree))
+    tree <- buildTree Uninitialized [] Set.empty startBExpr
+    let problems = getProblems tree
+    if null problems
+    then return (Right tree)
+    else do let problemsStrs = ["Encountered problems while constructing process dependency tree:"] ++ map ("|-" ++) (List.init problems) ++ ["\\-" ++ List.last problems]
+            let treeStrs = ["Process dependency tree:"] ++ showProcDepTree "" "" tree
+            procStrs <- showProcs
+            return (Left (problemsStrs ++ treeStrs ++ procStrs))
+  where
+    showProcs :: IOC.IOC [String]
+    showProcs = do
+        procIds <- getProcsInBExpr startBExpr
+        strPerProc <- concat <$> Monad.mapM showProc (Set.toList procIds)
+        return (["START ::= " ++ TxsShow.fshow startBExpr] ++ strPerProc)
+    -- showProcs
+    
+    showProc :: ProcId.ProcId -> IOC.IOC [String]
+    showProc pid = do
+        r <- getProcById pid
+        case r of
+          Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> return [Text.unpack (ProcId.name pid) ++ " ::= " ++ TxsShow.fshow body ]
+          Nothing -> return [ show pid ++ " ::= ???" ]
+    -- doProc
+    
+    getProblems :: ProcDepTree -> [String]
+    getProblems Uninitialized = ["Tree contains uninitialized branches!"]
+    getProblems (Branch _ dependencies) = concatMap getProblems dependencies
+    getProblems (Circular pid) = ["Circular dependency related to process " ++ Text.unpack (ProcId.name pid) ++ "!"]
 -- getProcDepTree
 
-buildTree :: TreeBuildState -> TxsDefs.BExpr -> IOC.IOC TreeBuildState
-buildTree (Uninitialized, pbStack, sbSet) currentBExpr = do
+buildTree :: ProcDepTree -> [ProcId.ProcId] -> Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC ProcDepTree
+buildTree tree@(Circular _) _ _ _ = error ("Should not be extending a circular tree (\"" ++ show tree ++ "\")!")
+buildTree tree pbStack sbSet currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
           do -- Detect (and avoid) infinite recursion:
              if List.elem pid pbStack
-             then return (Circular pid, pbStack, sbSet)
-             else do r <- getProcById pid
-                     case r of
-                       Just (ProcDef.ProcDef _cids _vids body) ->
-                           -- This is the first process instantiation of the current branch, and so
-                           -- we adopt the process id as the 'owner' of the branch:
-                           buildTree (Branch pid Set.empty, pbStack, Set.singleton pid) body
-      _ -> error ("Process instantiation expected, found \"" ++ show currentBExpr ++ "\"!")
--- [Uninitialized]
-buildTree buildState@(Branch ownerPid dependencies, pbStack, sbSet) currentBExpr = do
-    case currentBExpr of
-      (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
-          do -- Detect (and avoid) infinite recursion:
-             if List.elem pid pbStack
-             then return (Circular pid, pbStack, sbSet)
-             else do if Set.member pid dependencies
-                     then return (Branch pid, pbStack, sbSet)
+             then return (Circular pid)
+             else do if Set.member pid sbSet
+                     then return tree
                      else do r <- getProcById pid
                              case r of
                                Just (ProcDef.ProcDef _cids _vids body) ->
-                                   buildTree (Branch ownerPid dependencies, pbStack, Set.insert pid sbSet) body
+                                   case tree of
+                                     (Branch ownerPid dependencies) -> buildTree (Branch ownerPid dependencies) pbStack (Set.insert pid sbSet) body
+                                     -- This is the first process instantiation of the current branch (_ can only be Uninitialized), and so
+                                     -- we adopt the process id as the 'owner' of the branch:
+                                     _ -> buildTree (Branch pid []) pbStack (Set.singleton pid) body
+                               Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
       (TxsDefs.view -> Guard _guard bexpr) ->
-          buildTree buildState bexpr
+          buildTree tree pbStack sbSet bexpr
       (TxsDefs.view -> ActionPref _offer bexpr) ->
-          buildTree buildState bexpr
+          buildTree tree pbStack sbSet bexpr
       (TxsDefs.view -> ValueEnv _venv bexpr) ->
-          buildTree buildState bexpr
+          buildTree tree pbStack sbSet bexpr
       (TxsDefs.view -> Hide _cidSet bexpr) ->
-          buildTree buildState bexpr
+          buildTree tree pbStack sbSet bexpr
       (TxsDefs.view -> Choice bexprs) ->
           if Set.null bexprs
-          then return buildState
-          else Monad.foldM buildTree buildState (Set.toList bexprs)
+          then return tree
+          else do rs <- Monad.mapM (buildTree tree pbStack sbSet) (Set.toList bexprs)
+                  return (foldl mergeTrees tree rs)
       (TxsDefs.view -> Parallel _cidSet bexprs) ->
           if List.null bexprs
-          then return (ProcDepTree maybePid reachablePids dependencies, pbStack, sbSet)
-          else addDependencies buildState currentBExpr bexprs
+          then return tree
+          else addDependencies tree pbStack bexprs
       (TxsDefs.view -> Enable bexpr1 _acceptOffers bexpr2) ->
-          addDependencies buildState currentBExpr [bexpr1, bexpr2]
+          addDependencies tree pbStack [bexpr1, bexpr2]
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          addDependencies buildState currentBExpr [bexpr1, bexpr2]
+          addDependencies tree pbStack [bexpr1, bexpr2]
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          addDependencies buildState currentBExpr [bexpr1, bexpr2]
+          addDependencies tree pbStack [bexpr1, bexpr2]
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...
-      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
--- [[Branch]]
-buildTree buildState _ = error ("Illegal build state (\"" ++ show buildState ++ "\")!")
--- [[Circular]]
+      _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+-- buildTree
 
-addDependencies :: TreeBuildState -> TxsDefs.BExpr -> [TxsDefs.BExpr] -> IOC.IOC TreeBuildState
-addDependencies (Uninitialized, pbStack, sbSet) currentBExpr bexprs = error ("[INTERNAL ERROR] Branch does not have an owner (stack = " ++ show bpStack ++ ", expr = " ++ show currentBExpr ++ ")!")
-addDependencies (Branch ownerId dependencies, bpStack, sbSet) _currentBExpr bexprs = do
-    -- Here, we add the process that owns the branch to the process/branch stack
-    -- so that we can detect infinite recursion:
-    rs <- Monad.mapM (buildTree (Uninitialized, pid:bpStack, Set.empty)) bexprs
-    let dependencies' = Set.union dependencies (Set.fromList (map getBuildStateTree rs))
-    return (Branch ownerId dependencies', bpStack, sbSet)
-  where
-    getBuildStateTree :: TreeBuildState -> ProcDepTree
-    getBuildStateTree (tree, _, _) = tree
+mergeTrees :: ProcDepTree -> ProcDepTree -> ProcDepTree
+mergeTrees t1@(Branch pid1 deps1) t2@(Branch pid2 deps2) =
+    if pid1 == pid2
+    then Branch pid1 (deps1 ++ deps2)
+    else error ("Cannot merge trees with different owners (left = " ++ show t1 ++ "; right = " ++ show t2 ++ ")!")
+mergeTrees t1 t2 = error ("Cannot merge trees (left = " ++ show t1 ++ "; right = " ++ show t2 ++ ")!")
+-- mergeTrees
+
+addDependencies :: ProcDepTree -> [ProcId.ProcId] -> [TxsDefs.BExpr] -> IOC.IOC ProcDepTree
+addDependencies Uninitialized (prevOwnerPid:pbStack) bexprs = do
+    deps <- getDependencies prevOwnerPid pbStack bexprs
+    return (Branch prevOwnerPid deps)
+addDependencies (Branch ownerPid dependencies) pbStack bexprs = do
+    deps <- getDependencies ownerPid pbStack bexprs
+    return (Branch ownerPid (deps ++ dependencies))
+addDependencies t _ _ = error ("Should not be adding dependencies to this tree (\"" ++ show t ++ "\")!")
 -- addDependencies
-addDependencies buildState _currentBExpr _bexprs = error ("Illegal build state (\"" ++ show buildState ++ "\")!")
+
+getDependencies :: ProcId.ProcId -> [ProcId.ProcId] -> [TxsDefs.BExpr] -> IOC.IOC [ProcDepTree]
+getDependencies parentPid pbStack bexprs = do
+    rs <- Monad.mapM (buildTree Uninitialized (parentPid:pbStack) Set.empty) bexprs
+    return (filter (Uninitialized /=) rs)
+-- getDependencies
 

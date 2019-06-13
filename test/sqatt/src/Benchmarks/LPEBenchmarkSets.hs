@@ -48,7 +48,7 @@ lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ exam
   where
     example1 :: TxsExample
     example1 = emptyExample
-        { exampleName = coreName ++ " (stepper)"
+        { exampleName = coreName ++ " (stepper on model)"
         , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-original")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper")) ]
         , expectedResult = Pass
@@ -56,7 +56,7 @@ lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ exam
     
     example2 :: TxsExample
     example2 = emptyExample
-        { exampleName = coreName ++ " (linearized stepper)"
+        { exampleName = coreName ++ " (stepper on linear model)"
         , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-original")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-2")) ]
         , expectedResult = Pass
@@ -64,7 +64,7 @@ lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ exam
 
     example3 :: TxsExample
     example3 = emptyExample
-        { exampleName = coreName ++ " (LPEStepper)"
+        { exampleName = coreName ++ " (LPEStepper on linear model)"
         , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-only")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-3")) ]
         , expectedResult = Pass
@@ -72,7 +72,7 @@ lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ exam
     
     example4 :: TxsExample
     example4 = emptyExample
-        { exampleName = coreName ++ " (LPEStepper-base)"
+        { exampleName = coreName ++ " (LPEStepper (prep time))"
         , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-lpe-only")) ]
         , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-original-stepper-4")) ]
         , expectedResult = Pass

@@ -20,8 +20,10 @@ module FlattenedChannels (
 flattenChannels
 ) where
 
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
 import qualified TxsDefs
@@ -68,13 +70,14 @@ getSignatures :: Map.Map ChanId.ChanId ChanId.ChanId -> Set.Set ProcInstSignatur
 getSignatures chanMap soFar currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids _vexprs) ->
-          do let sig = (pid, map (chanMap Map.!) cids)
+          do let cids' = doChansWithError (show currentBExpr) chanMap cids
+             let sig = (pid, cids')
              if Set.member sig soFar
              then return soFar
              else do r <- getProcById pid
                      case r of
                        Just (ProcDef.ProcDef cidDecls _vidDecls body) -> do
-                           let chanMap' = Map.fromList (zip cidDecls cids)
+                           let chanMap' = Map.fromList (zip cidDecls cids')
                            getSignatures chanMap' (Set.insert sig soFar) body
                        Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
       (TxsDefs.view -> Guard _g bexpr) ->
@@ -109,8 +112,11 @@ replacePidsInBExpr :: [ChanId.ChanId] -> Map.Map ChanId.ChanId ChanId.ChanId -> 
 replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
-          do let sig = (pid, map (chanMap Map.!) cids)
-             return (procInst (freshPidMap Map.! sig) allChanIds vexprs)
+          do let cids' = doChansWithError (show currentBExpr) chanMap cids
+             let sig = (pid, cids')
+             case freshPidMap Map.!? sig of
+               Just pidLookup -> return (procInst pidLookup allChanIds vexprs)
+               Nothing -> error ("Could not find signature " ++ show sig ++ " in " ++ showSigMap freshPidMap ++ " (expr = " ++ show currentBExpr ++ ")!")
       (TxsDefs.view -> Guard g bexpr) ->
           do bexpr' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr
              return (guard g bexpr')
@@ -119,10 +125,10 @@ replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr = do
              return (choice bexprs')
       (TxsDefs.view -> Parallel cidSet bexprs) ->
           do bexprs' <- Monad.mapM (replacePidsInBExpr allChanIds chanMap freshPidMap) bexprs
-             return (parallel (Set.map (chanMap Map.!) cidSet) bexprs')
+             return (parallel (doChanSetWithError (show currentBExpr) chanMap cidSet) bexprs')
       (TxsDefs.view -> Hide cidSet bexpr) ->
           do bexpr' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr
-             return (hide (Set.map (chanMap Map.!) cidSet) bexpr')
+             return (hide (doChanSetWithError (show currentBExpr) chanMap cidSet) bexpr')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
           do bexpr1' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr1
              bexpr2' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr2
@@ -145,13 +151,43 @@ replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr = do
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- replacePidsInBExpr
 
+doChansWithError :: String -> Map.Map ChanId.ChanId ChanId.ChanId -> [ChanId.ChanId] -> [ChanId.ChanId]
+doChansWithError location chanMap cids = map (doChanWithError location chanMap) cids
+
+doChanSetWithError :: String -> Map.Map ChanId.ChanId ChanId.ChanId -> Set.Set ChanId.ChanId -> Set.Set ChanId.ChanId
+doChanSetWithError location chanMap cidSet = Set.map (doChanWithError location chanMap) cidSet
+
+doChanWithError :: String -> Map.Map ChanId.ChanId ChanId.ChanId -> ChanId.ChanId -> ChanId.ChanId
+doChanWithError _location chanMap cid =
+    case chanMap Map.!? cid of
+      Just newCid -> newCid
+      Nothing -> cid -- error ("Could not find " ++ Text.unpack (ChanId.name cid) ++ " in " ++ showChanMap chanMap ++ " (location = " ++ location ++ ")!")
+-- doChanWithError
+
+showSigMap :: Map.Map ProcInstSignature TxsDefs.ProcId -> String
+showSigMap = showRuleMap showSig (Text.unpack . ProcId.name)
+
+showSig :: ProcInstSignature -> String
+showSig (pid, cids) = Text.unpack (ProcId.name pid) ++ "[" ++ List.intercalate ", " (map (Text.unpack . ChanId.name) cids) ++ "]"
+
+--showChanMap :: Map.Map ChanId.ChanId ChanId.ChanId -> String
+--showChanMap = showRuleMap (Text.unpack . ChanId.name) (Text.unpack . ChanId.name)
+
+showRuleMap :: (a -> String) -> (b -> String) -> Map.Map a b -> String
+showRuleMap f g ruleMap =
+    let rules = map (\(r1, r2) -> f r1 ++ " -> " ++ g r2) (Map.toList ruleMap) in
+      "{" ++ List.intercalate ", " rules ++ "}"
+-- showRuleMap
+
 doActOffer :: Map.Map ChanId.ChanId ChanId.ChanId -> TxsDefs.ActOffer -> TxsDefs.ActOffer
 doActOffer chanMap actOffer =
     actOffer { TxsDefs.offers = Set.map (doOffer chanMap) (TxsDefs.offers actOffer) }
 -- doActOffer
 
 doOffer :: Map.Map ChanId.ChanId ChanId.ChanId -> TxsDefs.Offer -> TxsDefs.Offer
-doOffer chanMap offer = 
-    offer { TxsDefs.chanid = chanMap Map.! TxsDefs.chanid offer }
+doOffer chanMap offer =
+    case chanMap Map.!? TxsDefs.chanid offer of
+      Just newChanId -> offer { TxsDefs.chanid = newChanId }
+      Nothing -> offer
 -- doOffer
 
