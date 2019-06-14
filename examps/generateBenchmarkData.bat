@@ -122,6 +122,7 @@ ren %BENCHDIR%%~1.txs %~3-original.txs
 :: move /y %~3-lpe-reduced.txs %BENCHDIR%
 :: call :DeleteCommands
 :: Create a file that instructs the benchmark on how to test the ORIGINAL model (because its model name may be different for each file)
+echo exit > %BENCHDIR%%~3-nothing-stepper.txscmd
 echo stepper %~2 > %BENCHDIR%%~3-original-stepper.txscmd
 echo step 20 >> %BENCHDIR%%~3-original-stepper.txscmd
 echo exit >> %BENCHDIR%%~3-original-stepper.txscmd

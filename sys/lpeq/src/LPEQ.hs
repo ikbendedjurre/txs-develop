@@ -36,6 +36,7 @@ import FlattenedChannels
 import PBranchInst
 import ProcDepTree
 import ProgramCounters
+--import LPEQLinearization
 
 -- Linearizes a model definition and (if successful) saves it to the current context.
 lpeq :: TxsDefs.ModelId -> TxsDefs.ModelDef -> String -> IOC.IOC (Either [String] (TxsDefs.ModelId, TxsDefs.ModelDef))
@@ -63,7 +64,8 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     msgsOrTree <- getProcDepTree bexpr6
     case msgsOrTree of
       Left msgs -> return (Left msgs)
-      Right _procInstTree -> do tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
+      Right _procInstTree -> do --linearize procInstTree
+                                tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
                                 newModelId <- getModelIdFromName (Text.pack ("LPEQ_" ++ outputModelName))
                                 let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr6
                                 let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs') }

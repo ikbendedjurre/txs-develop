@@ -13,10 +13,13 @@ cabal-version:          >=1.10
 
 library
   hs-source-dirs:       src
+                      , src/preparation
+                      , src/components
 
   exposed-modules:      LPEQ
 
-  other-modules:        ExclamToQuest
+  other-modules:        LPEQComp
+                      , ExclamToQuest
                       , VEnvElim
                       , Scopes
                       , ProcSearch
