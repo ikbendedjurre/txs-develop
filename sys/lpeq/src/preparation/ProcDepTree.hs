@@ -18,10 +18,13 @@ See LICENSE at root directory of this repository.
 
 module ProcDepTree (
 ProcDepTree(..),
-getProcDepTree
+getProcDepTree,
+getMaxDepthPerProc,
+getProcsOrderedByMaxDepth
 ) where
 
 import qualified Data.List as List
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad as Monad
@@ -188,4 +191,20 @@ getDependencies parentPid pbStack bexprs = do
     rs <- Monad.mapM (buildTree Uninitialized (parentPid:pbStack) Set.empty Set.empty) bexprs
     return (filter (Uninitialized /=) rs)
 -- getDependencies
+
+getMaxDepthPerProc :: ProcDepTree -> Map.Map ProcId.ProcId Int
+getMaxDepthPerProc tree = snd (dfs tree)
+  where
+    dfs :: ProcDepTree -> (Int, Map.Map ProcId.ProcId Int)
+    dfs (Branch ownerPid dependencies) = foldl f (0, Map.singleton ownerPid 0) dependencies
+    dfs _ = (0, Map.empty)
+    
+    f :: (Int, Map.Map ProcId.ProcId Int) -> ProcDepTree -> (Int, Map.Map ProcId.ProcId Int)
+    f soFar t = let (tdepth, tmap) = dfs t in (max (fst soFar) (tdepth + 1), Map.unionWith max (snd soFar) tmap)
+-- getMaxDepthPerProc
+
+getProcsOrderedByMaxDepth :: ProcDepTree -> [ProcId.ProcId]
+getProcsOrderedByMaxDepth tree = map fst (List.sortOn snd (Map.toList (getMaxDepthPerProc tree)))
+
+
 

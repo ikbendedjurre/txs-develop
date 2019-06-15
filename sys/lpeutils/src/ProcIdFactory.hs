@@ -22,7 +22,8 @@ createFreshProcIdWithDifferentVars,
 getProcById,
 getProcsByName,
 getMsgOrProcFromName,
-registerProc
+registerProc,
+unregisterProc
 ) where
 
 import qualified Control.Monad.State as MonadState
@@ -110,5 +111,13 @@ registerProc pid pdef = do
     let tdefs' = tdefs { TxsDefs.procDefs = Map.insert pid pdef (TxsDefs.procDefs tdefs) }
     IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
 -- registerProc
+
+unregisterProc :: TxsDefs.ProcId -> IOC.IOC ()
+unregisterProc pid = do
+    tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
+    let tdefs' = tdefs { TxsDefs.procDefs = Map.delete pid (TxsDefs.procDefs tdefs) }
+    IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
+-- unregisterProc
+
 
 

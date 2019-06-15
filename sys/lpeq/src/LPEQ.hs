@@ -35,7 +35,7 @@ import VEnvElim
 import FlattenedChannels
 import PBranchInst
 import ProcDepTree
-import ProgramCounters
+import SeqProgramCounters
 --import LPEQLinearization
 
 -- Linearizes a model definition and (if successful) saves it to the current context.
@@ -57,20 +57,17 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     -- 5. Flatten channels (so that channel-related part of process signature becomes redundant):
     bexpr5 <- flattenChannels allChanIds bexpr4
     
-    -- 6. Add program counters to the signatures of processes:
-    bexpr6 <- addProgramCounters bexpr5
-    
-    -- 7. Compute and validate the process dependency tree:
-    msgsOrTree <- getProcDepTree bexpr6
+    -- 6. Compute and validate the process dependency tree:
+    msgsOrTree <- getProcDepTree bexpr5
     case msgsOrTree of
       Left msgs -> return (Left msgs)
-      Right _procInstTree -> do --linearize procInstTree
-                                tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
-                                newModelId <- getModelIdFromName (Text.pack ("LPEQ_" ++ outputModelName))
-                                let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr6
-                                let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs') }
-                                IOC.modifyCS (\st -> st { IOC.tdefs = tdefs'' })
-                                return (Right (newModelId, newModelDef))
+      Right procInstTree -> do bexpr6 <- addSeqProgramCounters procInstTree bexpr5
+                               tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
+                               newModelId <- getModelIdFromName (Text.pack ("LPEQ_" ++ outputModelName))
+                               let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr6
+                               let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs') }
+                               IOC.modifyCS (\st -> st { IOC.tdefs = tdefs'' })
+                               return (Right (newModelId, newModelDef))
 -- lpeqModelDef
 
 
