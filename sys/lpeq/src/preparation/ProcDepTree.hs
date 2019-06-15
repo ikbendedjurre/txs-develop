@@ -196,7 +196,8 @@ getMaxDepthPerProc :: ProcDepTree -> Map.Map ProcId.ProcId Int
 getMaxDepthPerProc tree = snd (dfs tree)
   where
     dfs :: ProcDepTree -> (Int, Map.Map ProcId.ProcId Int)
-    dfs (Branch ownerPid dependencies) = foldl f (0, Map.singleton ownerPid 0) dependencies
+    dfs (Branch ownerPid []) = (0, Map.singleton ownerPid 0)
+    dfs (Branch ownerPid dependencies) = let (a, b) = foldl f (0, Map.empty) dependencies in (a + 1, Map.insert ownerPid (a + 1) b)
     dfs _ = (0, Map.empty)
     
     f :: (Int, Map.Map ProcId.ProcId Int) -> ProcDepTree -> (Int, Map.Map ProcId.ProcId Int)

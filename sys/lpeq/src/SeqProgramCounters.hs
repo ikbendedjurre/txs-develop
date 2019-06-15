@@ -23,8 +23,10 @@ addSeqProgramCounters
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
+import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ValExpr
@@ -51,6 +53,7 @@ addSeqProgramCounters procDepTree bexpr = do
 
 addSeqPCsToProc :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
 addSeqPCsToProc procInstUpdateMap pid = do
+    IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("addSeqPCsToProc " ++ (Text.unpack (ProcId.name pid))) ]
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
@@ -58,11 +61,11 @@ addSeqPCsToProc procInstUpdateMap pid = do
           extraVids <- getExtraVidDecls (Set.singleton pid) body
           let ownerVidDecls = seqPC:Set.toList extraVids
           newProcInstUpdate <- ProcInstUpdates.create pid vidDecls ownerVidDecls (Map.singleton seqPC (ValExpr.cstrConst (Constant.Cint 0)))
+          IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("update " ++ ProcInstUpdates.showItem newProcInstUpdate) ]
           let procInstUpdateMap' = Map.insert pid newProcInstUpdate procInstUpdateMap
-          (b, body', _, _) <- constructBExpr procInstUpdateMap' (fst newProcInstUpdate) cidDecls ownerVidDecls seqPC 0 (body, Set.empty, Map.singleton pid 0, 1)
-          let ownerBody = choice (Set.insert b body')
-          unregisterProc pid
-          registerProc (fst newProcInstUpdate) (ProcDef.ProcDef cidDecls ownerVidDecls ownerBody)
+          (_, body', _, _) <- constructBExpr procInstUpdateMap' (fst newProcInstUpdate) cidDecls ownerVidDecls seqPC 0 (body, Set.empty, Map.singleton pid 0, 1)
+          -- unregisterProc pid -- TODO Do this later
+          registerProc (fst newProcInstUpdate) (ProcDef.ProcDef cidDecls ownerVidDecls (choice body'))
           return procInstUpdateMap'
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
 -- addSeqPCsToProc
@@ -145,8 +148,8 @@ constructBExpr procInstUpdateMap ownerPid ownerCids ownerVidDecls seqPC seqPCVal
                          let ownerProcInst = procInst ownerPid ownerCids (map f ownerVidDecls)
                          return (ownerProcInst, bodySoFar, visitedProcs, nextSeqPC)
                      Nothing -> do
-                         (body', bodySoFar', visitedProcs', nextSeqPC') <- defaultConstructBExpr seqPCValue (body, bodySoFar, Map.insert pid seqPCValue visitedProcs, nextSeqPC)
-                         return (getOwnerProcInst seqPCValue, Set.insert body' bodySoFar', visitedProcs', nextSeqPC')
+                         (_, bodySoFar', visitedProcs', nextSeqPC') <- defaultConstructBExpr seqPCValue (body, bodySoFar, Map.insert pid seqPCValue visitedProcs, nextSeqPC)
+                         return (getOwnerProcInst seqPCValue, bodySoFar', visitedProcs', nextSeqPC')
                Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
       (TxsDefs.view -> Guard g bexpr) ->
           do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
