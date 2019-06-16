@@ -36,7 +36,8 @@ import FlattenedChannels
 import PBranchInst
 import ProcDepTree
 import SeqProgramCounters
---import LPEQLinearization
+import PrefixResolution
+import ProcSearch
 
 -- Linearizes a model definition and (if successful) saves it to the current context.
 lpeq :: TxsDefs.ModelId -> TxsDefs.ModelDef -> String -> IOC.IOC (Either [String] (TxsDefs.ModelId, TxsDefs.ModelDef))
@@ -58,16 +59,19 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     bexpr5 <- flattenChannels allChanIds bexpr4
     
     -- 6. Compute and validate the process dependency tree:
-    msgsOrTree <- getProcDepTree bexpr5
-    case msgsOrTree of
-      Left msgs -> return (Left msgs)
-      Right procInstTree -> do bexpr6 <- addSeqProgramCounters procInstTree bexpr5
-                               tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
-                               newModelId <- getModelIdFromName (Text.pack ("LPEQ_" ++ outputModelName))
-                               let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr6
-                               let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs') }
-                               IOC.modifyCS (\st -> st { IOC.tdefs = tdefs'' })
-                               return (Right (newModelId, newModelDef))
+    problems <- getProcDepTreeProblems bexpr5
+    if null problems
+    then do bexpr6 <- addSeqProgramCounters bexpr5
+            printProcsInBExpr bexpr6
+            bexpr7 <- resolvePrefixes bexpr6
+            printProcsInBExpr bexpr7
+            tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
+            newModelId <- getModelIdFromName (Text.pack ("LPEQ_" ++ outputModelName))
+            let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr7
+            let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs') }
+            IOC.modifyCS (\st -> st { IOC.tdefs = tdefs'' })
+            return (Right (newModelId, newModelDef))
+    else return (Left problems)
 -- lpeqModelDef
 
 

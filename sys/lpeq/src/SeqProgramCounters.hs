@@ -44,8 +44,9 @@ import qualified ProcInstUpdates
 
 import ProcDepTree
 
-addSeqProgramCounters :: ProcDepTree -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-addSeqProgramCounters procDepTree bexpr = do
+addSeqProgramCounters :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
+addSeqProgramCounters bexpr = do
+    procDepTree <- getProcDepTree bexpr
     let orderedProcs = getProcsOrderedByMaxDepth procDepTree
     procInstUpdateMap <- Monad.foldM addSeqPCsToProc Map.empty orderedProcs
     return (ProcInstUpdates.applyMap procInstUpdateMap bexpr)
@@ -119,6 +120,7 @@ type ConstructionState = ( TxsDefs.BExpr                   -- If input: Behavior
                          , Set.Set TxsDefs.BExpr           -- Contains the body so far of the process that is under construction.
                          , Map.Map ProcId.ProcId Integer   -- Contains initial value of the PC for visiting a particular process.
                          , Integer )                       -- Next available value for the PC.
+-- ConstructionState
 
 constructBExpr :: ProcInstUpdates.ProcInstUpdateMap    -- Contains information about how parallel processes on which we are dependent should be instantiated.
                -> ProcId.ProcId                        -- ID of the process to which we are adding a sequential PC.
@@ -161,12 +163,12 @@ constructBExpr procInstUpdateMap ownerPid ownerCids ownerVidDecls seqPC seqPCVal
              then return (getOwnerProcInst (seqPCValue + 1), bodySoFar, visitedProcs, seqPCValue + 2)
              else do let f = \(bs, bsf, vp, nspc) b -> do (b', bsf', vp', nspc') <- defaultConstructBExpr seqPCValue (b, bsf, vp, nspc)
                                                           return (Set.insert b' bs, bsf', vp', nspc')
-                     (bexprs', bodySoFar', visitedProcs', nextSeqPC') <- Monad.foldM f (Set.empty, bodySoFar, visitedProcs, nextSeqPC) (Set.toList bexprs)
-                     return (getOwnerProcInst seqPCValue, Set.union bexprs' bodySoFar', visitedProcs', nextSeqPC')
+                     (_bexprs', bodySoFar', visitedProcs', nextSeqPC') <- Monad.foldM f (Set.empty, bodySoFar, visitedProcs, nextSeqPC) (Set.toList bexprs)
+                     return (getOwnerProcInst seqPCValue, bodySoFar', visitedProcs', nextSeqPC')
       (TxsDefs.view -> Hide cidSet bexpr) ->
           do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
              (bexpr', bodySoFar', visitedProcs', nextSeqPC') <- defaultConstructBExpr (seqPCValue + 1) (bexpr, bodySoFar, visitedProcs, nextSeqPC)
-             let bexpr'' = guard g' (hide cidSet bexpr')
+             let bexpr'' = hide cidSet (guard g' bexpr')
              return (getOwnerProcInst (seqPCValue + 1), Set.insert bexpr'' bodySoFar', visitedProcs', nextSeqPC')
       (TxsDefs.view -> ActionPref actOffer bexpr) ->
           do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))

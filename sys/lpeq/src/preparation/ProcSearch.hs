@@ -17,14 +17,24 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 
 module ProcSearch (
-getProcsInBExpr
+getProcsInBExpr,
+printProcsInBExpr,
+showProcsInBExpr
 ) where
 
+import qualified Data.List as List
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
+import qualified EnvData
 import qualified TxsDefs
+import qualified TxsShow
+import qualified SortId
+import qualified ProcId
 import qualified ProcDef
+import qualified ChanId
+import qualified VarId
 import BehExprDefs
 import ProcIdFactory
 
@@ -69,5 +79,35 @@ searchBExprForProcs soFar currentBExpr = do
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- searchBExprForProcs
+
+printProcsInBExpr :: TxsDefs.BExpr -> IOC.IOC ()
+printProcsInBExpr startBExpr = do
+    strs <- showProcsInBExpr startBExpr
+    Monad.mapM_ (\m -> IOC.putMsgs [ EnvData.TXS_CORE_ANY m ]) strs
+-- printProcsInBExpr
+
+showProcsInBExpr :: TxsDefs.BExpr -> IOC.IOC [String]
+showProcsInBExpr startBExpr = do
+    procIds <- getProcsInBExpr startBExpr
+    strPerProc <- concat <$> Monad.mapM showProc (Set.toList procIds)
+    return (["START ::= " ++ TxsShow.fshow startBExpr] ++ strPerProc)
+  where
+    showProc :: ProcId.ProcId -> IOC.IOC [String]
+    showProc pid = do
+        r <- getProcById pid
+        case r of
+          Just (ProcDef.ProcDef cidDecls vidDecls body) -> return [ "PROCDEF " ++ showProcSig pid cidDecls vidDecls ++ " ::=", TxsShow.fshow body, "ENDDEF" ]
+          Nothing -> return [ "PROCDEF " ++ show pid ++ " ::=", "???", "ENDDEF" ]
+    -- doProc
+    
+    showProcSig :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> String
+    showProcSig pid cidDecls vidDecls =
+        let nameStr = Text.unpack (ProcId.name pid) in
+        let cidDeclsStr = "[" ++ List.intercalate "," (map (Text.unpack . ChanId.name) cidDecls) ++ "]" in
+        let vidDeclsStr = "(" ++ List.intercalate "; " (map (\v -> Text.unpack (VarId.name v) ++ " :: " ++ Text.unpack (SortId.name (VarId.varsort v))) vidDecls) ++ ")" in
+          nameStr ++ " " ++ cidDeclsStr ++ " " ++ vidDeclsStr
+    -- showProcSig
+-- showProcsInBExpr
+
 
 

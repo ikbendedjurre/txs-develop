@@ -18,6 +18,7 @@ See LICENSE at root directory of this repository.
 
 module ProcDepTree (
 ProcDepTree(..),
+getProcDepTreeProblems,
 getProcDepTree,
 getMaxDepthPerProc,
 getProcsOrderedByMaxDepth
@@ -29,14 +30,10 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
-import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ProcId
 import qualified ProcDef
-import qualified SortId
-import qualified ChanId
-import qualified VarId
 import BehExprDefs
 import ProcIdFactory
 
@@ -65,53 +62,28 @@ instance Show ProcDepTree where
     show = List.intercalate "\n" . showProcDepTree "" ""
 -- Show ProcDepTree
 
--- Builds the process dependency tree for a given behavioral expression.
--- Depends on PBranchInst having been applied first.
-getProcDepTree :: TxsDefs.BExpr -> IOC.IOC (Either [String] ProcDepTree)
-getProcDepTree startBExpr = do
-    tree <- buildTree Uninitialized [] Set.empty Set.empty startBExpr
+getProcDepTreeProblems :: TxsDefs.BExpr -> IOC.IOC [String]
+getProcDepTreeProblems startBExpr = do
+    tree <- getProcDepTree startBExpr
     let problems = getProblems tree
     if null problems
-    then do let treeStrs = ["Process dependency tree:"] ++ showProcDepTree "" "" tree
-            procStrs <- showProcs
-            Monad.mapM_ (\m -> IOC.putMsgs [ EnvData.TXS_CORE_ANY m ]) (treeStrs ++ procStrs)
-            -- return (Left (treeStrs ++ procStrs))
-            return (Right tree)
+    then return []
     else do let problemsStrs = ["Encountered problems while constructing process dependency tree:"] ++ map ("|-" ++) (List.init problems) ++ ["\\-" ++ List.last problems]
             let treeStrs = ["Process dependency tree:"] ++ showProcDepTree "" "" tree
-            procStrs <- showProcs
-            return (Left (problemsStrs ++ treeStrs ++ procStrs))
+            procStrs <- showProcsInBExpr startBExpr
+            return (problemsStrs ++ treeStrs ++ procStrs)
   where
-    showProcs :: IOC.IOC [String]
-    showProcs = do
-        procIds <- getProcsInBExpr startBExpr
-        strPerProc <- concat <$> Monad.mapM showProc (Set.toList procIds)
-        return (["START ::= " ++ TxsShow.fshow startBExpr] ++ strPerProc)
-    -- showProcs
-    
-    showProc :: ProcId.ProcId -> IOC.IOC [String]
-    showProc pid = do
-        r <- getProcById pid
-        case r of
-          -- Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> return [Text.unpack (ProcId.name pid) ++ " ::= " ++ TxsShow.fshow body ]
-          Just (ProcDef.ProcDef cidDecls vidDecls body) -> return ["PROCDEF " ++ showProcSig pid cidDecls vidDecls ++ " ::=", TxsShow.fshow body, "ENDDEF" ]
-          Nothing -> return [ show pid ++ " ::= ???" ]
-    -- doProc
-    
-    showProcSig :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> String
-    showProcSig pid cidDecls vidDecls =
-        let nameStr = Text.unpack (ProcId.name pid) in
-        let cidDeclsStr = "[" ++ List.intercalate "," (map (Text.unpack . ChanId.name) cidDecls) ++ "]" in
-        let vidDeclsStr = "(" ++ List.intercalate "; " (map (\v -> Text.unpack (VarId.name v) ++ " :: " ++ Text.unpack (SortId.name (VarId.varsort v))) vidDecls) ++ ")" in
-          nameStr ++ " " ++ cidDeclsStr ++ " " ++ vidDeclsStr
-    -- showProcSig
-    
     getProblems :: ProcDepTree -> [String]
     getProblems Uninitialized = ["Tree contains uninitialized branches!"]
     getProblems (Branch _ dependencies) = concatMap getProblems dependencies
     getProblems (Circular pid) = ["Circular dependency related to process " ++ Text.unpack (ProcId.name pid) ++ "!"]
     getProblems (InfiniteLoop pid) = ["Process calls to process " ++ Text.unpack (ProcId.name pid) ++ " that are not separated by any action!"]
 -- getProcDepTree
+
+-- Builds the process dependency tree for a given behavioral expression.
+-- Depends on PBranchInst having been applied first.
+getProcDepTree :: TxsDefs.BExpr -> IOC.IOC ProcDepTree
+getProcDepTree = buildTree Uninitialized [] Set.empty Set.empty
 
 buildTree :: ProcDepTree -> [ProcId.ProcId] -> Set.Set ProcId.ProcId -> Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC ProcDepTree
 buildTree tree@(Circular _) _ _ _ _ = error ("Should not be extending a circular tree (\"" ++ show tree ++ "\")!")
