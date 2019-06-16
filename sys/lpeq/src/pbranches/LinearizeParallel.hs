@@ -31,7 +31,7 @@ import BehExprDefs
 import PBranchUtils
 
 linearize :: PBranchLinearizer
-linearize _g (TxsDefs.view -> Parallel cidSet bexprs) = do
+linearize _pid _g (TxsDefs.view -> Parallel cidSet bexprs) = do
     return (parallel cidSet bexprs, Set.empty, [])
-linearize _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
+linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 

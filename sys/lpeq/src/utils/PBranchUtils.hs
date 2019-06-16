@@ -25,6 +25,7 @@ import qualified Data.Set as Set
 import qualified EnvCore as IOC
 import qualified TxsDefs
 import qualified TxsShow
+import qualified ProcId
 import qualified VarId
 import BehExprDefs
 
@@ -52,7 +53,7 @@ isPBranch currentBExpr =
     -- checkInnerExpr
 -- isPBranch
 
-type PBranchLinearizer = TxsDefs.VExpr -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, Set.Set TxsDefs.BExpr, [VarId.VarId])
+type PBranchLinearizer = ProcId.ProcId -> TxsDefs.VExpr -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, Set.Set TxsDefs.BExpr, [VarId.VarId])
 
 
 

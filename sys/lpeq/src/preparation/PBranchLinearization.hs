@@ -20,7 +20,6 @@ module PBranchLinearization (
 linearizePBranches
 ) where
 
--- import qualified Data.Either as Either
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
@@ -29,13 +28,10 @@ import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
--- import qualified ValExpr
 import qualified ProcId
--- import qualified Subst
 import qualified ProcDef
 -- import qualified ChanId
 import qualified VarId
--- import qualified Constant
 import BehExprDefs
 import ProcIdFactory
 import ProcDepTree
@@ -44,6 +40,9 @@ import qualified ProcInstUpdates
 import PBranchUtils
 
 import qualified LinearizeParallel
+-- import qualified LinearizeEnable
+-- import qualified LinearizeDisable
+-- import qualified LinearizeInterrupt
 
 linearizePBranches :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 linearizePBranches bexpr = do
@@ -60,8 +59,11 @@ linearizePBranchesInProc procInstUpdateMap pid = do
     case r of
       Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> do
           let pbranches = Set.filter isPBranch (getBranches body)
-          _rs <- Monad.mapM linearizePBranch (Set.toList pbranches)
-          resolveProcPrefixes pid
+          rs <- Monad.mapM (linearizePBranch pid) (Set.toList pbranches)
+          let _newBExprs = Set.unions (map fst rs)
+          let _newVids = concatMap snd rs
+          
+          -- resolveProcPrefixes pid
           return procInstUpdateMap
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
   where
@@ -70,17 +72,29 @@ linearizePBranchesInProc procInstUpdateMap pid = do
     getBranches bexpr = Set.singleton bexpr
 -- linearizePBranchesInProc
 
-linearizePBranch :: TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
-linearizePBranch currentBExpr =
+linearizePBranch :: ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
+linearizePBranch pid currentBExpr =
+    case currentBExpr of
+      (TxsDefs.view -> Hide cidSet bexpr) -> do (bexprs, vids) <- linearizeNonHidePBranch pid bexpr
+                                                return (Set.map (hide cidSet) bexprs, vids)
+      _ -> linearizeNonHidePBranch pid currentBExpr
+-- linearizePBranch
+
+linearizeNonHidePBranch :: ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
+linearizeNonHidePBranch pid currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> Guard g bexpr) -> do
           (b, bs, vids) <- case bexpr of
-                             (TxsDefs.view -> Parallel {}) -> LinearizeParallel.linearize g bexpr
-                             -- (TxsDefs.view -> Enable {}) ->
-                             -- (TxsDefs.view -> Disable {}) ->
-                             -- (TxsDefs.view -> Interrupt {}) ->
+                             (TxsDefs.view -> Parallel {}) -> LinearizeParallel.linearize pid g bexpr
+                             -- (TxsDefs.view -> Enable {}) -> LinearizeEnable.linearize pid g bexpr
+                             -- (TxsDefs.view -> Disable {}) -> LinearizeDisable.linearize pid g bexpr
+                             -- (TxsDefs.view -> Interrupt {}) -> LinearizeInterrupt.linearize pid g bexpr
                              _ -> error ("No implementation yet for \"" ++ show currentBExpr ++ "\"!")
           return (Set.insert b bs, vids)
       _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
--- linearizePBranch
+-- linearizeNonHidePBranch
+
+
+
+
 
