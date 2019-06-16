@@ -17,7 +17,8 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 
 module PrefixResolution (
-resolvePrefixes
+resolvePrefixes,
+resolveProcPrefixes
 ) where
 
 import qualified Data.Either as Either

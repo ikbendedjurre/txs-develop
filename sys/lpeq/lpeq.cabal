@@ -13,14 +13,13 @@ cabal-version:          >=1.10
 
 library
   hs-source-dirs:       src
+                      , src/pbranches
                       , src/preparation
-                      , src/components
                       , src/utils
 
   exposed-modules:      LPEQ
 
-  other-modules:        LPEQComp
-                      , ExclamToQuest
+  other-modules:        ExclamToQuest
                       , VEnvElim
                       , Scopes
                       , ProcSearch
@@ -31,6 +30,9 @@ library
                       , ProcInstUpdates
                       , SeqProgramCounters
                       , PrefixResolution
+                      , PBranchUtils
+                      , PBranchLinearization
+                      , LinearizeParallel
 
   ghc-options:        -Werror -Wall -O2 -optc-O3 -optc-ffast-math
 

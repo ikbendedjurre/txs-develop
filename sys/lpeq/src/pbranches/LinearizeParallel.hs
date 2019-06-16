@@ -6,7 +6,7 @@ See LICENSE at root directory of this repository.
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  LPEQComp
+-- Module      :  LinearizeParallel
 -- Copyright   :  TNO and University of Twente
 -- License     :  BSD3
 -- Maintainer  :  djurrevanderwal@gmail.com
@@ -14,23 +14,24 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
-module LPEQComp (
-LPEQChild(..),
-LPEQCompFunc
+{-# LANGUAGE ViewPatterns        #-}
+
+module LinearizeParallel (
+linearize
 ) where
 
 import qualified Data.Set as Set
-import qualified EnvCore as IOC
-import qualified VarId
+-- import qualified EnvCore as IOC
 import qualified TxsDefs
+import qualified TxsShow
+-- import qualified ProcId
+-- import qualified ProcDef
+import BehExprDefs
 
-data LPEQChild = LPEQChild { childPC :: VarId.VarId
-                           , childVars :: Set.Set VarId.VarId
-                           , childBody :: TxsDefs.BExpr
-                           }
--- LPEQChild
+import PBranchUtils
 
-type LPEQCompFunc = TxsDefs.BExpr -> [LPEQChild] -> IOC.IOC LPEQChild
-
-
+linearize :: PBranchLinearizer
+linearize _g (TxsDefs.view -> Parallel cidSet bexprs) = do
+    return (parallel cidSet bexprs, Set.empty, [])
+linearize _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 

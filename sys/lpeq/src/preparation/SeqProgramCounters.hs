@@ -160,7 +160,7 @@ constructBExpr procInstUpdateMap ownerPid ownerCids ownerVidDecls seqPC seqPCVal
              return (getOwnerProcInst (seqPCValue + 1), Set.insert bexpr'' bodySoFar', visitedProcs', nextSeqPC')
       (TxsDefs.view -> Choice bexprs) ->
           do if Set.null bexprs
-             then return (getOwnerProcInst (seqPCValue + 1), bodySoFar, visitedProcs, seqPCValue + 2)
+             then return (getOwnerProcInst (-1), bodySoFar, visitedProcs, seqPCValue)
              else do let f = \(bs, bsf, vp, nspc) b -> do (b', bsf', vp', nspc') <- defaultConstructBExpr seqPCValue (b, bsf, vp, nspc)
                                                           return (Set.insert b' bs, bsf', vp', nspc')
                      (_bexprs', bodySoFar', visitedProcs', nextSeqPC') <- Monad.foldM f (Set.empty, bodySoFar, visitedProcs, nextSeqPC) (Set.toList bexprs)
