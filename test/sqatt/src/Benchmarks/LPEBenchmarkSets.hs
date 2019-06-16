@@ -44,8 +44,16 @@ benchDir = "LPE"
 -- -- lpeBenchmarkSet
 
 lpeBenchmarkSet :: String -> TxsExampleSet
-lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ example1, example2, example3, example4 ]
+lpeBenchmarkSet coreName = TxsExampleSet (fromString ("LPE" ++ coreName)) [ example0, example1, example2, example3, example4 ]
   where
+    example0 :: TxsExample
+    example0 = emptyExample
+        { exampleName = coreName ++ " (nothing)"
+        , txsModelFiles = [ txsFilePath BenchTest benchDir (Text.pack (coreName ++ "-original")) ]
+        , txsCmdsFiles = [ txsCmdPath BenchTest benchDir (Text.pack (coreName ++ "-nothing-stepper")) ]
+        , expectedResult = Message (Text.pack "")
+        }
+    
     example1 :: TxsExample
     example1 = emptyExample
         { exampleName = coreName ++ " (stepper on model)"

@@ -15,6 +15,7 @@ library
   hs-source-dirs:       src
                       , src/preparation
                       , src/components
+                      , src/utils
 
   exposed-modules:      LPEQ
 
