@@ -40,7 +40,7 @@ import VarFactory
 import ActOfferFactory
 import BranchUtils
 
-type PBranchLinearizer = ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> TxsDefs.VExpr -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, Set.Set TxsDefs.BExpr, [VarId.VarId])
+type PBranchLinearizer = ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> TxsDefs.VExpr -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
 
 isPBranch :: TxsDefs.BExpr -> Bool
 isPBranch currentBExpr =

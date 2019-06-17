@@ -28,6 +28,7 @@ import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
+import qualified ValExpr
 import qualified ProcId
 import qualified ProcDef
 -- import qualified ChanId
@@ -39,6 +40,8 @@ import ProcDepTree
 import qualified ProcInstUpdates
 import BranchUtils
 import PBranchUtils
+
+import ProcSearch
 
 import qualified LinearizeParallel
 -- import qualified LinearizeEnable
@@ -62,7 +65,8 @@ linearizePBranchesInProc procInstUpdateMap pid = do
           let createProcInst = procInst pid cidDecls
           
           -- Distinguish branches in the body that are finished from branches with parallel structures:
-          let branches = getBranches body
+          let tm = Map.insert pid (ProcInstUpdates.createIdentical pid) procInstUpdateMap
+          let branches = getBranches (ProcInstUpdates.applyMapToBExpr tm body)
           let (pbranches, npbranches) = Set.partition isPBranch branches
           
           -- Linearize branches with parallel structures:
@@ -77,6 +81,10 @@ linearizePBranchesInProc procInstUpdateMap pid = do
           let newProcInstUpdateMap' = Map.insert pid newProcInstUpdate procInstUpdateMap
           let npbranches' = Set.map (ProcInstUpdates.applyMapToBExpr newProcInstUpdateMap') npbranches
           
+          let bla = choice (Set.union npbranches' newPBranches)
+          registerProc (fst newProcInstUpdate) (ProcDef.ProcDef cidDecls newVidDecls bla)
+          printProcsInBExpr (procInst (fst newProcInstUpdate) cidDecls (map ValExpr.cstrVar newVidDecls))
+          
           -- Replace process instantiations in branches that were just linearized.
           -- (Currently, they probably are incorrect because they only set newly introduced variables.)
           tempUpdate <- ProcInstUpdates.create (fst newProcInstUpdate) newVids newVidDecls Map.empty
@@ -86,6 +94,8 @@ linearizePBranchesInProc procInstUpdateMap pid = do
           -- Register the process with a new body.
           let body' = choice (Set.union npbranches' newPBranches')
           registerProc (fst newProcInstUpdate) (ProcDef.ProcDef cidDecls newVidDecls body')
+          
+          printProcsInBExpr (procInst (fst newProcInstUpdate) cidDecls (map ValExpr.cstrVar newVidDecls))
           
           -- resolveProcPrefixes pid
           return newProcInstUpdateMap'
@@ -104,13 +114,12 @@ linearizeNonHidePBranch :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> TxsDefs.BExpr -
 linearizeNonHidePBranch createProcInst currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> Guard g bexpr) -> do
-          (b, bs, vids) <- case bexpr of
-                             (TxsDefs.view -> Parallel {}) -> LinearizeParallel.linearize createProcInst g bexpr
-                             -- (TxsDefs.view -> Enable {}) -> LinearizeEnable.linearize pid g bexpr
-                             -- (TxsDefs.view -> Disable {}) -> LinearizeDisable.linearize pid g bexpr
-                             -- (TxsDefs.view -> Interrupt {}) -> LinearizeInterrupt.linearize pid g bexpr
-                             _ -> error ("No implementation yet for \"" ++ show currentBExpr ++ "\"!")
-          return (Set.insert b bs, vids)
+          case bexpr of
+            (TxsDefs.view -> Parallel {}) -> LinearizeParallel.linearize createProcInst g bexpr
+            -- (TxsDefs.view -> Enable {}) -> LinearizeEnable.linearize pid g bexpr
+            -- (TxsDefs.view -> Disable {}) -> LinearizeDisable.linearize pid g bexpr
+            -- (TxsDefs.view -> Interrupt {}) -> LinearizeInterrupt.linearize pid g bexpr
+            _ -> error ("No implementation yet for \"" ++ show currentBExpr ++ "\"!")
       _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 -- linearizeNonHidePBranch
 

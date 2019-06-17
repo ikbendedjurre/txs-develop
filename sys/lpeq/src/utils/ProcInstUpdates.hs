@@ -21,6 +21,7 @@ ProcInstUpdate,
 ProcInstUpdateMap,
 create,
 createWithFreshPid,
+createIdentical,
 showItem,
 showMap,
 apply,
@@ -82,6 +83,9 @@ createWithFreshPid oldPid oldVars newVars predefInits = do
     create newPid oldVars newVars predefInits
 -- createWithFreshPid
 
+createIdentical :: ProcId.ProcId -> ProcInstUpdate
+createIdentical pid = (pid, map Left [0..length (ProcId.procvars pid) - 1])
+
 apply :: ProcInstUpdate -> [ChanId.ChanId] -> [TxsDefs.VExpr] -> TxsDefs.BExpr
 apply (newPid, paramUpdates) cids vexprs = procInst newPid cids (map f paramUpdates)
   where
@@ -94,7 +98,7 @@ applyMapToProcInst :: ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> TxsD
 applyMapToProcInst procInstUpdateMap (TxsDefs.view -> ProcInst pid cids vexprs) =
     case procInstUpdateMap Map.!? pid of
       Just procInstUpdate -> apply procInstUpdate cids vexprs
-      Nothing -> error ("Process not found in map (\"" ++ show pid ++ "\"; map = " ++ show procInstUpdateMap ++ ")!")
+      Nothing -> error ("Process not found in map (\"" ++ show pid ++ "\"; map = " ++ showMap procInstUpdateMap ++ ")!")
 applyMapToProcInst _procInstUpdateMap currentBExpr = error ("Process instantiation expected, but found (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
 applyMapToBExpr :: ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> TxsDefs.BExpr

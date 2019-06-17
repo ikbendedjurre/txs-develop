@@ -65,7 +65,7 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans bexprs) =
     let info = (createProcInst, newVidDecls, g, synchronizedChans)
     syncedBranches <- synchronizeBExprCombinations info syncedBranchesPerBExpr
     let unsyncedBranches = Set.unions unsyncedBranchesPerBExpr
-    return (parallel synchronizedChans bexprs, Set.union syncedBranches unsyncedBranches, newVidDecls)
+    return (Set.union syncedBranches unsyncedBranches, newVidDecls)
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
 synchronizeBExprCombinations :: Info -> [Set.Set TxsDefs.BExpr] -> IOC.IOC (Set.Set TxsDefs.BExpr)
