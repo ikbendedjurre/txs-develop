@@ -1,0 +1,77 @@
+{-
+TorXakis - Model Based Testing
+Copyright (c) 2015-2017 TNO and University of Twente
+See LICENSE at root directory of this repository.
+-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  ActOfferFactory
+-- Copyright   :  TNO and University of Twente
+-- License     :  BSD3
+-- Maintainer  :  djurrevanderwal@gmail.com
+-- Stability   :  experimental
+--
+-----------------------------------------------------------------------------
+
+module ActOfferFactory (
+replaceVarsInActOffer,
+replaceVarsInOffer,
+replaceVarsInChanOffer,
+getOfferVarsPerChan,
+getActOfferVars,
+getOfferVars,
+getChanOfferVar,
+getActOfferChans,
+mergeActOffers
+) where
+
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified TxsDefs
+import qualified ValExpr
+import qualified ChanId
+import qualified VarId
+import qualified Subst
+
+replaceVarsInActOffer :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.ActOffer -> TxsDefs.ActOffer
+replaceVarsInActOffer subst actOffer =
+    let valSubst = Subst.subst (Map.map ValExpr.cstrVar subst) Map.empty in
+      TxsDefs.ActOffer { TxsDefs.offers = Set.map (replaceVarsInOffer subst) (TxsDefs.offers actOffer)
+                       , TxsDefs.hiddenvars = Set.map (subst Map.!) (TxsDefs.hiddenvars actOffer)
+                       , TxsDefs.constraint = valSubst (TxsDefs.constraint actOffer)
+                       }
+-- replaceVarsInActOffer
+
+replaceVarsInOffer :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.Offer -> TxsDefs.Offer
+replaceVarsInOffer subst offer = offer { TxsDefs.chanoffers = map (replaceVarsInChanOffer subst) (TxsDefs.chanoffers offer) }
+
+replaceVarsInChanOffer :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.ChanOffer -> TxsDefs.ChanOffer
+replaceVarsInChanOffer subst (TxsDefs.Quest v) = TxsDefs.Quest (subst Map.! v)
+replaceVarsInChanOffer _ chanOffer = error ("ChanOffer should not contain an Exclam (\"" ++ show chanOffer ++ "\")!")
+
+getOfferVarsPerChan :: TxsDefs.ActOffer -> Map.Map ChanId.ChanId [VarId.VarId]
+getOfferVarsPerChan actOffer = Map.fromList (map (\o -> (TxsDefs.chanid o, getOfferVars o)) (Set.toList (TxsDefs.offers actOffer)))
+
+getActOfferVars :: TxsDefs.ActOffer -> (Set.Set VarId.VarId, Set.Set VarId.VarId)
+getActOfferVars actOffer = (Set.fromList (concatMap getOfferVars (TxsDefs.offers actOffer)), TxsDefs.hiddenvars actOffer)
+
+getOfferVars :: TxsDefs.Offer -> [VarId.VarId]
+getOfferVars offer = map getChanOfferVar (TxsDefs.chanoffers offer)
+
+getChanOfferVar :: TxsDefs.ChanOffer -> VarId.VarId
+getChanOfferVar (TxsDefs.Quest v) = v
+getChanOfferVar chanOffer = error ("ChanOffer should not contain an Exclam (\"" ++ show chanOffer ++ "\")!")
+
+getActOfferChans :: TxsDefs.ActOffer -> Set.Set ChanId.ChanId
+getActOfferChans actOffer = Set.map TxsDefs.chanid (TxsDefs.offers actOffer)
+
+mergeActOffers :: TxsDefs.ActOffer -> TxsDefs.ActOffer -> TxsDefs.ActOffer
+mergeActOffers actOffer1 actOffer2 =
+    TxsDefs.ActOffer { TxsDefs.offers = Set.union (TxsDefs.offers actOffer1) (TxsDefs.offers actOffer2)
+                     , TxsDefs.hiddenvars = Set.union (TxsDefs.hiddenvars actOffer1) (TxsDefs.hiddenvars actOffer2)
+                     , TxsDefs.constraint = ValExpr.cstrAnd (Set.fromList [TxsDefs.constraint actOffer1, TxsDefs.constraint actOffer2])
+                     }
+-- mergeActOffers
+
+

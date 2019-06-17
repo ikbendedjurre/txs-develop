@@ -41,6 +41,7 @@ import BehExprDefs
 import ProcIdFactory
 import UntilFixedPoint
 import ProcDepTree
+import BranchUtils
 
 resolvePrefixes :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 resolvePrefixes bexpr = do
@@ -110,23 +111,8 @@ combineChoices pid _ [] _ _ = error ("Process without program counter found (\""
 combineChoices pid cidDecls (seqPC:vidDecls) wrongChoice otherChoice =
     let (wcBExpr, wcHiddenChanSet) = removeHide wrongChoice in
     let (ocBExpr, ocHiddenChanSet) = removeHide otherChoice in
-      applyHide (Set.union wcHiddenChanSet ocHiddenChanSet) (combineNonHideChoices wcBExpr ocBExpr)
+      applyHideToEither (Set.union wcHiddenChanSet ocHiddenChanSet) (combineNonHideChoices wcBExpr ocBExpr)
   where
-    removeHide :: TxsDefs.BExpr -> (TxsDefs.BExpr, Set.Set ChanId.ChanId)
-    removeHide (TxsDefs.view -> Hide cidSet bexpr) = (bexpr, cidSet)
-    removeHide bexpr = (bexpr, Set.empty)
-    
-    applyHide :: Set.Set ChanId.ChanId -> Either TxsDefs.BExpr TxsDefs.BExpr -> Either TxsDefs.BExpr TxsDefs.BExpr
-    applyHide hiddenChanSet (Left bexpr) =
-        if Set.null hiddenChanSet
-        then Left bexpr
-        else Left (hide hiddenChanSet bexpr)
-    applyHide hiddenChanSet (Right bexpr) =
-        if Set.null hiddenChanSet
-        then Right bexpr
-        else Right (hide hiddenChanSet bexpr)
-    -- applyHide
-    
     combineNonHideChoices :: TxsDefs.BExpr -> TxsDefs.BExpr -> Either TxsDefs.BExpr TxsDefs.BExpr
     combineNonHideChoices wcBExpr ocBExpr =
         case wcBExpr of

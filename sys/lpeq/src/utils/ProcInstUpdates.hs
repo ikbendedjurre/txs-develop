@@ -20,14 +20,17 @@ module ProcInstUpdates (
 ProcInstUpdate,
 ProcInstUpdateMap,
 create,
-apply,
-applyMap,
+createWithFreshPid,
 showItem,
-showMap
+showMap,
+apply,
+applyMapToProcInst,
+applyMapToBExpr
 ) where
 
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
@@ -60,10 +63,9 @@ showMap m = List.intercalate "\n" (map showEntry (Map.toList m))
 -- showMap
 
 create :: ProcId.ProcId -> [VarId.VarId] -> [VarId.VarId] -> Map.Map VarId.VarId TxsDefs.VExpr -> IOC.IOC ProcInstUpdate
-create pid oldVars newVars predefInits = do
+create newPid oldVars newVars predefInits = do
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
-    pid' <- createFreshProcIdWithDifferentVars pid (map SortOf.sortOf newVars)
-    return (pid', map (f tdefs) newVars)
+    return (newPid, map (f tdefs) newVars)
   where
     f :: TxsDefs.TxsDefs -> VarId.VarId -> Either Int TxsDefs.VExpr
     f tdefs vid =
@@ -74,22 +76,54 @@ create pid oldVars newVars predefInits = do
                        Nothing -> Right (sort2defaultValue tdefs (SortOf.sortOf vid))
 -- create
 
+createWithFreshPid :: ProcId.ProcId -> [VarId.VarId] -> [VarId.VarId] -> Map.Map VarId.VarId TxsDefs.VExpr -> IOC.IOC ProcInstUpdate
+createWithFreshPid oldPid oldVars newVars predefInits = do
+    newPid <- createFreshProcIdWithDifferentVars oldPid (map SortOf.sortOf newVars)
+    create newPid oldVars newVars predefInits
+-- createWithFreshPid
+
 apply :: ProcInstUpdate -> [ChanId.ChanId] -> [TxsDefs.VExpr] -> TxsDefs.BExpr
-apply (pid', paramUpdates) cids vexprs = procInst pid' cids (map f paramUpdates)
+apply (newPid, paramUpdates) cids vexprs = procInst newPid cids (map f paramUpdates)
   where
     f :: Either Int TxsDefs.VExpr -> TxsDefs.VExpr
     f (Left i) = vexprs !! i
     f (Right v) = v
 -- apply
 
-applyMap :: ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> TxsDefs.BExpr
-applyMap procInstUpdateMap (TxsDefs.view -> ProcInst pid cids vexprs) =
+applyMapToProcInst :: ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> TxsDefs.BExpr
+applyMapToProcInst procInstUpdateMap (TxsDefs.view -> ProcInst pid cids vexprs) =
     case procInstUpdateMap Map.!? pid of
       Just procInstUpdate -> apply procInstUpdate cids vexprs
-      Nothing -> error ("Process should have sequential PCs by now (\"" ++ show pid ++ "\"; map = " ++ show procInstUpdateMap ++ ")!")
-applyMap _procInstUpdateMap currentBExpr = error ("Process instantiation expected, but found (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+      Nothing -> error ("Process not found in map (\"" ++ show pid ++ "\"; map = " ++ show procInstUpdateMap ++ ")!")
+applyMapToProcInst _procInstUpdateMap currentBExpr = error ("Process instantiation expected, but found (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
-
+applyMapToBExpr :: ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> TxsDefs.BExpr
+applyMapToBExpr procInstUpdateMap currentBExpr =
+    case currentBExpr of
+      (TxsDefs.view -> ProcInst {}) ->
+          applyMapToProcInst procInstUpdateMap currentBExpr
+      (TxsDefs.view -> Guard g bexpr) ->
+          guard g (applyMapToBExpr procInstUpdateMap bexpr)
+      (TxsDefs.view -> Choice bexprs) ->
+          choice (Set.map (applyMapToBExpr procInstUpdateMap) bexprs)
+      (TxsDefs.view -> Parallel cidSet bexprs) ->
+          parallel cidSet (map (applyMapToBExpr procInstUpdateMap) bexprs)
+      (TxsDefs.view -> Hide cidSet bexpr) ->
+          hide cidSet (applyMapToBExpr procInstUpdateMap bexpr)
+      (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
+          enable (applyMapToBExpr procInstUpdateMap bexpr1) acceptOffers (applyMapToBExpr procInstUpdateMap bexpr2)
+      (TxsDefs.view -> Disable bexpr1 bexpr2) ->
+          disable (applyMapToBExpr procInstUpdateMap bexpr1) (applyMapToBExpr procInstUpdateMap bexpr2)
+      (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
+          interrupt (applyMapToBExpr procInstUpdateMap bexpr1) (applyMapToBExpr procInstUpdateMap bexpr2)
+      (TxsDefs.view -> ActionPref actOffer bexpr) ->
+          actionPref actOffer (applyMapToBExpr procInstUpdateMap bexpr)
+      (TxsDefs.view -> ValueEnv _venv _bexpr) ->
+          error ("ValueEnv should have been eliminated by now (\"" ++ show currentBExpr ++ "\")!")
+      (TxsDefs.view -> StAut _sid _venv _transitions) ->
+          error ("StAut should have been eliminated by now (\"" ++ show currentBExpr ++ "\")!")
+      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
+-- applyMapToBExpr
 
 
 

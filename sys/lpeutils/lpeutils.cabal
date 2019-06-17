@@ -26,6 +26,7 @@ library
                       , UntilFixedPoint
                       , SetUnions
                       , SortFactory
+                      , ActOfferFactory
 
   other-modules:      
 

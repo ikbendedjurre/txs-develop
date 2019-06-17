@@ -49,7 +49,7 @@ addSeqProgramCounters bexpr = do
     procDepTree <- getProcDepTree bexpr
     let orderedProcs = getProcsOrderedByMaxDepth procDepTree
     procInstUpdateMap <- Monad.foldM addSeqPCsToProc Map.empty orderedProcs
-    return (ProcInstUpdates.applyMap procInstUpdateMap bexpr)
+    return (ProcInstUpdates.applyMapToProcInst procInstUpdateMap bexpr)
 -- addSeqProgramCounters
 
 addSeqPCsToProc :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
@@ -61,7 +61,7 @@ addSeqPCsToProc procInstUpdateMap pid = do
           seqPC <- createFreshIntVarFromPrefix "SeqPC"
           extraVids <- getExtraVidDecls (Set.singleton pid) body
           let ownerVidDecls = seqPC:Set.toList extraVids
-          newProcInstUpdate <- ProcInstUpdates.create pid vidDecls ownerVidDecls (Map.singleton seqPC (ValExpr.cstrConst (Constant.Cint 0)))
+          newProcInstUpdate <- ProcInstUpdates.createWithFreshPid pid vidDecls ownerVidDecls (Map.singleton seqPC (ValExpr.cstrConst (Constant.Cint 0)))
           IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("update " ++ ProcInstUpdates.showItem newProcInstUpdate) ]
           let procInstUpdateMap' = Map.insert pid newProcInstUpdate procInstUpdateMap
           (_, body', _, _) <- constructBExpr procInstUpdateMap' (fst newProcInstUpdate) cidDecls ownerVidDecls seqPC 0 (body, Set.empty, Map.singleton pid 0, 1)
@@ -204,5 +204,5 @@ constructBExpr procInstUpdateMap ownerPid ownerCids ownerVidDecls seqPC seqPCVal
 -- constructBExpr
 
 rewriteProcInsts :: ProcInstUpdates.ProcInstUpdateMap -> [TxsDefs.BExpr] -> [TxsDefs.BExpr]
-rewriteProcInsts procInstUpdateMap bexprs = map (ProcInstUpdates.applyMap procInstUpdateMap) bexprs
+rewriteProcInsts procInstUpdateMap bexprs = map (ProcInstUpdates.applyMapToProcInst procInstUpdateMap) bexprs
 
