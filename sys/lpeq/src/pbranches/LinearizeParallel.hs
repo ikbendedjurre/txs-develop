@@ -37,8 +37,15 @@ import BehExprDefs
 import BranchUtils
 import PBranchUtils
 
+type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be used to recursively instantiate the parent process.
+            , [VarId.VarId]                       -- Extra variables that the parent process will have to declare (in order).
+            , TxsDefs.VExpr                       -- Guard.
+            , Set.Set ChanId.ChanId               -- Channels that are synchronized.
+            )
+-- Info
+
 linearize :: PBranchLinearizer
-linearize createProcInst _g (TxsDefs.view -> Parallel synchronizedChans bexprs) = do
+linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans bexprs) = do
     -- We require that all occurring variables are unique!
     Monad.mapM_ ensureFreshVarsInProcInst bexprs
     
@@ -55,27 +62,28 @@ linearize createProcInst _g (TxsDefs.view -> Parallel synchronizedChans bexprs) 
     let syncedBranchesPerBExpr = map (Set.filter (\b -> Set.member (getBranchChans b) syncedCidSets)) branchesPerBExpr
     let unsyncedBranchesPerBExpr = map (Set.filter (\b -> Set.member (getBranchChans b) unsyncedCidSets)) branchesPerBExpr
     
-    syncedBranches <- synchronizeBExprCombinations createProcInst newVidDecls synchronizedChans syncedBranchesPerBExpr
+    let info = (createProcInst, newVidDecls, g, synchronizedChans)
+    syncedBranches <- synchronizeBExprCombinations info syncedBranchesPerBExpr
     let unsyncedBranches = Set.unions unsyncedBranchesPerBExpr
     return (parallel synchronizedChans bexprs, Set.union syncedBranches unsyncedBranches, newVidDecls)
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
-synchronizeBExprCombinations :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> [VarId.VarId] -> Set.Set ChanId.ChanId -> [Set.Set TxsDefs.BExpr] -> IOC.IOC (Set.Set TxsDefs.BExpr)
-synchronizeBExprCombinations _ _ _ [] = return Set.empty
-synchronizeBExprCombinations createProcInst newVidDecls synchronizedChans (x:xs) = do
-    syncedBExprs <- synchronizeBExprs createProcInst newVidDecls synchronizedChans x (Set.unions xs)
-    rest <- synchronizeBExprCombinations createProcInst newVidDecls synchronizedChans xs
+synchronizeBExprCombinations :: Info -> [Set.Set TxsDefs.BExpr] -> IOC.IOC (Set.Set TxsDefs.BExpr)
+synchronizeBExprCombinations _ [] = return Set.empty
+synchronizeBExprCombinations info (x:xs) = do
+    syncedBExprs <- synchronizeBExprs info x (Set.unions xs)
+    rest <- synchronizeBExprCombinations info xs
     return (Set.union syncedBExprs rest)
 -- synchronizeBExprCombinations
 
-synchronizeBExprs :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> [VarId.VarId] -> Set.Set ChanId.ChanId -> Set.Set TxsDefs.BExpr -> Set.Set TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr)
-synchronizeBExprs createProcInst newVidDecls synchronizedChans xs ys = do
+synchronizeBExprs :: Info -> Set.Set TxsDefs.BExpr -> Set.Set TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr)
+synchronizeBExprs info xs ys = do
     let combinations = [ (x, y) | x <- Set.toList xs, y <- Set.toList ys ]
-    Set.fromList <$> Monad.mapM (synchronizeBranches createProcInst newVidDecls synchronizedChans) combinations
+    Set.fromList <$> Monad.mapM (synchronizeBranches info) combinations
 -- synchronizeBExprs
 
-synchronizeBranches :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> [VarId.VarId] -> Set.Set ChanId.ChanId -> (TxsDefs.BExpr, TxsDefs.BExpr) -> IOC.IOC TxsDefs.BExpr
-synchronizeBranches createProcInst newVidDecls synchronizedChans (bexpr1, bexpr2) = do
+synchronizeBranches :: Info -> (TxsDefs.BExpr, TxsDefs.BExpr) -> IOC.IOC TxsDefs.BExpr
+synchronizeBranches (createProcInst, newVidDecls, g, synchronizedChans) (bexpr1, bexpr2) = do
     let (hiddenChans1, actOffer1, procInst1) = getBranchSegments bexpr1
     let (hiddenChans2, actOffer2, procInst2) = getBranchSegments bexpr2
     
@@ -106,7 +114,7 @@ synchronizeBranches createProcInst newVidDecls synchronizedChans (bexpr1, bexpr2
     -- (We rely on the fact that Map.union is left-biased:)
     let vidMap = Map.union (Map.union paramEqs1 paramEqs2) vidIdMap
     
-    let newActOffer = mergeActOffers actOffer1' actOffer2'
+    let newActOffer = addActOfferConjunct (mergeActOffers actOffer1' actOffer2') g
     let newProcInst = createProcInst (map (vidMap Map.!) newVidDecls)
     let bexpr = actionPref newActOffer newProcInst
     return (applyHide (Set.union hiddenChans1 hiddenChans2) bexpr)

@@ -23,7 +23,8 @@ getActOfferVars,
 getOfferVars,
 getChanOfferVar,
 getActOfferChans,
-mergeActOffers
+mergeActOffers,
+addActOfferConjunct
 ) where
 
 import qualified Data.Map as Map
@@ -73,5 +74,10 @@ mergeActOffers actOffer1 actOffer2 =
                      , TxsDefs.constraint = ValExpr.cstrAnd (Set.fromList [TxsDefs.constraint actOffer1, TxsDefs.constraint actOffer2])
                      }
 -- mergeActOffers
+
+addActOfferConjunct :: TxsDefs.ActOffer -> TxsDefs.VExpr -> TxsDefs.ActOffer
+addActOfferConjunct actOffer conjunct = actOffer { TxsDefs.constraint = ValExpr.cstrAnd (Set.fromList [conjunct, TxsDefs.constraint actOffer]) }
+
+
 
 
