@@ -22,6 +22,7 @@ ProcInstUpdateMap,
 create,
 createWithFreshPid,
 createIdentical,
+createAndApply,
 showItem,
 showMap,
 apply,
@@ -32,7 +33,6 @@ applyMapToBExpr
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Data.Text as Text
 import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
 import qualified TxsDefs
@@ -45,11 +45,13 @@ import BehExprDefs
 import ProcIdFactory
 import ValFactory
 
+import ProcSearch
+
 type ProcInstUpdate = (ProcId.ProcId, [Either Int TxsDefs.VExpr])
 type ProcInstUpdateMap = Map.Map ProcId.ProcId ProcInstUpdate
 
 showItem :: ProcInstUpdate -> String
-showItem (pid, paramUpdates) = Text.unpack (ProcId.name pid) ++ "(" ++ List.intercalate "; " (map showParamUpdate paramUpdates) ++ ")"
+showItem (pid, paramUpdates) = showProcId pid ++ " (" ++ List.intercalate "; " (map showParamUpdate paramUpdates) ++ ")"
   where
     showParamUpdate :: Either Int TxsDefs.VExpr -> String
     showParamUpdate (Left i) = "expr(" ++ show i ++ ")"
@@ -60,7 +62,7 @@ showMap :: ProcInstUpdateMap -> String
 showMap m = List.intercalate "\n" (map showEntry (Map.toList m))
   where
     showEntry :: (ProcId.ProcId, ProcInstUpdate) -> String
-    showEntry (pid, paramUpdate) = Text.unpack (ProcId.name pid) ++ " -> " ++ showItem paramUpdate
+    showEntry (pid, paramUpdate) = showProcId pid ++ " -> " ++ showItem paramUpdate
 -- showMap
 
 create :: ProcId.ProcId -> [VarId.VarId] -> [VarId.VarId] -> Map.Map VarId.VarId TxsDefs.VExpr -> IOC.IOC ProcInstUpdate
@@ -86,6 +88,12 @@ createWithFreshPid oldPid oldVars newVars predefInits = do
 createIdentical :: ProcId.ProcId -> ProcInstUpdate
 createIdentical pid = (pid, map Left [0..length (ProcId.procvars pid) - 1])
 
+createAndApply :: ProcId.ProcId -> ProcId.ProcId -> [VarId.VarId] -> (Set.Set TxsDefs.BExpr, [VarId.VarId]) -> IOC.IOC (Set.Set TxsDefs.BExpr)
+createAndApply oldPid newPid newVars (bexprs, oldVars) = do
+    upd <- create newPid oldVars newVars Map.empty
+    return (Set.map (applyMapToBExpr (Map.singleton oldPid upd)) bexprs)
+-- createAndApply
+
 apply :: ProcInstUpdate -> [ChanId.ChanId] -> [TxsDefs.VExpr] -> TxsDefs.BExpr
 apply (newPid, paramUpdates) cids vexprs = procInst newPid cids (map f paramUpdates)
   where
@@ -98,7 +106,7 @@ applyMapToProcInst :: ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> TxsD
 applyMapToProcInst procInstUpdateMap (TxsDefs.view -> ProcInst pid cids vexprs) =
     case procInstUpdateMap Map.!? pid of
       Just procInstUpdate -> apply procInstUpdate cids vexprs
-      Nothing -> error ("Process not found in map (\"" ++ show pid ++ "\"; map = " ++ showMap procInstUpdateMap ++ ")!")
+      Nothing -> error ("Process not found in map (\"" ++ showProcId pid ++ "\"; map = " ++ showMap procInstUpdateMap ++ ")!")
 applyMapToProcInst _procInstUpdateMap currentBExpr = error ("Process instantiation expected, but found (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
 applyMapToBExpr :: ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> TxsDefs.BExpr

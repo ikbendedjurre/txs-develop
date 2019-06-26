@@ -74,10 +74,11 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
             
             -- 8. Rewrite processes so that they consist of summands and structures with parallel branches, exclusively:
             bexpr7 <- resolvePrefixes bexpr6
-            printProcsInBExpr bexpr7
+            -- printProcsInBExpr bexpr7
             
             -- 9. Linearize structures with parallel branches:
             bexpr8 <- linearizePBranches bexpr7
+            printProcsInBExpr bexpr8 -- Bla bla.
             
             -- Save the result as a new model:
             tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)

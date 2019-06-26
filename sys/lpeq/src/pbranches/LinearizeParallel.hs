@@ -34,7 +34,6 @@ import ActOfferFactory
 import VarFactory
 import BehExprDefs
 
-import BranchUtils
 import PBranchUtils
 
 type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be used to recursively instantiate the parent process.
@@ -63,27 +62,27 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans bexprs) =
     let unsyncedBranchesPerBExpr = map (Set.filter (\b -> Set.member (getBranchChans b) unsyncedCidSets)) branchesPerBExpr
     
     let info = (createProcInst, newVidDecls, g, synchronizedChans)
-    syncedBranches <- synchronizeBExprCombinations info syncedBranchesPerBExpr
-    let unsyncedBranches = Set.unions unsyncedBranchesPerBExpr
+    syncedBranches <- synchronizeSyncedBranchCombinations info syncedBranchesPerBExpr
+    unsyncedBranches <- createdUnsyncedBranches info unsyncedBranchesPerBExpr
     return (Set.union syncedBranches unsyncedBranches, newVidDecls)
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
-synchronizeBExprCombinations :: Info -> [Set.Set TxsDefs.BExpr] -> IOC.IOC (Set.Set TxsDefs.BExpr)
-synchronizeBExprCombinations _ [] = return Set.empty
-synchronizeBExprCombinations info (x:xs) = do
-    syncedBExprs <- synchronizeBExprs info x (Set.unions xs)
-    rest <- synchronizeBExprCombinations info xs
+synchronizeSyncedBranchCombinations :: Info -> [Set.Set TxsDefs.BExpr] -> IOC.IOC (Set.Set TxsDefs.BExpr)
+synchronizeSyncedBranchCombinations _ [] = return Set.empty
+synchronizeSyncedBranchCombinations info (x:xs) = do
+    syncedBExprs <- synchronizeSyncedBranches info x (Set.unions xs)
+    rest <- synchronizeSyncedBranchCombinations info xs
     return (Set.union syncedBExprs rest)
--- synchronizeBExprCombinations
+-- synchronizeSyncedBranchCombinations
 
-synchronizeBExprs :: Info -> Set.Set TxsDefs.BExpr -> Set.Set TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr)
-synchronizeBExprs info xs ys = do
+synchronizeSyncedBranches :: Info -> Set.Set TxsDefs.BExpr -> Set.Set TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr)
+synchronizeSyncedBranches info xs ys = do
     let combinations = [ (x, y) | x <- Set.toList xs, y <- Set.toList ys ]
-    Set.fromList <$> Monad.mapM (synchronizeBranches info) combinations
--- synchronizeBExprs
+    Set.fromList <$> Monad.mapM (synchronizeSyncedBranchPair info) combinations
+-- synchronizeSyncedBranches
 
-synchronizeBranches :: Info -> (TxsDefs.BExpr, TxsDefs.BExpr) -> IOC.IOC TxsDefs.BExpr
-synchronizeBranches (createProcInst, newVidDecls, g, synchronizedChans) (bexpr1, bexpr2) = do
+synchronizeSyncedBranchPair :: Info -> (TxsDefs.BExpr, TxsDefs.BExpr) -> IOC.IOC TxsDefs.BExpr
+synchronizeSyncedBranchPair (createProcInst, newVidDecls, g, synchronizedChans) (bexpr1, bexpr2) = do
     let (hiddenChans1, actOffer1, procInst1) = getBranchSegments bexpr1
     let (hiddenChans2, actOffer2, procInst2) = getBranchSegments bexpr2
     
@@ -116,11 +115,31 @@ synchronizeBranches (createProcInst, newVidDecls, g, synchronizedChans) (bexpr1,
     
     let newActOffer = addActOfferConjunct (mergeActOffers actOffer1' actOffer2') g
     let newProcInst = createProcInst (map (vidMap Map.!) newVidDecls)
-    let bexpr = actionPref newActOffer newProcInst
-    return (applyHide (Set.union hiddenChans1 hiddenChans2) bexpr)
--- synchronizeBranches
+    let newBExpr = actionPref newActOffer newProcInst
+    return (applyHide (Set.union hiddenChans1 hiddenChans2) newBExpr)
+-- synchronizeSyncedBranchPair
 
+createdUnsyncedBranches :: Info -> [Set.Set TxsDefs.BExpr] -> IOC.IOC (Set.Set TxsDefs.BExpr)
+createdUnsyncedBranches info bexprs = do
+    bexprs' <- Monad.mapM (createdUnsyncedBranch info) (concatMap Set.toList bexprs)
+    return (Set.fromList bexprs')
+-- createdUnsyncedBranches
 
+createdUnsyncedBranch :: Info -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
+createdUnsyncedBranch (createProcInst, newVidDecls, g, _synchronizedChans) bexpr = do
+    let (hiddenChans, actOffer, processInst) = getBranchSegments bexpr
+    
+    let vidIdMap = Map.fromSet ValExpr.cstrVar (Set.fromList newVidDecls)
+    paramEqs <- extractProcInstParamEqs processInst
+    
+    -- (We rely on the fact that Map.union is left-biased:)
+    let vidMap = Map.union paramEqs vidIdMap
+    
+    let newActOffer = addActOfferConjunct actOffer g
+    let newProcInst = createProcInst (map (vidMap Map.!) newVidDecls)
+    let newBExpr = actionPref newActOffer newProcInst
+    return (applyHide hiddenChans newBExpr)
+-- createdUnsyncedBranch
 
 
 

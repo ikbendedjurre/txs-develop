@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 
 module ProcSearch (
+showProcId,
 getProcsInBExpr,
 printProcsInBExpr,
 showProcsInBExpr
@@ -38,6 +39,9 @@ import qualified VarId
 import BehExprDefs
 import ProcIdFactory
 
+showProcId :: ProcId.ProcId -> String
+showProcId pid = Text.unpack (ProcId.name pid) ++ "[" ++ show (ProcId.unid pid) ++ "]"
+
 -- Lists all processes that can be reached from the given behavioral expression.
 -- Works by depth-first-search.
 getProcsInBExpr :: TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.ProcId)
@@ -53,7 +57,7 @@ searchBExprForProcs soFar currentBExpr = do
                      case r of
                        Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> do
                            searchBExprForProcs (Set.insert pid soFar) body
-                       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
+                       Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
       (TxsDefs.view -> Guard _g bexpr) ->
           do searchBExprForProcs soFar bexpr
       (TxsDefs.view -> Choice bexprs) ->
