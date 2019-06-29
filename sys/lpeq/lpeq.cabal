@@ -21,6 +21,7 @@ library
 
   other-modules:        ExclamToQuest
                       , VEnvElim
+                      , HideElim
                       , Scopes
                       , ProcSearch
                       , UniqueObjects
