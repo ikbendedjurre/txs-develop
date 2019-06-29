@@ -38,7 +38,7 @@ import qualified Scopes
 import ProcSearch
 
 -- Recursively identifies parallel sub-expressions in a given behavioral expression, and
--- creates process definitions for each of those sub-expressions (including program counters).
+-- creates process definitions for each of those sub-expressions.
 -- Sub-expressions are replaced by instantiations of corresponding process definitions.
 -- 
 -- (Next, a dependency tree will be inferred from the process definitions.)

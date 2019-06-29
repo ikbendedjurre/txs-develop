@@ -15,7 +15,8 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module SetUnions (
-setUnions
+setUnions,
+setIntersections
 ) where
 
 import qualified Data.Set as Set
@@ -23,4 +24,8 @@ import qualified Data.Set as Set
 -- Because Set.unions does not work on sets of sets for some reason?
 setUnions :: (Foldable f, Ord a) => f (Set.Set a) -> Set.Set a
 setUnions = foldl Set.union Set.empty
+
+setIntersections :: Ord a => [Set.Set a] -> Set.Set a
+setIntersections [] = Set.empty
+setIntersections (x:xs) = foldl Set.intersection x xs
 

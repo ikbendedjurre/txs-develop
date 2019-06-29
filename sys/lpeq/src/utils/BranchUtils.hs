@@ -16,6 +16,9 @@ See LICENSE at root directory of this repository.
 
 {-# LANGUAGE ViewPatterns        #-}
 
+-- Branches are often synonymous with summands.
+-- A different name is used while a linearized process expression (LPE) is still under construction.
+-- Branches may also include a HIDE structure, which was not permitted in earlier versions of LPEs.
 module BranchUtils (
 removeHide,
 applyHide,
@@ -23,28 +26,28 @@ applyHideToEither,
 applyHideToActOffer,
 getBranches,
 getBranchSegments,
-getBranchChans,
-hasBranchChans
+getBranchChans
 ) where
 
--- import qualified Data.Map as Map
 import qualified Data.Set as Set
--- import qualified EnvCore as IOC
 import qualified TxsDefs
 import qualified TxsShow
--- import qualified ProcId
--- import qualified ProcDef
 import qualified ChanId
 import qualified VarId
--- import qualified Subst
 import BehExprDefs
--- import ProcIdFactory
 import ActOfferFactory
+import SetUnions
 
+-- This function does the following:
+--  - If the given expression has a HIDE on the outside, removes the HIDE, and
+--    returns the inner expression and the channels that were hidden.
+--  - If the given expression does not have a HIDE on the outside,
+--    returns the same expression.
 removeHide :: TxsDefs.BExpr -> (TxsDefs.BExpr, Set.Set ChanId.ChanId)
 removeHide (TxsDefs.view -> Hide cidSet bexpr) = (bexpr, cidSet)
 removeHide bexpr = (bexpr, Set.empty)
 
+-- Wraps the given expression in a HIDE (only if the given set of channels is non-empty).
 applyHide :: Set.Set ChanId.ChanId -> TxsDefs.BExpr -> TxsDefs.BExpr
 applyHide hiddenChanSet (TxsDefs.view -> Hide cidSet bexpr) = applyHide (Set.union hiddenChanSet cidSet) bexpr
 applyHide hiddenChanSet bexpr =
@@ -53,10 +56,12 @@ applyHide hiddenChanSet bexpr =
     else hide hiddenChanSet bexpr
 -- applyHide
 
+-- Applies 'applyHide' to the inner expression of 'Left ...' or 'Right ...'.
 applyHideToEither :: Set.Set ChanId.ChanId -> Either TxsDefs.BExpr TxsDefs.BExpr -> Either TxsDefs.BExpr TxsDefs.BExpr
 applyHideToEither hiddenChanSet (Left bexpr) = Left (applyHide hiddenChanSet bexpr)
 applyHideToEither hiddenChanSet (Right bexpr) = Right (applyHide hiddenChanSet bexpr)
 
+-- Removes the given channels from an ActOffer.
 applyHideToActOffer :: Set.Set ChanId.ChanId -> TxsDefs.ActOffer -> TxsDefs.ActOffer
 applyHideToActOffer hiddenChanSet actOffer =
     let (newOffers, newHiddenVars) = foldl getNewOffers (Set.empty, TxsDefs.hiddenvars actOffer) (TxsDefs.offers actOffer) in
@@ -70,10 +75,16 @@ applyHideToActOffer hiddenChanSet actOffer =
     -- getNewOffers
 -- applyHideToActOffer
 
+-- Flattens a hierarchy of Choice expressions.
+-- (Usually equivalent to providing a list of summands.)
 getBranches :: TxsDefs.BExpr -> Set.Set TxsDefs.BExpr
-getBranches (TxsDefs.view -> Choice bexprs) = bexprs
+getBranches (TxsDefs.view -> Choice bexprs) = setUnions (Set.map getBranches bexprs)
 getBranches bexpr = Set.singleton bexpr
 
+-- Splits an expression (also called a branch or a summand) into 3 parts:
+--  - Set of hidden channels.
+--  - ActOffer.
+--  - Process instantiation.
 getBranchSegments :: TxsDefs.BExpr -> (Set.Set ChanId.ChanId, TxsDefs.ActOffer, TxsDefs.BExpr)
 getBranchSegments currentBExpr =
     case currentBExpr of
@@ -91,9 +102,7 @@ getBranchSegments currentBExpr =
     -- getFromInnerExpr
 -- getBranchChan
 
-hasBranchChans :: Set.Set ChanId.ChanId -> TxsDefs.BExpr -> Bool
-hasBranchChans cids bexpr = getBranchChans bexpr == cids
-
+-- Extracts the channels from a branch.
 getBranchChans :: TxsDefs.BExpr -> Set.Set ChanId.ChanId
 getBranchChans currentBExpr = let (_, actOffer, _) = getBranchSegments currentBExpr in getActOfferChans actOffer
 

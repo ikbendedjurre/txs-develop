@@ -23,35 +23,34 @@ isLinearBranch,
 isLinearBExpr,
 checkLinearBExpr,
 checkLinearBExprs,
-extractProcInstBranches,
-extractProcInstParamEqs,
-ensureFreshVarsInProcInst,
+ProcInstData,
+extractProcInstData,
 module BranchUtils
 ) where
 
 import qualified Data.List as List
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
 import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
-import qualified ValExpr
 import qualified ProcId
 import qualified ProcDef
 import qualified VarId
-import qualified Subst
 import BehExprDefs
 import ProcIdFactory
-import VarFactory
-import ActOfferFactory
 import BranchUtils
 
 import ProcSearch
 
-type PBranchLinearizer = ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> TxsDefs.VExpr -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
+type PBranchLinearizer  = ([TxsDefs.VExpr] -> TxsDefs.BExpr)                -- Function for the construction of a recursive process instantiation.
+                       -> TxsDefs.VExpr                                     -- Guard that must hold for the non-linear branch to be enabled.
+                       -> TxsDefs.BExpr                                     -- Non-linear branch.
+                       -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])    -- New branches, and the parameters required by those branches.
+-- PBranchLinearizer
 
+-- Checks if the given expression is a branch that contains a parallel structure (Parallel, Enable, Disable, or Interrupt).
 isPBranch :: TxsDefs.BExpr -> Bool
 isPBranch currentBExpr =
     case currentBExpr of
@@ -76,6 +75,9 @@ isPBranch currentBExpr =
     -- checkInnerExpr
 -- isPBranch
 
+-- Checks if the given branch is linear.
+-- This includes checking if the process instantiation is recursive.
+-- If the branch is NOT linear, messages are returned to explain why.
 isLinearBranch :: ProcId.ProcId -> TxsDefs.BExpr -> [String]
 isLinearBranch expectedPid currentBExpr =
     case currentBExpr of
@@ -96,71 +98,72 @@ isLinearBranch expectedPid currentBExpr =
     -- checkInnerExpr
 -- isLinearBranch
 
+-- Checks if the given expression is linear.
+-- Same as 'isLinearBranch', but can also handle Choice expressions
+-- (all members of a Choice expression should be linear).
 isLinearBExpr :: ProcId.ProcId -> TxsDefs.BExpr -> [String]
 isLinearBExpr expectedPid bexpr = concatMap (isLinearBranch expectedPid) (Set.toList (getBranches bexpr))
 
+-- Checks if the given expression is linear.
+-- If not, it prints debug information (input, output, and problems that were found).
 checkLinearBExpr :: ProcId.ProcId -> [TxsDefs.BExpr] -> TxsDefs.BExpr -> IOC.IOC ()
-checkLinearBExpr expectedPid inputBExprs outputBExpr = do
-    case isLinearBExpr expectedPid outputBExpr of
+checkLinearBExpr expectedPid preLinearizationBExprs postLinearizationBExpr = do
+    case isLinearBExpr expectedPid postLinearizationBExpr of
       [] -> return ()
       msgs -> do IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO "Linearization failure (1/4) ~~ Inputs:" ]
-                 Monad.mapM_ printProcsInBExpr inputBExprs
+                 Monad.mapM_ printProcsInBExpr preLinearizationBExprs
                  IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO "Linearization failure (2/4) ~~ Output:" ]
-                 printProcsInBExpr outputBExpr
+                 printProcsInBExpr postLinearizationBExpr
                  IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("Linearization failure (3/4) ~~ Problems:\n" ++ List.intercalate "\n" msgs) ]
                  error "Linearization failure (4/4) ~~ End!"
 -- checkLinearBExpr
 
+-- Checks if the given expressions are all linear.
+-- If not, it prints debug information (input, output, and problems that were found).
 checkLinearBExprs :: ProcId.ProcId -> [TxsDefs.BExpr] -> [TxsDefs.BExpr] -> IOC.IOC ()
-checkLinearBExprs expectedPid inputBExprs = Monad.mapM_ (checkLinearBExpr expectedPid inputBExprs)
+checkLinearBExprs expectedPid preLinearizationBExprs = Monad.mapM_ (checkLinearBExpr expectedPid preLinearizationBExprs)
 
--- Retrieves the branches (=summands) of the process that is instantiated in the given behavioral expression.
--- Also retrieves the declared parameters of that process.
-extractProcInstBranches :: TxsDefs.BExpr -> IOC.IOC ([VarId.VarId], Set.Set TxsDefs.BExpr)
-extractProcInstBranches (TxsDefs.view -> ProcInst pid _ vexprs) = do
+type ProcInstData = (Set.Set TxsDefs.BExpr, [(VarId.VarId, TxsDefs.VExpr)])
+
+-- Retrieves data from a process instantiation, namely:
+--  - the branches of the process that is instantiated in the given behavioral expression;
+--  - the declared parameters of that process (in order); and
+--  - the assignments by the given process instantiation.
+--    (An assignment is a parameter and the expression that defines its new value.)
+extractProcInstData :: TxsDefs.BExpr -> IOC.IOC ProcInstData
+extractProcInstData (TxsDefs.view -> ProcInst pid _ vexprs) = do
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef _cidDecls vidDecls body) -> do
-          let subst = Subst.subst (Map.fromList (zip vidDecls vexprs)) Map.empty
-          return (vidDecls, getBranches (subst body))
+          return (getBranches body, zip vidDecls vexprs)
       Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
-extractProcInstBranches currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+extractProcInstData currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
-extractProcInstParamEqs :: TxsDefs.BExpr -> IOC.IOC (Map.Map VarId.VarId TxsDefs.VExpr)
-extractProcInstParamEqs (TxsDefs.view -> ProcInst pid _ vexprs) = do
-    r <- getProcById pid
-    case r of
-      Just (ProcDef.ProcDef _cidDecls vidDecls _body) -> do
-          return (Map.fromList (zip vidDecls vexprs))
-      Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
-extractProcInstParamEqs currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
-ensureFreshVarsInProcInst :: TxsDefs.BExpr -> IOC.IOC ()
-ensureFreshVarsInProcInst (TxsDefs.view -> ProcInst pid _cids _vexprs) = do
-    r <- getProcById pid
-    case r of
-      Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
-          subst <- createFreshVars (Set.fromList vidDecls)
-          newBranches <- Monad.mapM (ensureFreshVarsInBranch subst) (Set.toList (getBranches body))
-          let body' = choice (Set.fromList newBranches)
-          registerProc pid (ProcDef.ProcDef cidDecls vidDecls body')
-      Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
-ensureFreshVarsInProcInst currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
-ensureFreshVarsInBranch :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-ensureFreshVarsInBranch subst currentBExpr = do
-    let (nonHiddenBExpr, hiddenChans) = removeHide currentBExpr
-    case nonHiddenBExpr of
-      (TxsDefs.view -> ActionPref actOffer bexpr) -> do
-          let (vizVars, hidVars) = getActOfferVars actOffer
-          actOfferSubst <- createFreshVars (Set.union vizVars hidVars)
-          let subst' = Map.union actOfferSubst subst
-          let actOffer' = replaceVarsInActOffer subst' actOffer
-          let bexpr' = Subst.subst (Map.map ValExpr.cstrVar subst') Map.empty bexpr
-          let actionPref' = actionPref actOffer' bexpr'
-          return (applyHide hiddenChans actionPref')
-      _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
--- ensureFreshVarsInBranch
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

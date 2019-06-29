@@ -23,7 +23,7 @@ library
                       , VEnvElim
                       , Scopes
                       , ProcSearch
-                      , ProcCopy
+                      , UniqueObjects
                       , FlattenedChannels
                       , PBranchInst
                       , ProcDepTree

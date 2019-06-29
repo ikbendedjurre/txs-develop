@@ -26,15 +26,37 @@ createFreshBoolVarFromPrefix
 ) where
 
 import qualified Control.Monad as Monad
+import qualified Control.Monad.State as MonadState
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.Char as Char
 import qualified Data.Text as Text
 import qualified EnvCore as IOC
+import qualified TxsDefs as TxsDefs
 import qualified SortId
 import qualified SortOf
-import qualified Id
 import VarId
 import SortFactory
+
+-- Creates a variable of the specified sort, using the specified string as part of the name.
+createFreshVarFromPrefix :: String -> SortId.SortId -> IOC.IOC VarId.VarId
+createFreshVarFromPrefix prefix sort = do
+    tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
+    let usedNames = TxsDefs.usedNames tdefs
+    let uniqueName = getUniqueName usedNames (reverse (dropWhile Char.isDigit (reverse prefix))) 1
+    let tdefs' = tdefs { TxsDefs.usedNames = Set.insert uniqueName usedNames }
+    IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
+    varUnid <- IOC.newUnid
+    return VarId.VarId { VarId.name = uniqueName, VarId.unid = varUnid, VarId.varsort = sort }
+  where
+    getUniqueName :: Set.Set Text.Text -> String -> Int -> Text.Text
+    getUniqueName usedNames truePrefix nr =
+        let attempt = Text.pack (truePrefix ++ show nr) in
+          if Set.member attempt usedNames
+          then getUniqueName usedNames truePrefix (nr + 1)
+          else attempt
+    -- getUniqueName
+-- createFreshVarFromPrefix
 
 createFreshVars :: Set.Set VarId.VarId -> IOC.IOC (Map.Map VarId.VarId VarId.VarId)
 createFreshVars vids = Map.fromList <$> Monad.mapM createFreshVarPair (Set.toList vids)
@@ -47,16 +69,7 @@ createFreshVars vids = Map.fromList <$> Monad.mapM createFreshVarPair (Set.toLis
 
 -- Creates a variable of the specified sort, using the specified string as part of the name.
 createFreshVar :: SortId.SortId -> IOC.IOC VarId.VarId
-createFreshVar = createFreshVarFromPrefix "__FV"
-
--- Creates a variable of the specified sort, using the specified string as part of the name.
-createFreshVarFromPrefix :: String -> SortId.SortId -> IOC.IOC VarId.VarId
-createFreshVarFromPrefix prefix sort = do
-    varUnid <- IOC.newUnid
-    let idAsInt = Id._id varUnid
-    let absId = if idAsInt >= 0 then idAsInt else -idAsInt
-    return VarId.VarId { VarId.name = Text.pack (prefix ++ show absId), VarId.unid = varUnid, VarId.varsort = sort }
--- createFreshVarFromPrefix
+createFreshVar = createFreshVarFromPrefix "fv"
 
 createFreshVarFromVar :: VarId -> IOC.IOC VarId.VarId
 createFreshVarFromVar varId = createFreshVarFromPrefix (Text.unpack (name varId)) (SortOf.sortOf varId)

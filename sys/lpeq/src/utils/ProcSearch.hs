@@ -106,12 +106,18 @@ showProcsInBExpr startBExpr = do
     
     showProcSig :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> String
     showProcSig pid cidDecls vidDecls =
-        let nameStr = Text.unpack (ProcId.name pid) in
-        let cidDeclsStr = "[" ++ List.intercalate "," (map (Text.unpack . ChanId.name) cidDecls) ++ "]" in
-        let vidDeclsStr = "(" ++ List.intercalate "; " (map (\v -> Text.unpack (VarId.name v) ++ " :: " ++ Text.unpack (SortId.name (VarId.varsort v))) vidDecls) ++ ")" in
+        let nameStr = TxsShow.fshow pid in
+        let cidDeclsStr = "[" ++ List.intercalate "; " (map showChanDecl cidDecls) ++ "]" in
+        let vidDeclsStr = "(" ++ List.intercalate "; " (map (\v -> TxsShow.fshow v ++ " :: " ++ Text.unpack (SortId.name (VarId.varsort v))) vidDecls) ++ ")" in
           nameStr ++ " " ++ cidDeclsStr ++ " " ++ vidDeclsStr
     -- showProcSig
+    
+    showChanDecl :: ChanId.ChanId -> String
+    showChanDecl cid =
+        let nameStr = TxsShow.fshow cid in
+        let sortsStr = List.intercalate " # " (map (Text.unpack . SortId.name) (ChanId.chansorts cid)) in
+          if List.null (ChanId.chansorts cid)
+          then nameStr
+          else nameStr ++ " :: " ++ sortsStr
 -- showProcsInBExpr
-
-
 

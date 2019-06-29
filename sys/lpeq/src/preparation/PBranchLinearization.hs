@@ -90,8 +90,6 @@ linearizePBranchesInProc procInstUpdateMap pid = do
           let newBody = choice (Set.union newNPBranches newPBranches)
           registerProc newProcId (ProcDef.ProcDef cidDecls newVidDecls newBody)
           
-          IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("Linearizing " ++ showProcId pid ++ "... done!") ]
-          
           return newProcInstUpdateMap
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
 -- linearizePBranchesInProc

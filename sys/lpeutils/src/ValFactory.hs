@@ -15,6 +15,9 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module ValFactory (
+cstrTrue,
+cstrFalse,
+cstrInt,
 sort2defaultValue,
 sort2defaultConst
 ) where
@@ -28,6 +31,15 @@ import qualified ValExpr
 import qualified SortId
 import qualified Constant
 import qualified CstrId
+
+cstrTrue :: TxsDefs.VExpr
+cstrTrue = ValExpr.cstrConst (Constant.Cbool True)
+
+cstrFalse :: TxsDefs.VExpr
+cstrFalse = ValExpr.cstrConst (Constant.Cbool True)
+
+cstrInt :: Integer -> TxsDefs.VExpr
+cstrInt n = ValExpr.cstrConst (Constant.Cint n)
 
 sort2defaultValue :: TxsDefs.TxsDefs -> SortId.SortId -> TxsDefs.VExpr
 sort2defaultValue tdefs sortId = ValExpr.cstrConst (sort2defaultConst tdefs sortId)

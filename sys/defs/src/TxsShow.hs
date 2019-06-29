@@ -44,6 +44,7 @@ import           Sum
 import           TxsDefs
 import           ValExpr
 import           VarId
+import           Id
 
 specialOpChars :: String
 specialOpChars  =  "=+-*/\\^<>|@&%"                 -- must be equal to $special in TxsAlex
@@ -450,8 +451,13 @@ instance PShow Ident where
     pshow (IdMapper id) =  pshow id
     pshow (IdCnect  id) =  pshow id
 
+showUnid :: (a -> T.Text) -> (a -> Id) -> a -> String
+--showUnid f g x = T.unpack (f x) ++ "@" ++ show (g x)
+showUnid f _g = T.unpack . f
+
 instance PShow ChanId where
-  pshow = T.unpack . ChanId.name
+  -- pshow = T.unpack . ChanId.name
+  pshow = showUnid ChanId.name ChanId.unid
 
 instance PShow CstrId where
   pshow = T.unpack . CstrId.name
@@ -463,7 +469,8 @@ instance PShow GoalId where
   pshow = T.unpack . GoalId.name
 
 instance PShow ProcId where
-  pshow = T.unpack . ProcId.name
+  -- pshow = T.unpack . ProcId.name
+  pshow = showUnid ProcId.name ProcId.unid
 
 instance PShow PurpId where
   pshow = T.unpack . PurpId.name
@@ -475,10 +482,12 @@ instance PShow StatId where
   pshow = T.unpack . StatId.name
 
 instance PShow VarId where
-  pshow = T.unpack . VarId.name
+  -- pshow = T.unpack . VarId.name
+  pshow = showUnid VarId.name VarId.unid
 
 instance PShow ModelId where
-  pshow = T.unpack . ModelId.name
+  -- pshow = T.unpack . ModelId.name
+  pshow = showUnid ModelId.name ModelId.unid
 
 instance PShow MapperId where
   pshow = T.unpack . MapperId.name
