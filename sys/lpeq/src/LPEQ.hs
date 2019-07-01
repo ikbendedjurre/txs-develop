@@ -59,7 +59,7 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     
     -- TODO Eliminate StAuts
     
-    -- 5. Create process instantiations for branches with parallel structures (Parallel, Enable, Disable, Interrupt):
+    -- 5. Create process instantiations for branches within parallel structures (Parallel, Enable, Disable, Interrupt):
     let allChanIds = concatMap Set.toList (insyncs ++ outsyncs)
     bexpr4 <- doPBranchInst allChanIds bexpr3
     -- printProcsInBExpr "BEXPR4::" bexpr4

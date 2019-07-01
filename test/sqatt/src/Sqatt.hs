@@ -295,6 +295,7 @@ runTxsWithExample :: Maybe FilePath     -- ^ Path to the logging directory for
                     -> NominalDiffTime  -- ^ Delay before start, in seconds.
                     -> Concurrently (Either SqattError ())
 runTxsWithExample mLogDir ex delay = Concurrently $ do
+  liftIO $ writeFile ("C:/Users/WalD1/Desktop/logs/" ++ exampleName ex ++ ".txt") ("-- Example " ++ exampleName ex ++ " --\n")
   eInputModelF <- runExceptT $ runTest $ mapM decodePath (txsModelFiles ex)
 
   case eInputModelF of
@@ -325,10 +326,12 @@ runTxsWithExample mLogDir ex delay = Concurrently $ do
         txsUIShell :: Shell Line
         txsUIShell =
             case mUiLogDir of
-                Nothing ->
-                    either id id <$> inprocWithErr txsUICmd
-                                                        (port:imf)
-                                                        inLines
+                Nothing -> do
+                    line <- either id id <$> inprocWithErr txsUICmd
+                                                           (port:imf)
+                                                           inLines
+                    liftIO $ appendFile ("C:/Users/WalD1/Desktop/logs/" ++ exampleName ex ++ ".txt") (T.unpack (lineToText line) ++ "\n")
+                    return line
                 Just uiLogDir -> do
                     h <- appendonly $ uiLogDir </> "txsui.out.log"
                     line <- either id id <$> inprocWithErr txsUICmd
