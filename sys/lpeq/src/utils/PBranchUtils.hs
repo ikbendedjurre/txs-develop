@@ -23,7 +23,6 @@ isLinearBranch,
 isLinearBExpr,
 checkLinearBExpr,
 checkLinearBExprs,
-ProcInstData,
 extractProcInstData,
 module BranchUtils
 ) where
@@ -111,9 +110,9 @@ checkLinearBExpr expectedPid preLinearizationBExprs postLinearizationBExpr = do
     case isLinearBExpr expectedPid postLinearizationBExpr of
       [] -> return ()
       msgs -> do IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO "Linearization failure (1/4) ~~ Inputs:" ]
-                 Monad.mapM_ printProcsInBExpr preLinearizationBExprs
+                 Monad.mapM_ (printProcsInBExpr "Input::") preLinearizationBExprs
                  IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO "Linearization failure (2/4) ~~ Output:" ]
-                 printProcsInBExpr postLinearizationBExpr
+                 printProcsInBExpr "Output::" postLinearizationBExpr
                  IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("Linearization failure (3/4) ~~ Problems:\n" ++ List.intercalate "\n" msgs) ]
                  error "Linearization failure (4/4) ~~ End!"
 -- checkLinearBExpr
@@ -123,14 +122,7 @@ checkLinearBExpr expectedPid preLinearizationBExprs postLinearizationBExpr = do
 checkLinearBExprs :: ProcId.ProcId -> [TxsDefs.BExpr] -> [TxsDefs.BExpr] -> IOC.IOC ()
 checkLinearBExprs expectedPid preLinearizationBExprs = Monad.mapM_ (checkLinearBExpr expectedPid preLinearizationBExprs)
 
-type ProcInstData = (Set.Set TxsDefs.BExpr, [(VarId.VarId, TxsDefs.VExpr)])
-
--- Retrieves data from a process instantiation, namely:
---  - the branches of the process that is instantiated in the given behavioral expression;
---  - the declared parameters of that process (in order); and
---  - the assignments by the given process instantiation.
---    (An assignment is a parameter and the expression that defines its new value.)
-extractProcInstData :: TxsDefs.BExpr -> IOC.IOC ProcInstData
+extractProcInstData :: TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [(VarId.VarId, TxsDefs.VExpr)])
 extractProcInstData (TxsDefs.view -> ProcInst pid _ vexprs) = do
     r <- getProcById pid
     case r of
@@ -138,19 +130,6 @@ extractProcInstData (TxsDefs.view -> ProcInst pid _ vexprs) = do
           return (getBranches body, zip vidDecls vexprs)
       Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
 extractProcInstData currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

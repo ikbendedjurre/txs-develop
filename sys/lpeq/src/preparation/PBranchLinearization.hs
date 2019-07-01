@@ -36,8 +36,9 @@ import ProcIdFactory
 import ProcDepTree
 
 import qualified ProcInstUpdates
-import PBranchUtils
 
+import HideElim
+import PBranchUtils
 import ProcSearch
 
 import qualified LinearizeParallel
@@ -49,13 +50,19 @@ linearizePBranches :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 linearizePBranches bexpr = do
     procDepTree <- getProcDepTree bexpr
     let orderedProcs = getProcsOrderedByMaxDepth procDepTree
-    procInstUpdateMap <- Monad.foldM linearizePBranchesInProc Map.empty orderedProcs
+    procInstUpdateMap <- Monad.foldM linearizePBranchesInProcWithHide Map.empty orderedProcs
     return (ProcInstUpdates.applyMapToProcInst procInstUpdateMap bexpr)
 -- linearizePBranches
 
+linearizePBranchesInProcWithHide :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
+linearizePBranchesInProcWithHide procInstUpdateMap pid = do
+    IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("Linearizing " ++ showProcId pid ++ "...") ]
+    (pid', procInstUpdateMap') <- eliminateHide (pid, procInstUpdateMap)
+    linearizePBranchesInProc procInstUpdateMap' pid'
+-- linearizePBranchesInProcWithHide
+
 linearizePBranchesInProc :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
 linearizePBranchesInProc procInstUpdateMap pid = do
-    IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("Linearizing " ++ showProcId pid ++ "...") ]
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do

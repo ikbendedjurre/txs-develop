@@ -84,8 +84,9 @@ searchBExprForProcs soFar currentBExpr = do
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- searchBExprForProcs
 
-printProcsInBExpr :: TxsDefs.BExpr -> IOC.IOC ()
-printProcsInBExpr startBExpr = do
+printProcsInBExpr :: String -> TxsDefs.BExpr -> IOC.IOC ()
+printProcsInBExpr caption startBExpr = do
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY caption ]
     strs <- showProcsInBExpr startBExpr
     Monad.mapM_ (\m -> IOC.putMsgs [ EnvData.TXS_CORE_ANY m ]) strs
 -- printProcsInBExpr

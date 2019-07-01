@@ -15,6 +15,7 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module ActOfferFactory (
+doActOfferSubst,
 replaceVarsInActOffer,
 replaceVarsInOffer,
 replaceVarsInChanOffer,
@@ -34,6 +35,11 @@ import qualified ValExpr
 import qualified ChanId
 import qualified VarId
 import qualified Subst
+
+doActOfferSubst :: Map.Map VarId.VarId TxsDefs.VExpr -> TxsDefs.ActOffer -> TxsDefs.ActOffer
+doActOfferSubst subst actOffer =
+    actOffer { TxsDefs.constraint = Subst.subst subst Map.empty (TxsDefs.constraint actOffer) }
+-- doActOfferSubst
 
 replaceVarsInActOffer :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.ActOffer -> TxsDefs.ActOffer
 replaceVarsInActOffer subst actOffer =

@@ -18,6 +18,7 @@ See LICENSE at root directory of this repository.
 
 module UniqueObjects (
 ensureFreshProcsInBExpr,
+ensureDistinguishableThreads,
 ensureFreshVarsInProcInst,
 ensureFreshVarsInBranch,
 ensureFreshVarsInBExpr
@@ -32,6 +33,7 @@ import qualified TxsShow
 import qualified ValExpr
 import qualified VarId
 import qualified Subst
+import qualified ProcId
 import qualified ProcDef
 import BehExprDefs
 import ActOfferFactory
@@ -107,6 +109,26 @@ replacePidsInBExpr freshPidMap currentBExpr = do
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- replacePidsInBExpr
+
+ensureDistinguishableThreads :: [TxsDefs.BExpr] -> IOC.IOC [TxsDefs.BExpr]
+ensureDistinguishableThreads threads = do
+    (newThreads, _) <- Monad.foldM addThread ([], Set.empty) threads
+    return newThreads
+  where
+    addThread :: ([TxsDefs.BExpr], Set.Set ProcId.ProcId) -> TxsDefs.BExpr -> IOC.IOC ([TxsDefs.BExpr], Set.Set ProcId.ProcId)
+    addThread (soFar, visitedProcs) bexpr@(TxsDefs.view -> ProcInst pid cids vexprs) = do
+        if Set.member pid visitedProcs
+        then do r <- getProcById pid
+                case r of
+                  Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
+                      freshPid <- createFreshProcIdFromProcId pid
+                      body' <- replacePidsInBExpr (Map.singleton pid freshPid) body
+                      registerProc freshPid (ProcDef.ProcDef cidDecls vidDecls body')
+                      return (soFar ++ [procInst freshPid cids vexprs], Set.insert freshPid visitedProcs)
+                  Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
+        else return (soFar ++ [bexpr], Set.insert pid visitedProcs)
+    addThread _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
+-- ensureDistinguishableThreads
 
 ensureFreshVarsInProcInst :: TxsDefs.BExpr -> IOC.IOC ()
 ensureFreshVarsInProcInst (TxsDefs.view -> ProcInst pid _cids _vexprs) = do

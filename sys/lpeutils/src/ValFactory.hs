@@ -15,6 +15,8 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module ValFactory (
+cstrBool,
+cstrBoolEq,
 cstrTrue,
 cstrFalse,
 cstrInt,
@@ -32,11 +34,17 @@ import qualified SortId
 import qualified Constant
 import qualified CstrId
 
+cstrBool :: Bool -> TxsDefs.VExpr
+cstrBool = ValExpr.cstrConst . Constant.Cbool
+
+cstrBoolEq :: Bool -> TxsDefs.VExpr -> TxsDefs.VExpr
+cstrBoolEq b v = if b then v else ValExpr.cstrNot v
+
 cstrTrue :: TxsDefs.VExpr
-cstrTrue = ValExpr.cstrConst (Constant.Cbool True)
+cstrTrue = cstrBool True
 
 cstrFalse :: TxsDefs.VExpr
-cstrFalse = ValExpr.cstrConst (Constant.Cbool True)
+cstrFalse = cstrBool False
 
 cstrInt :: Integer -> TxsDefs.VExpr
 cstrInt n = ValExpr.cstrConst (Constant.Cint n)

@@ -23,9 +23,9 @@ linearize
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+-- import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
--- import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ValExpr
@@ -39,206 +39,135 @@ import BehExprDefs
 
 import PBranchUtils
 import UniqueObjects
-import SetUnions
+import LinearizeParallelUtils
+
+-- import ProcSearch
 
 type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be used to recursively instantiate the parent process.
+            , [VarId.VarId]                       -- Flag variables that indicate whether a child process has been initialized.
             , [VarId.VarId]                       -- Extra variables that the parent process will have to add to the process declaration.
-                                                  -- First of these variables is a flag to indicate that the extra variables have been initialized.
             , TxsDefs.VExpr                       -- Guard.
+            , Set.Set ChanId.ChanId               -- Channels that are synchronized.
             )
 -- Info
 
 linearize :: PBranchLinearizer
-linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans bexprs) = do
-    -- We require that all occurring variables are unique!
-    Monad.mapM_ ensureFreshVarsInProcInst bexprs
-    
-    -- IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("synchronizedChans = " ++ show synchronizedChans) ]
-    -- IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("length bexprs = " ++ show (length bexprs)) ]
-    -- IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("bexprs = " ++ TxsShow.fshow bexprs) ]
+linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) = do
+    -- We require that all thread processes are unique, as well as all variables that they declare!
+    threads' <- ensureDistinguishableThreads threads
+    Monad.mapM_ ensureFreshVarsInProcInst threads'
     
     -- Extract data from all parallel sub-expressions:
-    dataPerBExpr <- Monad.mapM extractProcInstData bexprs
+    dataPerThread <- Monad.mapM getThreadData threads'
     
     -- List all channel combinations used in the branches;
     -- then partition them into channel combinations that must synchronize and channel combinations that must not.
-    let allCidSets = Set.unions (map (Set.map getBranchChans . fst) dataPerBExpr)
-    let (syncedCidSets, unsyncedCidSets) = Set.partition (\c -> Set.intersection c synchronizedChans /= Set.empty) allCidSets
+    let allCidSets = Set.unions (map (Set.map bVizChans . tBranchData) dataPerThread)
+    let (syncingCidSets, unsyncedCidSets) = Set.partition (\c -> Set.intersection c synchronizedChans /= Set.empty) allCidSets
     
-    let syncedDataPerBExpr = map (\(bs, eqs) -> (Set.filter (\b -> Set.member (getBranchChans b) syncedCidSets) bs, eqs)) dataPerBExpr
-    let unsyncedDataPerBExpr = map (\(bs, eqs) -> (Set.filter (\b -> Set.member (getBranchChans b) unsyncedCidSets) bs, eqs)) dataPerBExpr
+    -- Channel combinations that must synchronize require that
+    -- they synchronize on exactly the same channels:
+    let synchronizingChans = foldl Set.intersection synchronizedChans syncingCidSets
+    let syncedCidSets = Set.filter (\c -> Set.intersection c synchronizedChans == synchronizingChans) syncingCidSets
+    
+    let syncedBranchesPerThread = map (filterThreadData syncedCidSets) dataPerThread
+    let unsyncedBranchesPerThread = map (filterThreadData unsyncedCidSets) dataPerThread
     
     -- Set variable declarations required by the new branches:
-    initFlag <- createFreshBoolVarFromPrefix "initFlag"
-    let newVidDecls = initFlag:concatMap (map fst . snd) dataPerBExpr
+    let initFlags = map tInitFlag dataPerThread
+    let newVidDecls = concatMap (map fst . tInitEqs) dataPerThread
     
     -- ...
-    let info = (createProcInst, newVidDecls, g)
-    syncedBranches <- createSyncedBranches synchronizedChans info syncedDataPerBExpr
-    unsyncedBranches <- createUnsyncedBranches synchronizedChans info unsyncedDataPerBExpr
+    let info = (createProcInst, initFlags, newVidDecls, g, synchronizingChans)
+    syncedBranches <- synchronizeOneBranchPerThread info syncedBranchesPerThread
+    unsyncedBranches <- leaveBranchesUnsynchronized info unsyncedBranchesPerThread
     
-    return (Set.union syncedBranches unsyncedBranches, newVidDecls)
+    return (Set.union syncedBranches unsyncedBranches, initFlags ++ newVidDecls)
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
-data BExprData = BExprData { bHiddenChans :: Set.Set ChanId.ChanId
-                           , bActOffer :: ActOffer
-                           , bParamEqs :: Map.Map VarId.VarId TxsDefs.VExpr
-                           , bVars :: Set.Set VarId.VarId
-                           , bVizVars :: Set.Set VarId.VarId
-                           , bHidVars :: Set.Set VarId.VarId
-                           , bChans :: Set.Set ChanId.ChanId
-                           , bOfferVarsPerChan :: Map.Map ChanId.ChanId [VarId.VarId]
-                           , bSyncedChans :: Set.Set ChanId.ChanId
-                           }
--- BExprData
-
-extractBExprData :: Set.Set ChanId.ChanId -> TxsDefs.BExpr -> IOC.IOC BExprData
-extractBExprData synchronizedChans bexpr = do
-    let (hiddenChans, actOffer, recProcInst) = getBranchSegments bexpr
-    (_, paramEqs) <- extractProcInstData recProcInst
-    let (vizVars, hidVars) = getActOfferVars actOffer
-    let offerVarsPerChan = getOfferVarsPerChan actOffer
-    let chans = Map.keysSet offerVarsPerChan
-    return (BExprData { bHiddenChans = hiddenChans
-                      , bActOffer = actOffer
-                      , bParamEqs = Map.fromList paramEqs
-                      , bVars = Set.union vizVars hidVars
-                      , bVizVars = vizVars
-                      , bHidVars = hidVars
-                      , bChans = chans
-                      , bOfferVarsPerChan = offerVarsPerChan
-                      , bSyncedChans = Set.intersection chans synchronizedChans
-                      })
--- extractBExprData
-
-createSyncedBranches :: Set.Set ChanId.ChanId -> Info -> [ProcInstData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
-createSyncedBranches synchronizedChans info procInstData = do
-    Set.unions <$> Monad.mapM (doSubsequence []) (List.subsequences procInstData)
+-- Considers all lists consisting of one branch per thread.
+-- Synchronizes those branches.
+synchronizeOneBranchPerThread :: Info -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
+synchronizeOneBranchPerThread info threadData = buildList [] threadData
   where
-    doSubsequence :: [(BExprData, [(VarId.VarId, TxsDefs.VExpr)])] -> [ProcInstData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
-    doSubsequence soFar [] = do
-        initBs <- Set.fromList <$> synchronizeInit info soFar
-        succBs <- Set.fromList <$> synchronizeSucc info soFar
-        return (Set.union initBs succBs)
-    doSubsequence soFar (r:remaining) = do
-        newBExprData <- Monad.mapM (extractBExprData synchronizedChans) (Set.toList (fst r))
-        Set.unions <$> Monad.mapM (\d -> doSubsequence (soFar ++ [(d, snd r)]) remaining) newBExprData
-    -- doSubsequence
+    buildList :: [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
+    buildList finalList [] = do
+        Set.fromList <$> Monad.mapM (createSyncedBranch info finalList) (List.subsequences (map snd finalList))
+    buildList listSoFar (td:remaining) = do
+        Set.unions <$> Monad.mapM (\bd -> buildList (listSoFar ++ [(bd, td)]) remaining) (Set.toList (tBranchData td))
+    -- buildList
 -- createSyncedBranches
 
 -- Constructs a new branch from a number of synchronizable branches.
-synchronizeInit :: Info -> [(BExprData, [(VarId.VarId, TxsDefs.VExpr)])] -> IOC.IOC [TxsDefs.BExpr]
-synchronizeInit (_, [], _) _ = error "Unexpected input, missing initialization flag!"
-synchronizeInit _ [] = return []
-synchronizeInit _ [_] = return []
-synchronizeInit (createProcInst, initFlag:newVidDecls, g) dataPerBExpr = do
-    let sharedChans = setIntersections (map (bChans . fst) dataPerBExpr)
-    if List.all (sharedChans ==) (map (bSyncedChans . fst) dataPerBExpr)
-    then do -- Create a fresh variable for shared communication variables that are related:
-            let sharedVars = map (\d -> concatMap (bOfferVarsPerChan (fst d) Map.!) sharedChans) dataPerBExpr
-            freshVarPerSharedVar <- createFreshVars (Set.fromList (head sharedVars))
-            let orderedFreshVars = map (freshVarPerSharedVar Map.!) (head sharedVars)
-            let freshVarSubst = Map.fromList (concatMap (\vs -> zip vs orderedFreshVars) sharedVars)
-            
-            -- Expand the substitution so that it contains conversions for all variables:
-            let allVars = concatMap (Set.toList . bVars . fst) dataPerBExpr
-            let allVarSubst = Map.union freshVarSubst (Map.fromList (zip allVars allVars))
-            let allVarValSubst = Map.map ValExpr.cstrVar allVarSubst
-            
-            -- Replace variables in the ActOffers:
-            let newActOfferPerBExpr = map (replaceVarsInActOffer allVarSubst . bActOffer . fst) dataPerBExpr
-            
-            -- Combine all ActOffers into a single new one:
-            let g' = ValExpr.cstrAnd (Set.fromList [ValExpr.cstrNot (ValExpr.cstrVar initFlag), g])
-            let newActOffer = addActOfferConjunct (foldl mergeActOffers (head newActOfferPerBExpr) (tail newActOfferPerBExpr)) g'
-            
-            -- Replace variables in the ParamEqs:
-            let getNewParamEqs = \(bexprData, paramEqs) -> Map.map (Subst.subst (Map.fromList paramEqs) Map.empty . Subst.subst allVarValSubst Map.empty) (bParamEqs bexprData)
-            let newParamEqsPerBExpr = map getNewParamEqs dataPerBExpr
-            
-            -- Merge all ParamEqs, and add all parameters that are not used by the synchronized processes:
-            let newParamEqs = Map.union (Map.unions newParamEqsPerBExpr) (Map.fromSet ValExpr.cstrVar (Set.fromList newVidDecls))
-            let newProcInst = createProcInst (cstrTrue:map (newParamEqs Map.!) newVidDecls)
-            
-            -- Combine into final result:
-            let allHiddenChans = Set.unions (map (bHiddenChans . fst) dataPerBExpr)
-            return [applyHide allHiddenChans (actionPref newActOffer newProcInst)]
-    else return []
--- synchronizeInit
+createSyncedBranch :: Info -> [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC TxsDefs.BExpr
+createSyncedBranch _ [] _ = error "There should be at least two elements"
+createSyncedBranch _ [_] _ = error "There should be at least two elements"
+createSyncedBranch (createProcInst, initFlags, newVidDecls, g, synchronizingChans) dataPerBranch initializedBranches = do
+    -- Create a fresh variable for shared communication variables that are related:
+    let sharedVars = map (\(bd, _td) -> concatMap (bOfferVarsPerChan bd Map.!) (Set.toList synchronizingChans)) dataPerBranch
+    freshVars <- createFreshVars (Set.fromList (head sharedVars))
+    let orderedFreshVars = map (freshVars Map.!) (head sharedVars)
+    let freshVarPerSharedVar = Map.fromList (concatMap (\vs -> zip vs orderedFreshVars) sharedVars)
+    let applyFreshVars = Subst.subst (Map.map ValExpr.cstrVar freshVarPerSharedVar) Map.empty
+    
+    -- Combine all ActOffers into a single new one:
+    let getNewActOffer = \(bd, td) -> let applyInitEqs = if List.elem td initializedBranches then id else doActOfferSubst (Map.fromList (tInitEqs td)) in
+                                        replaceVarsInActOffer freshVarPerSharedVar (applyInitEqs (bActOffer bd))
+    let newActOfferPerBExpr = map getNewActOffer dataPerBranch
+    
+    -- Replace variables in the ParamEqs:
+    let getNewParamEqs = \(bd, td) -> let applyInitEqs = if List.elem td initializedBranches then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty in
+                                      let vidDeclEqs = Map.map applyFreshVars (Map.map applyInitEqs (bParamEqs bd)) in
+                                        Map.insert (tInitFlag td) cstrTrue vidDeclEqs
+    let newParamEqsPerBExpr = map getNewParamEqs dataPerBranch
+    
+    -- Construct the new guard:
+    let getInitFlagValue = \flag -> if List.elem flag (map tInitFlag initializedBranches)
+                                    then ValExpr.cstrVar flag
+                                    else ValExpr.cstrNot (ValExpr.cstrVar flag)
+    let newGuard = ValExpr.cstrAnd (Set.fromList (g : map getInitFlagValue initFlags))
+    
+    -- Combine everything:
+    let newActOffer = addActOfferConjunct (foldl mergeActOffers (head newActOfferPerBExpr) (tail newActOfferPerBExpr)) newGuard
+    let newParamEqsWithoutInitFlags = Map.union (Map.unions newParamEqsPerBExpr) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
+    let newInitFlagValues = Map.fromSet (\_ -> cstrTrue) (Set.fromList (map (tInitFlag . snd) dataPerBranch))
+    let newParamEqs = Map.union newInitFlagValues newParamEqsWithoutInitFlags
+    let newProcInst = createProcInst (map (newParamEqs Map.!) (initFlags ++ newVidDecls))
+    
+    let newActionPref = actionPref newActOffer newProcInst
+    let hiddenChansPerBExpr = map (\(bd, _td) -> bHidChans bd) dataPerBranch
+    return (applyHide (Set.unions hiddenChansPerBExpr) newActionPref)
+-- createSyncedBranch
 
-synchronizeSucc :: Info -> [(BExprData, [(VarId.VarId, TxsDefs.VExpr)])] -> IOC.IOC [TxsDefs.BExpr]
-synchronizeSucc (_, [], _) _ = error "Unexpected input, missing initialization flag!"
-synchronizeSucc _ [] = return []
-synchronizeSucc _ [_] = return []
-synchronizeSucc (createProcInst, initFlag:newVidDecls, g) dataPerBExpr = do
-    let sharedChans = setIntersections (map (bChans . fst) dataPerBExpr)
-    if List.all (sharedChans ==) (map (bSyncedChans . fst) dataPerBExpr)
-    then do -- Create a fresh variable for shared communication variables that are related:
-            let sharedVars = map (\d -> concatMap (bOfferVarsPerChan (fst d) Map.!) sharedChans) dataPerBExpr
-            freshVarPerSharedVar <- createFreshVars (Set.fromList (head sharedVars))
-            let orderedFreshVars = map (freshVarPerSharedVar Map.!) (head sharedVars)
-            let freshVarSubst = Map.fromList (concatMap (\vs -> zip vs orderedFreshVars) sharedVars)
-            
-            -- Expand the substitution so that it contains conversions for all variables:
-            let allVars = concatMap (Set.toList . bVars . fst) dataPerBExpr
-            let allVarSubst = Map.union freshVarSubst (Map.fromList (zip allVars allVars))
-            let allVarValSubst = Map.map ValExpr.cstrVar allVarSubst
-            
-            -- Replace variables in the ActOffers:
-            let newActOfferPerBExpr = map (replaceVarsInActOffer allVarSubst . bActOffer . fst) dataPerBExpr
-            
-            -- Combine all ActOffers into a single new one:
-            let g' = ValExpr.cstrAnd (Set.fromList [ValExpr.cstrVar initFlag, g])
-            let newActOffer = addActOfferConjunct (foldl mergeActOffers (head newActOfferPerBExpr) (tail newActOfferPerBExpr)) g'
-            
-            -- Replace variables in the ParamEqs:
-            let getNewParamEqs = \(bexprData, _paramEqs) -> Map.map (Subst.subst allVarValSubst Map.empty) (bParamEqs bexprData)
-            let newParamEqsPerBExpr = map getNewParamEqs dataPerBExpr
-            
-            -- Merge all ParamEqs, and add all parameters that are not used by the synchronized processes:
-            let newParamEqs = Map.union (Map.unions newParamEqsPerBExpr) (Map.fromSet ValExpr.cstrVar (Set.fromList newVidDecls))
-            let newProcInst = createProcInst (cstrTrue:map (newParamEqs Map.!) newVidDecls)
-            
-            -- Combine into final result:
-            let allHiddenChans = Set.unions (map (bHiddenChans . fst) dataPerBExpr)
-            return [applyHide allHiddenChans (actionPref newActOffer newProcInst)]
-    else return []
--- synchronizeSucc
-
-createUnsyncedBranches :: Set.Set ChanId.ChanId -> Info -> [ProcInstData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
-createUnsyncedBranches synchronizedChans info procInstData = do
-    Set.unions <$> Monad.mapM doSingle procInstData
+leaveBranchesUnsynchronized :: Info -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
+leaveBranchesUnsynchronized info threadData = do
+    Set.unions <$> Monad.mapM doSingle threadData
   where
-    doSingle :: ProcInstData -> IOC.IOC (Set.Set TxsDefs.BExpr)
-    doSingle r = do
-        bexprDataList <- Monad.mapM (extractBExprData synchronizedChans) (Set.toList (fst r))
-        initBs <- Set.fromList <$> concat <$> Monad.mapM (\d -> unsynchronizeInit info (d, snd r)) bexprDataList
-        succBs <- Set.fromList <$> concat <$> Monad.mapM (\d -> unsynchronizeSucc info (d, snd r)) bexprDataList
+    doSingle :: ThreadData -> IOC.IOC (Set.Set TxsDefs.BExpr)
+    doSingle td = do
+        let branchData = Set.toList (tBranchData td)
+        initBs <- Set.fromList <$> Monad.mapM (\bd -> createUnsyncedBranch info (bd, td) False) branchData
+        succBs <- Set.fromList <$> Monad.mapM (\bd -> createUnsyncedBranch info (bd, td) True) branchData
         return (Set.union initBs succBs)
     -- doSingle
--- createUnsyncedBranches
+-- leaveBranchesUnsynchronized
 
-unsynchronizeInit :: Info -> (BExprData, [(VarId.VarId, TxsDefs.VExpr)]) -> IOC.IOC [TxsDefs.BExpr]
-unsynchronizeInit (_, [], _) _ = error "Unexpected input, missing initialization flag!"
-unsynchronizeInit (createProcInst, initFlag:newVidDecls, g) (bexprData, paramEqs) = do
-    let g' = ValExpr.cstrAnd (Set.fromList [ValExpr.cstrNot (ValExpr.cstrVar initFlag), g])
-    let newActOffer = addActOfferConjunct (bActOffer bexprData) g'
-    let newParamEqs = Map.map (Subst.subst (Map.fromList paramEqs) Map.empty) (bParamEqs bexprData)
-    let newParamEqs' = Map.union newParamEqs (Map.fromSet ValExpr.cstrVar (Set.fromList newVidDecls))
-    let newProcInst = createProcInst (cstrTrue:map (newParamEqs' Map.!) newVidDecls)
-    return [applyHide (bHiddenChans bexprData) (actionPref newActOffer newProcInst)]
--- unsynchronizeInit
-
-unsynchronizeSucc :: Info -> (BExprData, [(VarId.VarId, TxsDefs.VExpr)]) -> IOC.IOC [TxsDefs.BExpr]
-unsynchronizeSucc (_, [], _) _ = error "Unexpected input, missing initialization flag!"
-unsynchronizeSucc (createProcInst, initFlag:newVidDecls, g) (bexprData, _paramEqs) = do
-    let g' = ValExpr.cstrAnd (Set.fromList [ValExpr.cstrVar initFlag, g])
-    let newActOffer = addActOfferConjunct (bActOffer bexprData) g'
-    let newParamEqs = bParamEqs bexprData
-    let newParamEqs' = Map.union newParamEqs (Map.fromSet ValExpr.cstrVar (Set.fromList newVidDecls))
-    let newProcInst = createProcInst (cstrTrue:map (newParamEqs' Map.!) newVidDecls)
-    return [applyHide (bHiddenChans bexprData) (actionPref newActOffer newProcInst)]
--- unsynchronizeSucc
+createUnsyncedBranch :: Info -> (BranchData, ThreadData) -> Bool -> IOC.IOC TxsDefs.BExpr
+createUnsyncedBranch (createProcInst, initFlags, newVidDecls, g, _synchronizingChans) (bd, td) isInitialized = do
+    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrBoolEq isInitialized (ValExpr.cstrVar (tInitFlag td)), g])
+    let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
+    
+    -- Re-use existing ParamEqs if possible (Map.union is left-biased):
+    let newParamEqsWithoutInitFlags = Map.union (bParamEqs bd) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
+    let newInitFlagValues = Map.singleton (tInitFlag td) cstrTrue
+    let newParamEqs = Map.union newInitFlagValues newParamEqsWithoutInitFlags
+    let newProcInst = createProcInst (map (newParamEqs Map.!) (initFlags ++ newVidDecls))
+    
+    let newActionPref = actionPref newActOffer newProcInst
+    let applyInitEqs = if isInitialized then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
+    
+    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+-- createUnsyncedBranch
 
 
 

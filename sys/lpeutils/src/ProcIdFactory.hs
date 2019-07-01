@@ -28,8 +28,10 @@ unregisterProc
 
 import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
+import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified ProcId
 import qualified ChanId
@@ -40,16 +42,21 @@ import qualified TxsDefs
 
 -- Creates a fresh process id based on a given process id:
 createFreshProcIdFromProcId :: ProcId.ProcId -> IOC.IOC ProcId.ProcId
-createFreshProcIdFromProcId pid = iter (Text.unpack (ProcId.name pid)) 1
+createFreshProcIdFromProcId pid = do
+    let prefix = Text.unpack (ProcId.name pid)
+    tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
+    let usedNames = Set.map ProcId.name (Map.keysSet (TxsDefs.procDefs tdefs))
+    let uniqueName = getUniqueName usedNames (reverse (dropWhile Char.isDigit (reverse prefix))) 1
+    varUnid <- IOC.newUnid
+    return (pid { ProcId.name = uniqueName, ProcId.unid = varUnid })
   where
-    iter :: String -> Int -> IOC.IOC ProcId.ProcId
-    iter procName suffix = do
-        let procNameAttempt = Text.pack (procName ++ show suffix)
-        matchingProcs <- getProcsByName procNameAttempt
-        if Map.null matchingProcs
-        then do i <- IOC.newUnid
-                return (pid { ProcId.name = procNameAttempt, ProcId.unid = i })
-        else iter procName (suffix + 1)
+    getUniqueName :: Set.Set Text.Text -> String -> Int -> Text.Text
+    getUniqueName usedNames truePrefix nr =
+        let attempt = Text.pack (truePrefix ++ show nr) in
+          if Set.member attempt usedNames
+          then getUniqueName usedNames truePrefix (nr + 1)
+          else attempt
+    -- getUniqueName
 -- getProcIdFromName
 
 createFreshProcIdFromChansAndVars :: Text.Text -> [ChanId.ChanId] -> [VarId.VarId] -> ProcId.ExitSort -> IOC.IOC ProcId.ProcId

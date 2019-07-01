@@ -15,6 +15,8 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module VarFactory (
+getUsedNames,
+printUsedNameCount,
 createFreshVar,
 createFreshVarFromVar,
 createFreshVarFromPrefix,
@@ -38,12 +40,24 @@ import qualified SortOf
 import VarId
 import SortFactory
 
+getUsedNames :: IOC.IOC (Set.Set Text.Text)
+getUsedNames = TxsDefs.usedNames <$> MonadState.gets (IOC.tdefs . IOC.state)
+
+printUsedNameCount :: String -> IOC.IOC ()
+printUsedNameCount caption = do
+    tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
+    let usedNames = TxsDefs.usedNames tdefs
+    IOC.putInfo ["Used Name Count [" ++ caption ++ "] = " ++ show (Set.size usedNames)]
+-- printUsedNameCount
+
 -- Creates a variable of the specified sort, using the specified string as part of the name.
 createFreshVarFromPrefix :: String -> SortId.SortId -> IOC.IOC VarId.VarId
 createFreshVarFromPrefix prefix sort = do
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
     let usedNames = TxsDefs.usedNames tdefs
+    -- IOC.putInfo (map (\t -> "Name Already In Use = " ++ Text.unpack t) (Set.toList usedNames))
     let uniqueName = getUniqueName usedNames (reverse (dropWhile Char.isDigit (reverse prefix))) 1
+    -- IOC.putInfo ["New Unique Name (" ++ show (Set.size usedNames) ++ ") = " ++ Text.unpack uniqueName]
     let tdefs' = tdefs { TxsDefs.usedNames = Set.insert uniqueName usedNames }
     IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
     varUnid <- IOC.newUnid
