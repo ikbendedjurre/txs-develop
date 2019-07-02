@@ -1,4 +1,4 @@
-\chapter{Linearization algorithm}
+\chapter{Main algorithm}
 
 \section*{Introduction}
 
@@ -103,7 +103,7 @@ Among others, the absence of such recursion is a prerequisite for the terminatio
 
 In this phase, \lpeq{} will `merge' different processes.
 These processes may use the same variables for different purposes.
-To avoid conflicts in a lazy but foolproof manner, \lpeq{} first rewrites all involved processes so that each data parameter and each communication variables only occurs once (across processes).
+To avoid conflicts in a lazy but foolproof manner, \lpeq{} first rewrites all involved processes so that each data parameter and each communication variable only occurs once (across processes).
 
 \subsection{Updating process signatures}
 
@@ -142,7 +142,7 @@ This procedure terminates because the model does not contain infinite sequential
 
 \section{Linearizing expressions with threads}
 
-\subsection*{Current state of the model}
+\subsection{Current state of the model}
 
 By design, each thread process $P$ that is located on a leaf of the process dependency tree of the model in its current state is already (almost) linear: its body consists of a single \choice{} expression, and the choices consist of an action prefix followed by an instantiation of $P$, possibly nested in a \texttt{HIDE} expression.
 Only the last part violates the requirements for linearity.
@@ -155,7 +155,7 @@ These forms are:
 It will take specific actions to linearize choices of this form, of which $Q$ contains at least one.
 \end{itemize}
 
-\subsection*{General flow}
+\subsection{General flow}
 
 For each thread process $P$, \lpeq{} does the following:
 \begin{enumerate}[1.]
@@ -171,7 +171,6 @@ Linearization of the \pedi{} expression results in a number of new choices that 
 \lpeq{} extracts the order from the process dependency tree (see Section~\ref{procdeptree:section}): thread processes with a larger maximum distance to the root of the tree are processed \emph{before} thread processes with a smaller maximum distance to the root of the tree.
 
 A graphical overview of the procedure can also be found in Figure~\ref{pbranch-flow:fig}.
-Each step is described separately in the remaining sections of this chapter.
 
 \begin{figure}[!ht]
 \begin{center}
@@ -183,38 +182,26 @@ Each step is described separately in the remaining sections of this chapter.
 
 \subsection{Eliminating HIDE expressions}
 
-\lpeq{} gathers all channels that are hidden by the \texttt{HIDE} expressions of a thread process $P$.
+\lpeq{} eliminates \texttt{HIDE} expressions as follows:
+\begin{enumerate}[1.]
+\item \lpeq{} gathers all channels that are hidden by the \texttt{HIDE} expressions of a thread process $P$.
 For each hidden channel $C$, it creates a new data parameter $f_C$ for $P$ of sort \texttt{Bool}.
 $f_C$ can be interpreted as a flag that indicates whether $C$ is `currently' visible; in other words, $f_C$ is \texttt{True} if $C$ is visible, and $f_C$ is \texttt{False} if $C$ is hidden.
-
-Then \lpeq{} rewrites all choices in the body of $P$ as follows.
+\item Then \lpeq{} rewrites all choices in the body of $P$ as follows.
 If a choice has a \texttt{HIDE} expression, then the flags that correspond to the channels that are hidden by that \texttt{HIDE} expression are set to \texttt{False} in the process instantiation of that choice.
 All other flags keep their original values.
 The \texttt{HIDE} expression is removed.
-
-The new choices in the body of $P$ are rewritten as follows for each channel $c$ for which there exists a flag $f_c$.
-If the action prefix of a choice contains $c$, replace the choice by two new choices:
+\item The new choices in the body of $P$ are rewritten again for each channel $c$ for which there exists a flag $f_c$.
+If the action prefix of a choice contains $c$, that choice is replaced by two new choices:
 \begin{itemize}
 \item One in which $f_c \texttt{ == True}$ has been added to the guard, and in which $c$ is still visible.
 \item One in which $f_c \texttt{ == False}$ has been added to the guard, and in which $c$ has been removed (its parameter expressions become hidden parameter expressions).
 In the process instantiation of the choice, $f_c$ is set to \texttt{False}.
 \end{itemize}
 Note that a choice is replaced by $2^n$ new choices if it contains $n$ channels that were hidden anywhere in the original thread process $P$!
+\end{enumerate}
 
-\subsection{Linearizing Parallel}
+\subsection{Specific flows}
 
-
-
-\subsection{Linearizing Enable}
-
-\lpeq{} cannot handle this yet.
-
-\subsection{Linearizing Disable}
-
-\lpeq{} cannot handle this yet.
-
-\subsection{Linearizing Interrupt}
-
-\lpeq{} cannot handle this yet.
-
+How \pedi{} expressions are linearized is described in the next Chapter~\ref{pbranch-flows:chapter}.
 
