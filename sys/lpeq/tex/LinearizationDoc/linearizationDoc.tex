@@ -96,6 +96,10 @@
 \newcolumntype{Y}{>{\centering\arraybackslash}X}
 %----------------------------------------------------------
 \newcommand{\txs}{TorXakis}
+\newcommand{\lpeq}{LPEQ}
+\newcommand{\pedi}{Parallel / Enable / Disable / Interrupt}
+\newcommand{\choice}{\texttt{\#\#} / Choice}
+
 \newcommand{\mcrl}{mCRL2}
 \newcommand{\inlinecode}[1]{{\lstinline[language=torxakis]{#1}}}
 \newcommand{\istep}{\texttt{ISTEP}}
@@ -166,30 +170,16 @@
 %----------------------------------------------------------
 \begin{document}
 
-\title{Linearization of \txs{} processes}
+\title{LPEQ\\\large{A linearization algorithm for \txs{}}}
 \author{Djurre van der Wal}
 \date{\today}
 \maketitle
 \tableofcontents
 
-% \input{definitions}
-% \input{algorithm}
-
-\begin{figure}[!ht]
-\begin{center}
-\includegraphics[width=0.5\linewidth]{umlet/linearization-main-flow}
-\caption{Main flow.}
-%\label{lpedatastructure:fig}
-\end{center}
-\end{figure}
-
-\begin{figure}[!ht]
-\begin{center}
-\includegraphics[width=0.8\linewidth]{umlet/linearization-pbranch-flow}
-\caption{Main flow.}
-%\label{lpedatastructure:fig}
-\end{center}
-\end{figure}
+\input{introduction}
+%\input{preliminaries}
+\input{main-flow}
+%\input{pbranch-flows}
 
 \bibliographystyle{plainnat}
 \bibliography{biblio}
