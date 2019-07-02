@@ -47,7 +47,6 @@ type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be use
             , [VarId.VarId]                       -- Flag variables that indicate whether a child process has been initialized.
             , [VarId.VarId]                       -- Extra variables that the parent process will have to add to the process declaration.
             , TxsDefs.VExpr                       -- Guard.
-            , Set.Set ChanId.ChanId               -- Channels that are synchronized.
             )
 -- Info
 
@@ -65,44 +64,40 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     let allCidSets = Set.unions (map (Set.map bVizChans . tBranchData) dataPerThread)
     let (syncingCidSets, unsyncedCidSets) = Set.partition (\c -> Set.intersection c synchronizedChans /= Set.empty) allCidSets
     
-    -- Channel combinations that must synchronize require that
-    -- they synchronize on exactly the same channels:
-    let synchronizingChans = foldl Set.intersection synchronizedChans syncingCidSets
-    let syncedCidSets = Set.filter (\c -> Set.intersection c synchronizedChans == synchronizingChans) syncingCidSets
-    
-    let syncedBranchesPerThread = map (filterThreadData syncedCidSets) dataPerThread
-    let unsyncedBranchesPerThread = map (filterThreadData unsyncedCidSets) dataPerThread
+    -- Compute the minimum-sized sets of channels over which threads can synchronize:
+    let syncingCidMinSubSets = Set.map (Set.intersection synchronizedChans) syncingCidSets
     
     -- Set variable declarations required by the new branches:
     let initFlags = map tInitFlag dataPerThread
     let newVidDecls = concatMap (map fst . tInitEqs) dataPerThread
     
-    -- ...
-    let info = (createProcInst, initFlags, newVidDecls, g, synchronizingChans)
-    syncedBranches <- synchronizeOneBranchPerThread info syncedBranchesPerThread
-    unsyncedBranches <- leaveBranchesUnsynchronized info unsyncedBranchesPerThread
+    -- Construct new branches:
+    let info = (createProcInst, initFlags, newVidDecls, g)
+    syncedBranches <- Set.unions <$> Monad.mapM (synchronizeOneBranchPerThread info dataPerThread syncingCidSets) (Set.toList syncingCidMinSubSets)
+    unsyncedBranches <- leaveBranchesUnsynchronized info (map (filterThreadData unsyncedCidSets) dataPerThread)
     
     return (Set.union syncedBranches unsyncedBranches, initFlags ++ newVidDecls)
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
 -- Considers all lists consisting of one branch per thread.
 -- Synchronizes those branches.
-synchronizeOneBranchPerThread :: Info -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
-synchronizeOneBranchPerThread info threadData = buildList [] threadData
+synchronizeOneBranchPerThread :: Info -> [ThreadData] -> Set.Set (Set.Set ChanId.ChanId) -> Set.Set ChanId.ChanId -> IOC.IOC (Set.Set TxsDefs.BExpr)
+synchronizeOneBranchPerThread info dataPerThread syncingCidSets syncingCidMinSubSet = do
+    buildList [] (map (filterThreadData syncingCidSets) dataPerThread)
   where
     buildList :: [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
     buildList finalList [] = do
-        Set.fromList <$> Monad.mapM (createSyncedBranch info finalList) (List.subsequences (map snd finalList))
+        Set.fromList <$> Monad.mapM (createSyncedBranch info syncingCidMinSubSet finalList) (List.subsequences (map snd finalList))
     buildList listSoFar (td:remaining) = do
         Set.unions <$> Monad.mapM (\bd -> buildList (listSoFar ++ [(bd, td)]) remaining) (Set.toList (tBranchData td))
     -- buildList
 -- createSyncedBranches
 
 -- Constructs a new branch from a number of synchronizable branches.
-createSyncedBranch :: Info -> [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC TxsDefs.BExpr
-createSyncedBranch _ [] _ = error "There should be at least two elements"
-createSyncedBranch _ [_] _ = error "There should be at least two elements"
-createSyncedBranch (createProcInst, initFlags, newVidDecls, g, synchronizingChans) dataPerBranch initializedBranches = do
+createSyncedBranch :: Info -> Set.Set ChanId.ChanId -> [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC TxsDefs.BExpr
+createSyncedBranch _ _ [] _ = error "There should be at least two elements"
+createSyncedBranch _ _ [_] _ = error "There should be at least two elements"
+createSyncedBranch (createProcInst, initFlags, newVidDecls, g) synchronizingChans dataPerBranch initializedBranches = do
     -- Create a fresh variable for shared communication variables that are related:
     let sharedVars = map (\(bd, _td) -> concatMap (bOfferVarsPerChan bd Map.!) (Set.toList synchronizingChans)) dataPerBranch
     freshVars <- createFreshVars (Set.fromList (head sharedVars))
@@ -153,7 +148,7 @@ leaveBranchesUnsynchronized info threadData = do
 -- leaveBranchesUnsynchronized
 
 createUnsyncedBranch :: Info -> (BranchData, ThreadData) -> Bool -> IOC.IOC TxsDefs.BExpr
-createUnsyncedBranch (createProcInst, initFlags, newVidDecls, g, _synchronizingChans) (bd, td) isInitialized = do
+createUnsyncedBranch (createProcInst, initFlags, newVidDecls, g) (bd, td) isInitialized = do
     let newGuard = ValExpr.cstrAnd (Set.fromList [cstrBoolEq isInitialized (ValExpr.cstrVar (tInitFlag td)), g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
     
