@@ -14,7 +14,7 @@
 Associate all sequential expressions with a unique value of the program counter, and rewrite processes so that they become disjunctions of recursive process instantiations (typically in combination with an action prefix) and guarded \pedi{} expressions.
 \item Rewrite processes so that all recursive process instantiations have an action prefix (this is called `prefix resolution').
 \item Linearize \pedi{} expressions.
-So far, this has only been implemented for the Parallel expression.
+So far, this has only been developed for the Parallel expression.
 \end{enumerate}
 
 The phases can also be found in Figure~\ref{main-flow:fig}.
@@ -181,15 +181,40 @@ Each step is described separately in the remaining sections of this chapter.
 \end{center}
 \end{figure}
 
-\subsection{Eliminating Hide expressions}
+\subsection{Eliminating HIDE expressions}
+
+\lpeq{} gathers all channels that are hidden by the \texttt{HIDE} expressions of a thread process $P$.
+For each hidden channel $C$, it creates a new data parameter $f_C$ for $P$ of sort \texttt{Bool}.
+$f_C$ can be interpreted as a flag that indicates whether $C$ is `currently' visible; in other words, $f_C$ is \texttt{True} if $C$ is visible, and $f_C$ is \texttt{False} if $C$ is hidden.
+
+Then \lpeq{} rewrites all choices in the body of $P$ as follows.
+If a choice has a \texttt{HIDE} expression, then the flags that correspond to the channels that are hidden by that \texttt{HIDE} expression are set to \texttt{False} in the process instantiation of that choice.
+All other flags keep their original values.
+The \texttt{HIDE} expression is removed.
+
+The new choices in the body of $P$ are rewritten as follows for each channel $c$ for which there exists a flag $f_c$.
+If the action prefix of a choice contains $c$, replace the choice by two new choices:
+\begin{itemize}
+\item One in which $f_c \texttt{ == True}$ has been added to the guard, and in which $c$ is still visible.
+\item One in which $f_c \texttt{ == False}$ has been added to the guard, and in which $c$ has been removed (its parameter expressions become hidden parameter expressions).
+In the process instantiation of the choice, $f_c$ is set to \texttt{False}.
+\end{itemize}
+Note that a choice is replaced by $2^n$ new choices if it contains $n$ channels that were hidden anywhere in the original thread process $P$!
 
 \subsection{Linearizing Parallel}
 
+
+
 \subsection{Linearizing Enable}
+
+\lpeq{} cannot handle this yet.
 
 \subsection{Linearizing Disable}
 
+\lpeq{} cannot handle this yet.
+
 \subsection{Linearizing Interrupt}
 
+\lpeq{} cannot handle this yet.
 
 
