@@ -192,7 +192,7 @@ getDirectlyUsedParamsPerSummand summands params = Map.fromSet getDirectlyUsedPar
 constructDestSatExpr :: LPESummand -> VarId -> IOC.IOC (VarId, TxsDefs.VExpr)
 constructDestSatExpr summand param = do
     paramClone <- createFreshVarFromVar param
-    let eq = cstrAnd (Set.fromList [lpeSmdGuard summand, cstrEqual (cstrVar paramClone) ((lpeSmdEqs summand) Map.! param)])
+    let eq = cstrAnd (Set.fromList [lpeSmdGuard summand, cstrEqual (cstrVar paramClone) (lpeSmdEqs summand Map.! param)])
     -- IOC.putMsgs [ EnvData.TXS_CORE_ANY ("destSatExpr for " ++ (Text.unpack (VarId.name param)) ++ "/" ++ (Text.unpack (VarId.name paramClone)) ++ " is " ++ (showValExpr eq)) ]
     return (paramClone, eq)
 -- constructDestSatExpr

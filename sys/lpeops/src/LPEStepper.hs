@@ -65,16 +65,16 @@ stepLPE n lpe _out invariant = do
 -- stepLPE
 
 doLPESteps :: LPEPossibleSuccessorMap -> LPE -> LPEStates -> Int -> Int -> IOC.IOC ()
-doLPESteps possibleSuccessorMap lpe states n stepNr = do
+doLPESteps possibleSuccessorMap lpe states n stepNr =
     if n == 0
-    then IOC.putMsgs [ EnvData.TXS_CORE_ANY ("PASS") ]
+    then IOC.putMsgs [ EnvData.TXS_CORE_ANY "PASS" ]
     else do maybeNextStates <- getRandomNextStates possibleSuccessorMap lpe states
             case maybeNextStates of
               Just (stepSmd, stepSol, nextStates) -> do let (varsPerChan, hiddenVars) = getActOfferDataFromChanMap (lpeChanMap lpe) (lpeSmdChan stepSmd) (lpeSmdVars stepSmd)
                                                         IOC.putMsgs [ EnvData.TXS_CORE_ANY ("STEP " ++ show stepNr ++ " (" ++ show (List.elemIndex stepSmd (lpeSmdList lpe)) ++ "): " ++ showChans stepSol varsPerChan ++ showHiddenVars stepSol hiddenVars ++ " [" ++ show (Set.size states) ++ " -> " ++ show (Set.size nextStates) ++ "]") ]
                                                         --[" ++ List.intercalate "; " (map (\(_, v) -> showSummandIndexList lpe v) (Set.toList nextStates)) ++ "]") ]
                                                         doLPESteps possibleSuccessorMap lpe nextStates (n - 1) (stepNr + 1)
-              Nothing -> IOC.putMsgs [ EnvData.TXS_CORE_ANY ("DEADLOCK") ]
+              Nothing -> IOC.putMsgs [ EnvData.TXS_CORE_ANY "DEADLOCK" ]
   where
     showChans :: LPEParamEqs -> [(ChanId.ChanId, [VarId.VarId])] -> String
     showChans _ [] = "ISTEP"
@@ -116,7 +116,7 @@ getRandomNextStates possibleSuccessorMap lpe currentStates = do
     -- doTauClosureIter
     
     getSuccSummands :: [LPESummand] -> LPEState -> [LPESummand]
-    getSuccSummands smds (_, prevSmds) = List.intersect smds (Set.toList (possibleSuccessorMap Map.! prevSmds))
+    getSuccSummands smds (_, prevSmds) = smds `List.intersect` Set.toList (possibleSuccessorMap Map.! prevSmds)
     
     addPrevSmd :: [LPESummand] -> LPESummand -> [LPESummand]
     addPrevSmd prevSmds prevSmd =
@@ -152,14 +152,14 @@ getRandomNextStates possibleSuccessorMap lpe currentStates = do
     -- getRandomNextStep
     
     getStateAfterSummand :: LPESummand -> LPEParamEqs -> LPEState -> LPESummand -> IOC.IOC [LPEState]
-    getStateAfterSummand solSmd sol (state, prevSmds) candidate = do
+    getStateAfterSummand solSmd sol (state, prevSmds) candidate =
         if lpeSmdChan candidate /= lpeSmdChan solSmd
         then return []
         else do let solState = Map.union sol state
                 let varSubst = Map.fromList (zip (lpeSmdVars candidate) (map ValExpr.cstrVar (lpeSmdVars solSmd)))
                 guardAfterVarSubst <- doBlindSubst varSubst (lpeSmdGuard candidate)
                 guardAfterSolState <- doBlindSubst solState guardAfterVarSubst
-                someSol <- Sat.getSomeSolution2 guardAfterSolState Sat.defaultInvariant (Set.toList ((lpeSmdVarSet candidate) Set.\\ (lpeSmdVarSet solSmd)))
+                someSol <- Sat.getSomeSolution2 guardAfterSolState Sat.defaultInvariant (Set.toList (lpeSmdVarSet candidate Set.\\ lpeSmdVarSet solSmd))
                 case someSol of
                   SolveDefs.Solved someSolMap -> do --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Guard: " ++ showValExpr (lpeSmdGuard candidate)) ]
                                                     --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("guardAfterVarSubst: " ++ showValExpr guardAfterVarSubst) ]
@@ -183,7 +183,7 @@ getRandomNextStates possibleSuccessorMap lpe currentStates = do
 evalParamEqs :: LPEParamEqs -> IOC.IOC (Maybe LPEParamEqs)
 evalParamEqs eqs = do
     let eqsList = Map.toList eqs
-    newVals <- Monad.mapM simplifyExpr (map snd eqsList)
+    newVals <- Monad.mapM (simplifyExpr . snd) eqsList
     case concatEither newVals of
       Left errors -> do Monad.mapM_ (\m -> IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Error: " ++ m) ]) errors
                         return Nothing
@@ -191,7 +191,7 @@ evalParamEqs eqs = do
 -- evalParamEqs
 
 simplifyExpr :: TxsDefs.VExpr -> IOC.IOC (Either String TxsDefs.VExpr)
-simplifyExpr expr = do
+simplifyExpr expr =
     case expr of
       (ValExpr.view -> ValExpr.Vconst _) -> return (Right expr)
       _ -> do envb <- filterEnvCtoEnvB

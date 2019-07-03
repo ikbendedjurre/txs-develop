@@ -52,10 +52,10 @@ exclamToQuest bexpr = do
 -- exclamToQuest
 
 exclamToQst :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-exclamToQst currentBExpr = do
+exclamToQst currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst _pid _cids _vexprs) ->
-          do return currentBExpr
+          return currentBExpr
       (TxsDefs.view -> Guard g bexpr) ->
           do bexpr' <- exclamToQst bexpr
              return (guard g bexpr')

@@ -93,7 +93,7 @@ getNonDeterministicSummandGroup invariant summands = do
 
 -- Checks if the two given summands could be non-deterministic.
 areSummandsNonDeterministic :: TxsDefs.VExpr -> LPESummand -> LPESummand -> IOC.IOC Bool
-areSummandsNonDeterministic invariant summand1 summand2 = do
+areSummandsNonDeterministic invariant summand1 summand2 =
     -- Summands must use the same channel:
     if lpeSmdChan summand1 /= lpeSmdChan summand2
     then return False

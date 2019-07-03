@@ -41,6 +41,7 @@ newLPE
 
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified EnvCore as IOC
@@ -160,9 +161,7 @@ paramEqsLookup :: [VarId.VarId] -> LPEParamEqs -> [TxsDefs.VExpr]
 paramEqsLookup orderedParams paramEqs = map fromEqs orderedParams
   where
     fromEqs :: VarId.VarId -> TxsDefs.VExpr
-    fromEqs p = case paramEqs Map.!? p of
-                  Just e -> e
-                  Nothing -> error ("Could not find parameter \"" ++ Text.unpack (VarId.name p) ++ "\" in \"{" ++ List.intercalate ", " (map (Text.unpack . VarId.name) (Map.keys paramEqs)) ++ "}\"!")
+    fromEqs p = Maybe.fromMaybe (error ("Could not find parameter \"" ++ Text.unpack (VarId.name p) ++ "\" in \"{" ++ List.intercalate ", " (map (Text.unpack . VarId.name) (Map.keys paramEqs)) ++ "}\"!")) (paramEqs Map.!? p)
 -- paramEqsLookup
 
 selfLoopParamEqs :: Set.Set VarId.VarId -> LPEParamEqs

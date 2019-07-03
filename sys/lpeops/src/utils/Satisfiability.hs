@@ -57,21 +57,29 @@ defaultInvariant = cstrConst (Constant.Cbool True)
 useThreeValueLogic :: Bool
 useThreeValueLogic = False
 
+getSolution :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
+getSolution expr _invariant variables = do
+    smtEnv <- IOC.getSMT "current"
+    let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
+    let assertions = Solve.add expr Solve.empty
+    (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
+    IOC.putSMT "current" smtEnv'
+    case sol of
+      SolveDefs.Solved solMap -> return (buildSolution solMap variables)
+      otherResult -> return otherResult
+-- getSolution
+
+buildSolution :: Map.Map VarId Constant.Constant -> [VarId] -> SolveDefs.SolveProblem VarId
+buildSolution solMap variables = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
+
 getRandomSolution :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
-getRandomSolution expr _invariant variables = do
+getRandomSolution expr invariant variables =
     if null variables
     then case ValExpr.eval expr of
            Right (Constant.Cbool True) -> return (SolveDefs.Solved Map.empty)
            Right (Constant.Cbool False) -> return SolveDefs.Unsolvable
            Right _ -> error ("ERROR Not a boolean expression (\"" ++ showValExpr expr ++ "\")!")
-           Left _ -> do smtEnv <- IOC.getSMT "current"
-                        let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
-                        let assertions = Solve.add expr Solve.empty
-                        (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
-                        IOC.putSMT "current" smtEnv'
-                        case sol of
-                          SolveDefs.Solved solMap -> return (buildSolution solMap)
-                          otherResult -> return otherResult
+           Left _ -> getSolution expr invariant variables
     else do 
             smtEnv <- IOC.getSMT "current"
             parammap <- MonadState.gets IOC.params
@@ -81,40 +89,19 @@ getRandomSolution expr _invariant variables = do
             (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.randSolve randomizationSetting (Set.toList freeVars) assertions) smtEnv
             IOC.putSMT "current" smtEnv'
             case sol of
-              SolveDefs.Solved solMap -> return (buildSolution solMap)
+              SolveDefs.Solved solMap -> return (buildSolution solMap variables)
               otherResult -> return otherResult
-  where
-    buildSolution :: Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
-    buildSolution solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
 -- getRandomSolution
 
 getSomeSolution2 :: TxsDefs.VExpr -> TxsDefs.VExpr -> [VarId] -> IOC.IOC (SolveDefs.SolveProblem VarId)
-getSomeSolution2 expr _invariant variables = do
+getSomeSolution2 expr invariant variables =
     if null variables
     then case ValExpr.eval expr of
            Right (Constant.Cbool True) -> return (SolveDefs.Solved Map.empty)
            Right (Constant.Cbool False) -> return SolveDefs.Unsolvable
            Right _ -> error ("ERROR Not a boolean expression (\"" ++ showValExpr expr ++ "\")!")
-           Left _ -> do smtEnv <- IOC.getSMT "current"
-                        let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
-                        let assertions = Solve.add expr Solve.empty
-                        (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
-                        IOC.putSMT "current" smtEnv'
-                        case sol of
-                          SolveDefs.Solved solMap -> return (buildSolution solMap)
-                          otherResult -> return otherResult
-    else do 
-            smtEnv <- IOC.getSMT "current"
-            let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
-            let assertions = Solve.add expr Solve.empty
-            (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
-            IOC.putSMT "current" smtEnv'
-            case sol of
-              SolveDefs.Solved solMap -> return (buildSolution solMap)
-              otherResult -> return otherResult
-  where
-    buildSolution :: Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
-    buildSolution solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
+           Left _ -> getSolution expr invariant variables
+    else getSolution expr invariant variables
 -- getSomeSolution2
 
 -- Attempts to find a solution for the given expression.
@@ -133,7 +120,7 @@ getSomeSolution expr _invariant variables =
                     (sol1, _) <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars1) assertions1) smtEnv
                     case sol1 of
                       SolveDefs.Solved solMap -> do restoreTdefs tdefs
-                                                    return (buildSolution solMap)
+                                                    return (buildSolution solMap variables)
                       otherResult -> do restoreTdefs tdefs
                                         return otherResult
             else if useThreeValueLogic
@@ -152,16 +139,13 @@ getSomeSolution expr _invariant variables =
                              (sol2, _) <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars2) assertions2) smtEnv
                              case sol2 of
                                SolveDefs.Unsolvable -> do restoreTdefs tdefs
-                                                          return (buildSolution solMap)
+                                                          return (buildSolution solMap variables)
                                _ -> do restoreTdefs tdefs
                                        return SolveDefs.UnableToSolve
                            otherResult -> do restoreTdefs tdefs
                                              return otherResult
                  else do restoreTdefs tdefs
                          return SolveDefs.UnableToSolve
-  where
-    buildSolution :: Map.Map VarId Constant.Constant -> SolveDefs.SolveProblem VarId
-    buildSolution solMap = SolveDefs.Solved (Map.fromList (map (\v -> (v, solMap Map.! v)) variables))
 -- getSomeSolution
 
 -- Solves an expression only for the given variables; that is,

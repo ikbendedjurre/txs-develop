@@ -59,7 +59,7 @@ filterConstParamsWithSummand subst invariant constParams summand = do
 
 isConstParamForSummand :: Map.Map VarId.VarId TxsDefs.VExpr -> TxsDefs.VExpr -> LPESummand -> VarId.VarId -> IOC.IOC Bool
 isConstParamForSummand subst invariant summand testParam = do
-    let eqExpr = ValExpr.cstrEqual ((lpeSmdEqs summand) Map.! testParam) (ValExpr.cstrVar testParam)
+    let eqExpr = ValExpr.cstrEqual (lpeSmdEqs summand Map.! testParam) (ValExpr.cstrVar testParam)
     let expr = ValExpr.cstrITE (lpeSmdGuard summand) eqExpr (ValExpr.cstrConst (Constant.Cbool True))
     substExpr <- doBlindSubst subst expr
     Sat.isTautology substExpr invariant

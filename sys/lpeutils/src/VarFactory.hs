@@ -34,7 +34,7 @@ import qualified Data.Set as Set
 import qualified Data.Char as Char
 import qualified Data.Text as Text
 import qualified EnvCore as IOC
-import qualified TxsDefs as TxsDefs
+import qualified TxsDefs
 import qualified SortId
 import qualified SortOf
 import VarId

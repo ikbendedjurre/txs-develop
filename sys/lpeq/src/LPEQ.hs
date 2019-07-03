@@ -14,8 +14,6 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE ViewPatterns        #-}
-
 module LPEQ (
 lpeq
 ) where

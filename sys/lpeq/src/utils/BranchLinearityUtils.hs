@@ -88,10 +88,7 @@ isLinearBranch expectedPid currentBExpr =
         case innerExpr of
           (TxsDefs.view -> ActionPref _actOffer bexpr) ->
               case bexpr of
-                (TxsDefs.view -> ProcInst pid _ _) ->
-                    if pid /= expectedPid
-                    then ["Expected " ++ TxsShow.fshow expectedPid ++ " but found " ++ TxsShow.fshow pid ++ "!"]
-                    else []
+                (TxsDefs.view -> ProcInst pid _ _) -> ["Expected " ++ TxsShow.fshow expectedPid ++ " but found " ++ TxsShow.fshow pid ++ "!" | pid /= expectedPid]
                 _ -> ["ProcInst expected but found " ++ TxsShow.fshow innerExpr]
           _ -> ["ActionPref expected but found " ++ TxsShow.fshow innerExpr]
     -- checkInnerExpr
@@ -106,7 +103,7 @@ isLinearBExpr expectedPid bexpr = concatMap (isLinearBranch expectedPid) (Set.to
 -- Checks if the given expression is linear.
 -- If not, it prints debug information (input, output, and problems that were found).
 checkLinearBExpr :: ProcId.ProcId -> [TxsDefs.BExpr] -> TxsDefs.BExpr -> IOC.IOC ()
-checkLinearBExpr expectedPid preLinearizationBExprs postLinearizationBExpr = do
+checkLinearBExpr expectedPid preLinearizationBExprs postLinearizationBExpr =
     case isLinearBExpr expectedPid postLinearizationBExpr of
       [] -> return ()
       msgs -> do IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO "Linearization failure (1/4) ~~ Inputs:" ]
@@ -126,7 +123,7 @@ extractProcInstData :: TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [(VarId.
 extractProcInstData (TxsDefs.view -> ProcInst pid _ vexprs) = do
     r <- getProcById pid
     case r of
-      Just (ProcDef.ProcDef _cidDecls vidDecls body) -> do
+      Just (ProcDef.ProcDef _cidDecls vidDecls body) ->
           return (getBranches body, zip vidDecls vexprs)
       Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
 extractProcInstData currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")

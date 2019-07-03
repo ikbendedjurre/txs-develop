@@ -72,10 +72,10 @@ ensureFreshProcsInBExpr bexpr = do
 -- ensureFreshProcsInBExpr
 
 replacePidsInBExpr :: Map.Map TxsDefs.ProcId TxsDefs.ProcId -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-replacePidsInBExpr freshPidMap currentBExpr = do
+replacePidsInBExpr freshPidMap currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
-          do return (procInst (freshPidMap Map.! pid) cids vexprs)
+          return (procInst (freshPidMap Map.! pid) cids vexprs)
       (TxsDefs.view -> Guard g bexpr) ->
           do bexpr' <- replacePidsInBExpr freshPidMap bexpr
              return (guard g bexpr')
@@ -104,7 +104,7 @@ replacePidsInBExpr freshPidMap currentBExpr = do
           do bexpr' <- replacePidsInBExpr freshPidMap bexpr
              return (actionPref actOffer bexpr')
       (TxsDefs.view -> ValueEnv _venv bexpr) ->
-          do replacePidsInBExpr freshPidMap bexpr
+          replacePidsInBExpr freshPidMap bexpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
@@ -116,7 +116,7 @@ ensureDistinguishableThreads threads = do
     return newThreads
   where
     addThread :: ([TxsDefs.BExpr], Set.Set ProcId.ProcId) -> TxsDefs.BExpr -> IOC.IOC ([TxsDefs.BExpr], Set.Set ProcId.ProcId)
-    addThread (soFar, visitedProcs) bexpr@(TxsDefs.view -> ProcInst pid cids vexprs) = do
+    addThread (soFar, visitedProcs) bexpr@(TxsDefs.view -> ProcInst pid cids vexprs) =
         if Set.member pid visitedProcs
         then do r <- getProcById pid
                 case r of
@@ -147,8 +147,7 @@ ensureFreshVarsInBranch subst currentBExpr = do
     let (nonHiddenBExpr, hiddenChans) = removeHide currentBExpr
     case nonHiddenBExpr of
       (TxsDefs.view -> ActionPref actOffer bexpr) -> do
-          let (vizVars, hidVars) = getActOfferVars actOffer
-          actOfferSubst <- createFreshVars (Set.union vizVars hidVars)
+          actOfferSubst <- createFreshVars (getActOfferVarSet actOffer)
           let subst' = Map.union actOfferSubst subst
           let actOffer' = replaceVarsInActOffer subst' actOffer
           let bexpr' = Subst.subst (Map.map ValExpr.cstrVar subst') Map.empty bexpr
@@ -180,7 +179,7 @@ replaceVidsInBExpr subst currentBExpr = do
     let applySubst f = Subst.subst (Map.map ValExpr.cstrVar f) Map.empty
     case currentBExpr of
       (TxsDefs.view -> ProcInst {}) ->
-          do return (applySubst subst currentBExpr)
+          return (applySubst subst currentBExpr)
       (TxsDefs.view -> Guard g bexpr) ->
           do bexpr' <- replaceVidsInBExpr subst bexpr
              return (guard (applySubst subst g) bexpr')
@@ -208,8 +207,7 @@ replaceVidsInBExpr subst currentBExpr = do
              bexpr2' <- replaceVidsInBExpr subst bexpr2
              return (interrupt bexpr1' bexpr2')
       (TxsDefs.view -> ActionPref actOffer bexpr) ->
-          do let (vizVars, hidVars) = getActOfferVars actOffer
-             actOfferSubst <- createFreshVars (Set.union vizVars hidVars)
+          do actOfferSubst <- createFreshVars (getActOfferVarSet actOffer)
              let subst' = Map.union actOfferSubst subst
              bexpr' <- replaceVidsInBExpr subst' bexpr
              return (actionPref (replaceVarsInActOffer subst' actOffer) bexpr')
@@ -217,7 +215,7 @@ replaceVidsInBExpr subst currentBExpr = do
           do venvSubst <- createFreshVars (Map.keysSet venv)
              let subst' = Map.union venvSubst subst
              bexpr' <- replaceVidsInBExpr subst' bexpr
-             let applySubstToVEnv = \ve -> Map.fromList (map (\(k, v) -> (subst' Map.! k, applySubst subst' v)) (Map.toList ve))
+             let applySubstToVEnv ve = Map.fromList (map (\(k, v) -> (subst' Map.! k, applySubst subst' v)) (Map.toList ve))
              return (valueEnv (applySubstToVEnv venv) bexpr')
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...

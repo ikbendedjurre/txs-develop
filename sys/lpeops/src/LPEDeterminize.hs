@@ -39,6 +39,10 @@ import VarFactory
 -- import LPEValidity
 
 -- Makes the LPE deterministic by delaying non-deterministic choices by one step until a fixpoint is reached.
+--
+-- ******** IMPORTANT ********
+--        Contains bugs
+-- ***************************
 determinizeLPE :: LPEOperation
 determinizeLPE lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<det>>" ]
@@ -115,7 +119,7 @@ doDetIteration invariant lpe = do
         guard2'' <- doConfidentSubst summand2 (Map.map ValExpr.cstrVar chanVar3PerChanVar2) (lpeSmdGuard summand2)
         let guard3 = ValExpr.cstrAnd (Set.fromList [disableGuard, guard1'', guard2''])
         let vars3 = Set.union (Set.fromList chanVars3) (Set.fromList (FreeVar.freeVars guard3))
-        let newSummand3 = LPESummand { lpeSmdVars = (vars3 Set.\\ lpeParams lpe) Set.\\ (Set.insert nonDetFlagVar params)
+        let newSummand3 = LPESummand { lpeSmdVars = (vars3 Set.\\ lpeParams lpe) Set.\\ Set.insert nonDetFlagVar params
                                      , lpeSmdOffers = Map.map (map (\v -> chanVar3PerChanVar1 Map.! v)) (lpeSmdOffers summand1)
                                      , lpeSmdGuard = guard3
                                      , lpeSmdEqs =

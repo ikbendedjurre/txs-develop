@@ -22,6 +22,7 @@ flattenChannels
 
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad as Monad
@@ -67,7 +68,7 @@ flattenChannels allChanIds bexpr = do
 
 -- Finds all signatures of process instantiations in the given behavioral expression.
 getSignatures :: Map.Map ChanId.ChanId ChanId.ChanId -> Set.Set ProcInstSignature -> TxsDefs.BExpr -> IOC.IOC (Set.Set ProcInstSignature)
-getSignatures chanMap soFar currentBExpr = do
+getSignatures chanMap soFar currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids _vexprs) ->
           do let cids' = doChansWithError (show currentBExpr) chanMap cids
@@ -81,13 +82,13 @@ getSignatures chanMap soFar currentBExpr = do
                            getSignatures chanMap' (Set.insert sig soFar) body
                        Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
       (TxsDefs.view -> Guard _g bexpr) ->
-          do getSignatures chanMap soFar bexpr
+          getSignatures chanMap soFar bexpr
       (TxsDefs.view -> Choice bexprs) ->
-          do Monad.foldM (getSignatures chanMap) soFar (Set.toList bexprs)
+          Monad.foldM (getSignatures chanMap) soFar (Set.toList bexprs)
       (TxsDefs.view -> Parallel _cidSet bexprs) ->
-          do Monad.foldM (getSignatures chanMap) soFar bexprs
+          Monad.foldM (getSignatures chanMap) soFar bexprs
       (TxsDefs.view -> Hide _cidSet bexpr) ->
-          do -- Maybe use information that HIDE gives us...?
+          -- Maybe use information that HIDE gives us...?
              getSignatures chanMap soFar bexpr
       (TxsDefs.view -> Enable bexpr1 _acceptOffers bexpr2) ->
           do soFar' <- getSignatures chanMap soFar bexpr1
@@ -99,9 +100,9 @@ getSignatures chanMap soFar currentBExpr = do
           do soFar' <- getSignatures chanMap soFar bexpr1
              getSignatures chanMap soFar' bexpr2
       (TxsDefs.view -> ActionPref _actOffer bexpr) ->
-          do getSignatures chanMap soFar bexpr
+          getSignatures chanMap soFar bexpr
       (TxsDefs.view -> ValueEnv _venv bexpr) ->
-          do getSignatures chanMap soFar bexpr
+          getSignatures chanMap soFar bexpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
@@ -109,7 +110,7 @@ getSignatures chanMap soFar currentBExpr = do
 
 -- This method does not require a Monad; we leave it like this in case that changes.
 replacePidsInBExpr :: [ChanId.ChanId] -> Map.Map ChanId.ChanId ChanId.ChanId -> Map.Map ProcInstSignature TxsDefs.ProcId -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr = do
+replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
           do let cids' = doChansWithError (show currentBExpr) chanMap cids
@@ -145,23 +146,22 @@ replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr = do
           do bexpr' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr
              return (actionPref (doActOffer chanMap actOffer) bexpr')
       (TxsDefs.view -> ValueEnv _venv bexpr) ->
-          do replacePidsInBExpr allChanIds chanMap freshPidMap bexpr
+          replacePidsInBExpr allChanIds chanMap freshPidMap bexpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- replacePidsInBExpr
 
 doChansWithError :: String -> Map.Map ChanId.ChanId ChanId.ChanId -> [ChanId.ChanId] -> [ChanId.ChanId]
-doChansWithError location chanMap cids = map (doChanWithError location chanMap) cids
+doChansWithError location chanMap = map (doChanWithError location chanMap)
 
 doChanSetWithError :: String -> Map.Map ChanId.ChanId ChanId.ChanId -> Set.Set ChanId.ChanId -> Set.Set ChanId.ChanId
-doChanSetWithError location chanMap cidSet = Set.map (doChanWithError location chanMap) cidSet
+doChanSetWithError location chanMap = Set.map (doChanWithError location chanMap)
 
 doChanWithError :: String -> Map.Map ChanId.ChanId ChanId.ChanId -> ChanId.ChanId -> ChanId.ChanId
 doChanWithError _location chanMap cid =
-    case chanMap Map.!? cid of
-      Just newCid -> newCid
-      Nothing -> cid -- error ("Could not find " ++ Text.unpack (ChanId.name cid) ++ " in " ++ showChanMap chanMap ++ " (location = " ++ location ++ ")!")
+    Maybe.fromMaybe cid (chanMap Map.!? cid)
+    -- Maybe.fromMaybe (error ("Could not find " ++ Text.unpack (ChanId.name cid) ++ " in " ++ showChanMap chanMap ++ " (location = " ++ location ++ ")!")) (chanMap Map.!? cid)
 -- doChanWithError
 
 showSigMap :: Map.Map ProcInstSignature TxsDefs.ProcId -> String

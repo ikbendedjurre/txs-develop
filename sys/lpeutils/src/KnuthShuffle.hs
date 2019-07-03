@@ -19,11 +19,10 @@ knuthShuffle
 ) where
 
 import System.Random
-import Control.Monad
 
 -- From https://rosettacode.org/wiki/Knuth_shuffle#Haskell
 replaceAt :: Int -> a -> [a] -> [a]
-replaceAt i c l = let (a,b) = splitAt i l in a++c:(drop 1 b)
+replaceAt i c l = let (a,b) = splitAt i l in a++c:drop 1 b
 
 swapElems :: (Int, Int) -> [a] -> [a]
 swapElems (i,j) xs | i==j = xs
@@ -31,7 +30,7 @@ swapElems (i,j) xs | i==j = xs
 
 knuthShuffle :: [a] -> IO [a]
 knuthShuffle xs =
-    liftM (foldr swapElems xs. zip [1..]) (mkRands (length xs))
+    fmap (foldr swapElems xs. zip [1..]) (mkRands (length xs))
   where
     mkRands = mapM (randomRIO.(,) 0) . enumFromTo 1 . pred
 -- knuthShuffle

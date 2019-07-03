@@ -31,7 +31,7 @@ mapPairs :: (a -> b -> c) -> [a] -> [b] -> [c]
 mapPairs f xs ys = [ f x y | x <- xs, y <- ys ]
 
 mapPairsM :: Monad.Monad m => (a -> b -> m c) -> [a] -> [b] -> m [c]
-mapPairsM f xs ys = mapWithFuncM f (\_ -> ys) xs
+mapPairsM f xs ys = mapWithFuncM f (const ys) xs
 
 mapWithFunc :: (a -> b -> c) -> (a -> [b]) -> [a] -> [c]
 mapWithFunc f g xs = concat [ [ f x y | y <- g x ] | x <- xs ]
@@ -50,10 +50,10 @@ mapWithFuncM f g (x:xs) = iter (x:xs) (g x)
 -- mapWithFuncM
 
 searchPairs :: (a -> b -> Maybe c) -> [a] -> [b] -> Maybe c
-searchPairs f xs ys = searchWithFunc f (\_ -> ys) xs
+searchPairs f xs ys = searchWithFunc f (const ys) xs
 
 searchPairsM :: Monad.Monad m => (a -> b -> m (Maybe c)) -> [a] -> [b] -> m (Maybe c)
-searchPairsM f xs ys = searchWithFuncM f (\_ -> ys) xs
+searchPairsM f xs ys = searchWithFuncM f (const ys) xs
 
 searchWithFunc :: (a -> b -> Maybe c) -> (a -> [b]) -> [a] -> Maybe c
 searchWithFunc _ _ [] = Nothing

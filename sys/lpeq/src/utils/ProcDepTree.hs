@@ -69,7 +69,7 @@ getProcDepTreeProblems startBExpr = do
     if null problems
     then return []
     else do let problemsStrs = ["Encountered problems while constructing process dependency tree:"] ++ map ("|-" ++) (List.init problems) ++ ["\\-" ++ List.last problems]
-            let treeStrs = ["Process dependency tree:"] ++ showProcDepTree "" "" tree
+            let treeStrs = "Process dependency tree:" : showProcDepTree "" "" tree
             procStrs <- showProcsInBExpr startBExpr
             return (problemsStrs ++ treeStrs ++ procStrs)
   where
@@ -88,25 +88,22 @@ getProcDepTree = buildTree Uninitialized [] Set.empty Set.empty
 buildTree :: ProcDepTree -> [ProcId.ProcId] -> Set.Set ProcId.ProcId -> Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC ProcDepTree
 buildTree tree@(Circular _) _ _ _ _ = error ("Should not be extending a circular tree (\"" ++ show tree ++ "\")!")
 buildTree tree@(InfiniteLoop _) _ _ _ _ = error ("Should not be extending an infinite-loop tree (\"" ++ show tree ++ "\")!")
-buildTree tree pbStack sbSetPostAct sbSet currentBExpr = do
+buildTree tree pbStack sbSetPostAct sbSet currentBExpr =
     case currentBExpr of
-      (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
-          do -- Detect (and avoid) infinite recursion:
-             if List.elem pid pbStack
-             then return (Circular pid)
-             else do if Set.member pid sbSetPostAct
-                     then return tree
-                     else if Set.member pid sbSet
-                          then return (addDependency tree pbStack (InfiniteLoop pid))
-                          else do r <- getProcById pid
-                                  case r of
-                                    Just (ProcDef.ProcDef _cids _vids body) ->
-                                        case tree of
-                                          (Branch ownerPid dependencies) -> buildTree (Branch ownerPid dependencies) pbStack sbSetPostAct (Set.insert pid sbSet) body
-                                          -- This is the first process instantiation of the current branch (_ can only be Uninitialized), and so
-                                          -- we adopt the process id as the 'owner' of the branch:
-                                          _ -> buildTree (Branch pid []) pbStack Set.empty (Set.singleton pid) body
-                                    Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
+      (TxsDefs.view -> ProcInst pid _cids _vexprs)
+            -- Detect (and avoid) infinite recursion:
+          | pid `List.elem` pbStack -> return (Circular pid)
+          | Set.member pid sbSetPostAct -> return tree
+          | Set.member pid sbSet -> return (addDependency tree pbStack (InfiniteLoop pid))
+          | otherwise -> do r <- getProcById pid
+                            case r of
+                              Just (ProcDef.ProcDef _cids _vids body) ->
+                                  case tree of
+                                    (Branch ownerPid dependencies) -> buildTree (Branch ownerPid dependencies) pbStack sbSetPostAct (Set.insert pid sbSet) body
+                                    -- This is the first process instantiation of the current branch (_ can only be Uninitialized), and so
+                                    -- we adopt the process id as the 'owner' of the branch:
+                                    _ -> buildTree (Branch pid []) pbStack Set.empty (Set.singleton pid) body
+                              Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
       (TxsDefs.view -> Guard _guard bexpr) ->
           buildTree tree pbStack sbSetPostAct sbSet bexpr
       (TxsDefs.view -> ActionPref _offer bexpr) ->

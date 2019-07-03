@@ -183,7 +183,7 @@ summand2summand (lpeProcName, lpeProc) orderedParams summand = do
     actionVars <- Monad.mapM createFreshVar (lpeSmdVars summand)
     -- Create actions (with their arguments):
     newActionExpr <- if lpeSmdChan summand == TxsDefs.chanIdIstep
-                     then do
+                     then
                              --lift $ IOC.putMsgs [ EnvData.TXS_CORE_ANY "WARNING: Found summand without action offers, fixed format by inserting tau" ]
                              return (MCRL2Defs.PAction MCRL2Defs.ATau)
                      else do -- actions <- Monad.mapM channelOffer2action (Map.toList (lpeSmdOffers summand))

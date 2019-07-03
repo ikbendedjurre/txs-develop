@@ -83,7 +83,7 @@ getProcById procId = do
     envc <- MonadState.get
     case IOC.state envc of
       IOC.Initing { IOC.tdefs = tdefs } ->
-        return ((TxsDefs.procDefs tdefs) Map.!? procId)
+        return (TxsDefs.procDefs tdefs Map.!? procId)
       _ -> return Nothing
 -- getProcById
 
@@ -108,7 +108,7 @@ getMsgOrProcFromName procName = do
            let matchingProcs = Map.filterWithKey (\(TxsDefs.ProcId n _ _ _ _) _ -> n == procName) procDefs
            if matchingProcs == Map.empty
            then return (Left ("Expected " ++ List.intercalate " or " (map (Text.unpack . ProcId.name) (Map.keys procDefs)) ++ ", found " ++ Text.unpack procName ++ "!"))
-           else return (Right (Map.toList matchingProcs !! 0))
+           else return (Right (head (Map.toList matchingProcs)))
       _ -> return (Left "TorXakis core is not initialized!")
 -- getMsgOrProcFromName
 

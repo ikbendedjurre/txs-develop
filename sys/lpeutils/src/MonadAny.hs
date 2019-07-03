@@ -27,7 +27,7 @@ import qualified Control.Monad as Monad
 anyM :: (Foldable t, Monad m) => (a -> m Bool) -> t a -> m Bool
 anyM f = Monad.foldM iter False
   where
-    iter soFar current = do
+    iter soFar current =
         if soFar
         then return True
         else f current
@@ -36,7 +36,7 @@ anyM f = Monad.foldM iter False
 allM :: (Foldable t, Monad m) => (a -> m Bool) -> t a -> m Bool
 allM f = Monad.foldM iter True
   where
-    iter soFar current = do
+    iter soFar current =
         if soFar
         then f current
         else return False
@@ -45,8 +45,7 @@ allM f = Monad.foldM iter True
 binaryOpM :: (Monad m) => (a -> b -> c) -> m a -> m b -> m c
 binaryOpM f lhs rhs = do
     x <- lhs
-    y <- rhs
-    return (f x y)
+    f x <$> rhs
 -- andM
 
 andM :: (Monad m) => m Bool -> m Bool -> m Bool

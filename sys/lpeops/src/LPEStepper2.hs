@@ -14,8 +14,8 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ViewPatterns        #-}
+-- {-# LANGUAGE RecordWildCards #-}
+-- {-# LANGUAGE ViewPatterns        #-}
 module LPEStepper2 (
 stepLPE
 ) where
@@ -54,7 +54,7 @@ import LPETypes
 stepLPE :: Int -> LPEOperation
 stepLPE n lpe _out _invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY ("<<step2 " ++ show n ++ ">>") ]
-    IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Computing possible successor map...") ]
+    IOC.putMsgs [ EnvData.TXS_CORE_ANY "Computing possible successor map..." ]
     -- possibleSuccessorMap <- getPossibleSuccessorMap lpe (ValExpr.cstrConst (Constant.Cbool True))
     -- doLPESteps lpe (Set.singleton (lpeInitEqs lpe)) Nothing possibleSuccessorMap n 1
     return (Right lpe)

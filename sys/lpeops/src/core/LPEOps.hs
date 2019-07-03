@@ -99,7 +99,7 @@ lpeOperation ops i (LPEOpLoop n:xs) (lpe:ys) out invariant =
     then lpeOperation ops i xs (lpe:ys) out invariant
     else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("<<loop*" ++ show (n - i - 1) ++ ">>") ]
             lpeOperation ops (i + 1) ops (lpe:lpe:ys) out invariant
-lpeOperation ops i (LPEOpLoopInf:xs) (lpe:ys) out invariant = do
+lpeOperation ops i (LPEOpLoopInf:xs) (lpe:ys) out invariant =
     if lpe `elem` ys
     then lpeOperation ops i xs (lpe:ys) out invariant
     else do IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<loop>>" ]
@@ -158,7 +158,7 @@ getLPEOperation opName = case opName of
                            "show*" -> Right (LPEOps.LPEOp LPEOps.printAbbrevLPE)
                            "export" -> Right (LPEOps.LPEOp LPEOps.exportLPE)
                            "export*" -> Right (LPEOps.LPEOp LPEOps.exportAbbrevLPE)
-                           "loop" -> Right (LPEOps.LPEOpLoopInf)
+                           "loop" -> Right LPEOps.LPEOpLoopInf
                            'l':'o':'o':'p':'*':xs -> case Read.readMaybe xs of
                                                        Just n -> Right (LPEOps.LPEOpLoop n)
                                                        Nothing -> Left ("Invalid operand in LPE operation (" ++ xs ++ ")!")

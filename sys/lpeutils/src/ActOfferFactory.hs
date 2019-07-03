@@ -21,6 +21,7 @@ replaceVarsInOffer,
 replaceVarsInChanOffer,
 getOfferVarsPerChan,
 getActOfferVars,
+getActOfferVarSet,
 getOfferVars,
 getChanOfferVar,
 getActOfferChans,
@@ -62,6 +63,9 @@ getOfferVarsPerChan actOffer = Map.fromList (map (\o -> (TxsDefs.chanid o, getOf
 
 getActOfferVars :: TxsDefs.ActOffer -> (Set.Set VarId.VarId, Set.Set VarId.VarId)
 getActOfferVars actOffer = (Set.fromList (concatMap getOfferVars (TxsDefs.offers actOffer)), TxsDefs.hiddenvars actOffer)
+
+getActOfferVarSet :: TxsDefs.ActOffer -> Set.Set VarId.VarId
+getActOfferVarSet actOffer = let (vizVars, hidVars) = getActOfferVars actOffer in Set.union vizVars hidVars
 
 getOfferVars :: TxsDefs.Offer -> [VarId.VarId]
 getOfferVars offer = map getChanOfferVar (TxsDefs.chanoffers offer)

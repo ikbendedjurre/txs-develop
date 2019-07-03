@@ -77,16 +77,16 @@ validateLPE :: LPE -> [String]
 validateLPE = Val.validateLPEModel
 
 tryLPEOperation :: LPEOperation -> LPE -> LPE -> IO ()
-tryLPEOperation op input expected = do
+tryLPEOperation op input expected =
     case validateLPE input of
-      [] -> do case validateLPE expected of
-                 [] -> do env <- createTestEnvC
-                          msgsOrFound <- evalStateT (op input "Out" (cstrConst (Cbool True))) env
-                          case msgsOrFound of
-                            Left msgs -> assertBool ("\nCould not produce output LPE:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
-                            Right found -> do equivalent <- evalStateT (isEquivalentLPE found expected (cstrConst (Cbool True))) env
-                                              assertBool (printInputExpectedFound input expected found) equivalent
-                 msgs -> assertBool ("\nInvalid expected LPE:\n\n" ++ showLPE expected ++ "\nProblems:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
+      [] -> case validateLPE expected of
+              [] -> do env <- createTestEnvC
+                       msgsOrFound <- evalStateT (op input "Out" (cstrConst (Cbool True))) env
+                       case msgsOrFound of
+                         Left msgs -> assertBool ("\nCould not produce output LPE:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
+                         Right found -> do equivalent <- evalStateT (isEquivalentLPE found expected (cstrConst (Cbool True))) env
+                                           assertBool (printInputExpectedFound input expected found) equivalent
+              msgs -> assertBool ("\nInvalid expected LPE:\n\n" ++ showLPE expected ++ "\nProblems:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
       msgs -> assertBool ("\nInvalid input LPE:\n\n" ++ showLPE input ++ "\nProblems:\n\n" ++ List.intercalate "\n" msgs ++ "\n") False
 -- tryLPEOperation
 

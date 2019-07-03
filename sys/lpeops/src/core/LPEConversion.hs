@@ -14,7 +14,7 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE ViewPatterns        #-}
+-- {-# LANGUAGE ViewPatterns        #-}
 module LPEConversion (
 model2lpe,
 lpe2model,
@@ -154,7 +154,7 @@ refineSummandData summandData = do
         let allHiddenVids = hiddenVidsPerChan Map.! cids
         newHiddenVids <- Monad.mapM (makeFreshUnlessInSet (TxsDefs.hiddenvars actOffer)) allHiddenVids
         let matches = Map.filter (\(k, _, _) -> k == cids) chanMap
-        let freshChanId = Map.keys matches !! 0
+        let freshChanId = head (Map.keys matches)
         return (freshChanId, getVisibleVars actOffer ++ newHiddenVids, TxsDefs.constraint actOffer, paramEqs)
     -- getRefinedSummandData
     
@@ -169,7 +169,7 @@ refineSummandData summandData = do
     getVisibleVar _ = []
     
     makeFreshUnlessInSet :: Set.Set VarId.VarId -> VarId.VarId -> IOC.IOC VarId.VarId
-    makeFreshUnlessInSet varSet vid = do
+    makeFreshUnlessInSet varSet vid =
         if Set.member vid varSet
         then return vid
         else createFreshVarFromVar vid
@@ -180,7 +180,7 @@ refineSummandData summandData = do
 -- In other words: summands may not share communication variables!
 -- Also removes occurrences of invisible channels (ISTEP).
 ensureFreshCommVars :: [(TxsDefs.ActOffer, LPEParamEqs)] -> IOC.IOC [(TxsDefs.ActOffer, LPEParamEqs)]
-ensureFreshCommVars summandData = Monad.mapM ensureInSummand summandData
+ensureFreshCommVars = Monad.mapM ensureInSummand
   where
     ensureInSummand :: (TxsDefs.ActOffer, LPEParamEqs) -> IOC.IOC (TxsDefs.ActOffer, LPEParamEqs)
     ensureInSummand (actOffer, paramEqs) = do
@@ -190,14 +190,14 @@ ensureFreshCommVars summandData = Monad.mapM ensureInSummand summandData
         let freshVidSubst = Map.map ValExpr.cstrVar (Map.union freshVizVidSubst freshHiddenVidSubst)
         newConstraint <- doBlindSubst freshVidSubst (TxsDefs.constraint actOffer)
         newParamEqs <- doBlindParamEqsSubst freshVidSubst paramEqs
-        return (TxsDefs.ActOffer { TxsDefs.offers = Set.fromList (newOffers)
+        return (TxsDefs.ActOffer { TxsDefs.offers = Set.fromList newOffers
                                  , TxsDefs.hiddenvars = Set.fromList (Map.elems freshHiddenVidSubst)
                                  , TxsDefs.constraint = newConstraint
                                  }, newParamEqs)
     -- ensureInSummand
     
     ensureInOffer :: TxsDefs.Offer -> IOC.IOC ([TxsDefs.Offer], [(VarId.VarId, VarId.VarId)])
-    ensureInOffer offer = do
+    ensureInOffer offer =
         if isInvisibleOffer offer
         then return ([], []) -- Invisible offers cannot have communication variables.
                              -- Furthermore, we argue that A|ISTEP == A.
@@ -216,7 +216,7 @@ ensureFreshCommVars summandData = Monad.mapM ensureInSummand summandData
 
 -- Only keeps data from summands that use a channel that is in the given channel alphabet.
 filterSummandDataByChanAlphabet :: Set.Set (Set.Set ChanId.ChanId) -> [(TxsDefs.ActOffer, LPEParamEqs)] -> [(TxsDefs.ActOffer, LPEParamEqs)]
-filterSummandDataByChanAlphabet chanAlphabet summandData = filter (\(a, _) -> isActOfferInChanAlphabet chanAlphabet a) summandData
+filterSummandDataByChanAlphabet chanAlphabet = filter (\(a, _) -> isActOfferInChanAlphabet chanAlphabet a)
 
 -- Extracts core data from a hierarchical process expression.
 -- That is, it adds one entry per summand that contains the summand's action offer and process instantiation.

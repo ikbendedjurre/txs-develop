@@ -52,10 +52,10 @@ eliminateVEnvs bexpr = do
 -- eliminateVEnvs
 
 elimVEnvs :: VarEnv.VEnv -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-elimVEnvs currentVEnv currentBExpr = do
+elimVEnvs currentVEnv currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
-          do return (procInst pid cids (map (Subst.subst currentVEnv Map.empty) vexprs))
+          return (procInst pid cids (map (Subst.subst currentVEnv Map.empty) vexprs))
       (TxsDefs.view -> Guard g bexpr) ->
           do bexpr' <- elimVEnvs currentVEnv bexpr
              return (guard (Subst.subst currentVEnv Map.empty g) bexpr')

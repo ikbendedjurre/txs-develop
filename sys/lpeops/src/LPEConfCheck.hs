@@ -41,7 +41,7 @@ confCheck :: LPEOperation
 confCheck lpe _out invariant = do
     IOC.putMsgs [ EnvData.TXS_CORE_ANY "<<confcheck>>" ]
     confluentTauSummands <- filterConfluentTauSummands (lpeSmdList lpe) invariant
-    let nonConfluentTauSummands = (lpeSummands lpe) Set.\\ confluentTauSummands
+    let nonConfluentTauSummands = lpeSummands lpe Set.\\ confluentTauSummands
     let newSummands = Set.union nonConfluentTauSummands (Set.map flagSummand confluentTauSummands)
     return (Right (lpe { lpeSummands = newSummands }))
   where
@@ -92,11 +92,7 @@ checkConfluenceCondition invariant summand1 summand2 = do
             let confluenceCondition = ValExpr.cstrITE premise conclusion (ValExpr.cstrConst (Constant.Cbool True))
             
             -- Is the confluence condition a tautology?
-            taut <- Sat.isTautology confluenceCondition invariant
-            
-            --IOC.putMsgs [ EnvData.TXS_CORE_ANY ("TAUT(" ++ TxsShow.fshow confluenceCondition ++ ") yields " ++ show taut) ]
-            
-            return taut
+            Sat.isTautology confluenceCondition invariant
   where
     getChannelArgEq :: LPEParamEqs -> VarId.VarId -> IOC.IOC TxsDefs.VExpr
     getChannelArgEq eqs param = do

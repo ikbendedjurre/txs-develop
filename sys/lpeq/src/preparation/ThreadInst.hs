@@ -62,10 +62,10 @@ doThreadInst allChanIds startBExpr = do
 
 -- Searches a given expression for parallel sub-expressions.
 lookForThread :: String -> Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
-lookForThread location scope currentBExpr = do
+lookForThread location scope currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
-          do return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
+          return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
       (TxsDefs.view -> Parallel cidSet bexprs) ->
           do (bexprs', exit') <- forAllBExprs (instThread location scope) bexprs
              return (parallel (Scopes.applyToChanSet scope cidSet) bexprs', exit')
@@ -102,10 +102,10 @@ lookForThread location scope currentBExpr = do
 -- lookForThread
 
 instThread :: String -> Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
-instThread location scope currentBExpr = do
+instThread location scope currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
-          do return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
+          return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
       (TxsDefs.view -> Guard g bexpr) ->
           do scope' <- Scopes.cloneScope scope
              (bexpr', exit') <- lookForThread location scope' bexpr
@@ -137,18 +137,23 @@ instThread location scope currentBExpr = do
              (bexpr2', exit') <- instThread location scope2 bexpr2
              regAndInstProc location scope1 exit' (enable bexpr1' (map (Scopes.applyToChanOffer scope2) acceptOffers) bexpr2')
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          do scope' <- Scopes.cloneScope scope
-             (bexpr1', _) <- instThread location scope' bexpr1
+          do (bexpr1', scope') <- cloneScopeAndInstThread bexpr1
              (bexpr2', exit') <- instThread location scope' bexpr2
              regAndInstProc location scope' exit' (disable bexpr1' bexpr2')
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          do scope' <- Scopes.cloneScope scope
-             (bexpr1', _) <- instThread location scope' bexpr1
+          do (bexpr1', scope') <- cloneScopeAndInstThread bexpr1
              (bexpr2', exit') <- instThread location scope' bexpr2
              regAndInstProc location scope' exit' (interrupt bexpr1' bexpr2')
       -- (TxsDefs.view -> StAut _sid _venv transitions) ->
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
+  where
+    -- Because LINT wants to reduce duplication so badly...:
+    cloneScopeAndInstThread :: TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, Scopes.Scope)
+    cloneScopeAndInstThread bexpr1 = do
+        scope' <- Scopes.cloneScope scope
+        (bexpr1', _) <- instThread location scope' bexpr1
+        return (bexpr1', scope')
 -- instThread
 
 -- Multiple branches are evaluated in the same manner with this function.

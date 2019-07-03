@@ -58,7 +58,7 @@ getMsgOrModelFromName modelName = do
            let matchingModels = Map.filterWithKey (\(TxsDefs.ModelId n _) _ -> n == modelName) modelDefs
            if matchingModels == Map.empty
            then return (Left ("Expected " ++ List.intercalate " or " (map (Text.unpack . ModelId.name) (Map.keys modelDefs)) ++ ", found " ++ Text.unpack modelName ++ "!"))
-           else return (Right (Map.toList matchingModels !! 0))
+           else return (Right (head (Map.toList matchingModels)))
       _ -> return (Left "TorXakis core is not initialized!")
 -- getMsgsOrModelFromName
 

@@ -48,24 +48,24 @@ getProcsInBExpr :: TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.ProcId)
 getProcsInBExpr = searchBExprForProcs Set.empty
 
 searchBExprForProcs :: Set.Set TxsDefs.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.ProcId)
-searchBExprForProcs soFar currentBExpr = do
+searchBExprForProcs soFar currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
-          do if Set.member pid soFar
+             if Set.member pid soFar
              then return soFar
              else do r <- getProcById pid
                      case r of
-                       Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> do
+                       Just (ProcDef.ProcDef _cidDecls _vidDecls body) ->
                            searchBExprForProcs (Set.insert pid soFar) body
                        Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
       (TxsDefs.view -> Guard _g bexpr) ->
-          do searchBExprForProcs soFar bexpr
+          searchBExprForProcs soFar bexpr
       (TxsDefs.view -> Choice bexprs) ->
-          do Monad.foldM searchBExprForProcs soFar (Set.toList bexprs)
+          Monad.foldM searchBExprForProcs soFar (Set.toList bexprs)
       (TxsDefs.view -> Parallel _cidSet bexprs) ->
-          do Monad.foldM searchBExprForProcs soFar bexprs
+          Monad.foldM searchBExprForProcs soFar bexprs
       (TxsDefs.view -> Hide _cidSet bexpr) ->
-          do searchBExprForProcs soFar bexpr
+          searchBExprForProcs soFar bexpr
       (TxsDefs.view -> Enable bexpr1 _acceptOffers bexpr2) ->
           do soFar' <- searchBExprForProcs soFar bexpr1
              searchBExprForProcs soFar' bexpr2
@@ -76,9 +76,9 @@ searchBExprForProcs soFar currentBExpr = do
           do soFar' <- searchBExprForProcs soFar bexpr1
              searchBExprForProcs soFar' bexpr2
       (TxsDefs.view -> ActionPref _actOffer bexpr) ->
-          do searchBExprForProcs soFar bexpr
+          searchBExprForProcs soFar bexpr
       (TxsDefs.view -> ValueEnv _venv bexpr) ->
-          do searchBExprForProcs soFar bexpr
+          searchBExprForProcs soFar bexpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
@@ -95,7 +95,7 @@ showProcsInBExpr :: TxsDefs.BExpr -> IOC.IOC [String]
 showProcsInBExpr startBExpr = do
     procIds <- getProcsInBExpr startBExpr
     strPerProc <- concat <$> Monad.mapM showProc (Set.toList procIds)
-    return (["START ::= " ++ TxsShow.fshow startBExpr] ++ strPerProc)
+    return (("START ::= " ++ TxsShow.fshow startBExpr) : strPerProc)
   where
     showProc :: ProcId.ProcId -> IOC.IOC [String]
     showProc pid = do

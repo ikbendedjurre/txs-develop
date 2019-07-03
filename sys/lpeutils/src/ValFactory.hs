@@ -79,9 +79,7 @@ sort2defaultConst tdefs = buildDefaultConst Set.empty
 -- all of its arguments are of sorts that are non-recursive.
 isNonRecursiveCstr :: TxsDefs.TxsDefs -> Set.Set CstrId.CstrId -> CstrId.CstrId -> Bool
 isNonRecursiveCstr tdefs beenHere cstrId =
-    if Set.member cstrId beenHere
-    then False
-    else List.all (isNonRecursiveSort tdefs (Set.insert cstrId beenHere)) (CstrId.cstrargs cstrId)
+    not (Set.member cstrId beenHere) && List.all (isNonRecursiveSort tdefs (Set.insert cstrId beenHere)) (CstrId.cstrargs cstrId)
 -- isNonRecursiveCstr
 
 -- Checks if the specified sort is non-recursive, meaning that

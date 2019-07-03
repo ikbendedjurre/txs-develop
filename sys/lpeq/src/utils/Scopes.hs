@@ -36,6 +36,7 @@ addChanOffer
 ) where
 
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
@@ -79,10 +80,8 @@ mapValuesM f mp = Map.fromList <$> Monad.mapM applyToEntry (Map.toList mp)
 applyToChan :: Scope -> ChanId.ChanId -> ChanId.ChanId
 applyToChan _ cid | cid == TxsDefs.chanIdExit = cid
 applyToChan _ cid | cid == TxsDefs.chanIdIstep = cid
-applyToChan scope cid | otherwise =
-    case chanMap scope Map.!? cid of
-      Just c -> c
-      Nothing -> error ("Could not find channel " ++ show cid ++ " in " ++ show (chanMap scope))
+applyToChan scope cid =
+    Maybe.fromMaybe (error ("Could not find channel " ++ show cid ++ " in " ++ show (chanMap scope))) (chanMap scope Map.!? cid)
 -- applyToChan
 
 applyToChans :: Scope -> [ChanId.ChanId] -> [ChanId.ChanId]
@@ -93,9 +92,7 @@ applyToChanSet scope = Set.map (applyToChan scope)
 
 applyToVar :: Scope -> VarId.VarId -> VarId.VarId
 applyToVar scope vid =
-    case varMap scope Map.!? vid of
-      Just v -> v
-      Nothing -> error ("Could not find variable " ++ show vid ++ " in " ++ show (varMap scope))
+    Maybe.fromMaybe (error ("Could not find variable " ++ show vid ++ " in " ++ show (varMap scope))) (varMap scope Map.!? vid)
 -- applyToVar
 
 applyToVars :: Scope -> [VarId.VarId] -> [VarId.VarId]
@@ -134,7 +131,7 @@ addOffer :: Scope -> TxsDefs.Offer -> Scope
 addOffer scope offer = addChanOffers scope (TxsDefs.chanoffers offer)
 
 addChanOffers :: Foldable t => Scope -> t TxsDefs.ChanOffer -> Scope
-addChanOffers scope chanOffers = foldl addChanOffer scope chanOffers
+addChanOffers = foldl addChanOffer
 
 addChanOffer :: Scope -> TxsDefs.ChanOffer -> Scope
 addChanOffer scope (TxsDefs.Quest v) = scope { varMap = Map.insert v v (varMap scope) }

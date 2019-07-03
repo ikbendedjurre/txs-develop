@@ -87,10 +87,10 @@ getPossibleSuccessorMap lpe invariant maxKeyLength =
     initialMap = Map.singleton [] (lpeSummands lpe)
     
     iter :: LPEPossibleSuccessorMap -> LPEPossibleSuccessorMap -> Int -> IOC.IOC LPEPossibleSuccessorMap
-    iter soFar fringe keyLength = do
+    iter soFar fringe keyLength =
         if keyLength >= maxKeyLength
         then return soFar
-        else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Computing possible successor map (depth=" ++ show keyLength ++ "/" ++ show maxKeyLength ++ ")...") ]
+        else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Computing possible successor map (depth=" ++ show keyLength ++ "/" ++ show maxKeyLength ++ ", |fringe|=" ++ show (Map.size fringe) ++ ")...") ]
                 let newSmdSeqs = concat [[ smdSeq ++ [s] | s <- Set.toList succs ] | (smdSeq, succs) <- Map.toList fringe ]
                 let prelimSuccsPerSeq = [ (newSmdSeq, Map.findWithDefault Set.empty (tail newSmdSeq) soFar) | newSmdSeq <- newSmdSeqs ]
                 refinedSuccsPerSeq <- Map.fromList <$> Monad.mapM refineSuccsPerSeq prelimSuccsPerSeq

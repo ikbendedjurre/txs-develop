@@ -38,8 +38,7 @@ import ChanAlphabet
 
 -- The ActOffer of an LPE summand can consist of multiple Offers (each with its own ChanId and [SortId]) and hidden variables.
 -- This is inconvenient for comparing LPE summands, and so we replace them by a fresh ChanId that is always used with the same [SortId] signature.
--- TODO
-
+-- 
 -- A 'channel signature' is more precisely the signature of a number of an ActOffer, which
 -- can consist of multiple Offers (each with its own ChanId and [SortId]) and hidden variables.
 -- This data type gives us a canonical way to list ActOffers.
@@ -58,7 +57,7 @@ permittedChanMap :: LPEChanMap -> [Set.Set ChanId.ChanId] -> LPEChanMap
 permittedChanMap chanMap permittedChanSets = Map.filter onlyUsesPermittedChanSets chanMap
   where
     onlyUsesPermittedChanSets :: LPEChanSignature -> Bool
-    onlyUsesPermittedChanSets (chans, _, _) = List.elem (Set.fromList chans) (map removeInvisibleChans permittedChanSets)
+    onlyUsesPermittedChanSets (chans, _, _) = Set.fromList chans `List.elem` map removeInvisibleChans permittedChanSets
 -- permittedChanMap
 
 -- Constructs (often 'reconstructs') a new ActOffer from
@@ -94,7 +93,7 @@ getActOfferDataFromChanMap chanMap chanId chanVars = iter (getChanDataFromChanMa
     iter (cid:remainingChans) remainingVars =
         let varCount = length (ChanId.chansorts cid) in
           if length remainingVars < varCount
-          then error ("Insufficient communication variables (chanId = " ++ show chanId ++ ", chanVars = " ++ show (chanVars) ++ ")!") -- Should not happen!
+          then error ("Insufficient communication variables (chanId = " ++ show chanId ++ ", chanVars = " ++ show chanVars ++ ")!") -- Should not happen!
           else let (prefix, suffix) = List.splitAt varCount remainingVars in
                let (restVarsPerChan, restHiddenVars) = iter remainingChans suffix in
                  ((cid, prefix):restVarsPerChan, restHiddenVars)
@@ -120,7 +119,7 @@ revertSimplChanIdsWithChanMap chanMap chanIds = Set.unions (map (revertSimplChan
 getObjectIdsFromChanMap :: LPEChanMap -> ChanId.ChanId -> Set.Set TxsDefs.Ident
 getObjectIdsFromChanMap chanMap chanId =
     case chanMap Map.!? chanId of
-      Just (origChanIds, origVizSortIds, origHidSortIds) -> Set.fromList ((map TxsDefs.IdChan origChanIds) ++ (map TxsDefs.IdSort origVizSortIds) ++ (map TxsDefs.IdSort origHidSortIds))
+      Just (origChanIds, origVizSortIds, origHidSortIds) -> Set.fromList (map TxsDefs.IdChan origChanIds ++ map TxsDefs.IdSort origVizSortIds ++ map TxsDefs.IdSort origHidSortIds)
       Nothing -> Set.fromList (TxsDefs.IdChan chanId : map TxsDefs.IdSort (ChanId.chansorts chanId))
 -- getObjectIdsFromChanMap
 

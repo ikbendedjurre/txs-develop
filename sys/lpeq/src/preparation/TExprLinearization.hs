@@ -111,9 +111,9 @@ linearizeTExpr createProcInst procInstUpdateMap currentBExpr =
 -- linearizeTExpr
 
 linearizeNonHideTExpr :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
-linearizeNonHideTExpr createProcInst currentBExpr = do
+linearizeNonHideTExpr createProcInst currentBExpr =
     case currentBExpr of
-      (TxsDefs.view -> Guard g bexpr) -> do
+      (TxsDefs.view -> Guard g bexpr) ->
           case bexpr of
             (TxsDefs.view -> Parallel {}) -> LinearizeParallel.linearize createProcInst g bexpr
             -- (TxsDefs.view -> Enable {}) -> LinearizeEnable.linearize pid g bexpr

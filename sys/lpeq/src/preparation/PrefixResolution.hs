@@ -56,8 +56,8 @@ resolveProcPrefixes pid = do
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
           let (wrong, done) = Set.partition hasWrongPrefix (getBranches body)
-          let f = \(w, d) -> let combined = [ combineChoices pid cidDecls vidDecls c1 c2 | c1 <- Set.toList w, c2 <- Set.toList (Set.union w d) ] in
-                               (Set.union w (Set.fromList (Either.lefts combined)), Set.union d (Set.fromList (Either.rights combined)))
+          let f (w, d) = let combined = [ combineChoices pid cidDecls vidDecls c1 c2 | c1 <- Set.toList w, c2 <- Set.toList (Set.union w d) ] in
+                           (Set.union w (Set.fromList (Either.lefts combined)), Set.union d (Set.fromList (Either.rights combined)))
           let (_, done') = untilFixedPoint f (wrong, done)
           registerProc pid (ProcDef.ProcDef cidDecls vidDecls (choice done'))
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
