@@ -95,7 +95,7 @@ The process dependency tree should be finite; otherwise, there may exist infinit
 Infinite parallel recursion should be avoided because it may result in a situation where an action leads to infinitely many different states, violating one of the assumptions required for how \txs{} generates tests; and therefore \lpeq{} terminates with an error message when it detects that a process dependency tree is infinite.
 
 \lpeq{} also takes the opportunity to check whether the model has no infinite sequential recursion: recursion where a process instantiates itself without doing an action prefix first.
-Among others, the absence of such recursion is a prerequisite for the termination of phase 8 (see Section~\ref{prefix-resolution:section}).
+Among other things, the absence of such recursion is a prerequisite for the termination of phase 8 (see Section~\ref{prefix-resolution:section}).
 
 \section{Adding sequential program counters}
 

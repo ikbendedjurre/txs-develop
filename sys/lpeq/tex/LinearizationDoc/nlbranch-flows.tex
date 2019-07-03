@@ -38,17 +38,20 @@ For each unique label $L$ that has been encountered, \lpeq{} considers per threa
 \lpeq{} selects one considered choice per thread in all possible permutations.
 (Note that if there is a thread where no choice has a multi-channel with label $L$, then there are zero permutations.)
 
-Each choice permutation is converted into $2^n$ new choices (where $n$ is the number of threads in $E$) because each thread could be initialized (indicated by $i_T \texttt{ == True}$) or uninitialized (indicated by $i_T \texttt{ == False}$).
-New choices are constructed:
+Choice permutations in which multi-channels of different threads share channels that are \emph{not} in $Z$ are discarded.
+This is a restriction on synchronization that can be found in the semantics of \txs{}.
+
+Each remaining choice permutation $p$ is converted into $2^n$ new choices (where $n$ is the number of threads in $E$) because each thread could be initialized (indicated by $i_T \texttt{ == True}$) or uninitialized (indicated by $i_T \texttt{ == False}$).
+For all possible different assumptions about this, a new choice $v$ is constructed:
 \begin{itemize}
-\item The guard is a conjunction of the guards of all choices in the choice permutation.
+\item The guard of $v$ is a conjunction of the guards of all choices in $p$.
 Furthermore, $i_T \texttt{ == True}$ or $i_T \texttt{ == False}$ is added to the guard for each $T$ in $E$ depending on whether $T$ is assumed to be initialized or not.
-\item For each $c$ that is shared by the multi-channels of all choices in the choice permutation, the communication variable of each channel offer is replaced by a fresh variable of the same sort (all threads share the same fresh variables for the same channel $c$ and the same channel offer).
+\item For each $c \in Z$, the communication variable of the channel offer of each choice in $p$ is replaced by a fresh variable of the same sort (all threads share the same fresh variables for the same channel $c$ and the same channel offer).
 Appropriate substitutions are performed in the guard and in the recursive process instantiation.
 
-After doing the above, the channel offers of all choices in the choice permutation are combined into one multi-channel.
-\item In the recursive process instantiation, only the assignments from the choices in the choice permutation are used (all other data parameters remain unchanged).
-For all $T$ in $E$, if the value of $i_T$ is \texttt{False}, we also substitute the data parameters of the thread process of $T$ by the values that are used by the instantiation of that process.
+After doing the above, the channel offers of all choices in $p$ are combined into one multi-channel.
+\item In the recursive process instantiation of $v$, only the assignments from the choices in $p$ are used (all other data parameters remain unchanged).
+Furthermore, for all $T$ in $E$, if the value of $i_T$ is \texttt{False}, we substitute the data parameters of the thread process of $T$ by the values that are used by the instantiation of that process.
 \end{itemize}
 
 \begin{samepage}

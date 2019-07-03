@@ -35,7 +35,7 @@ import ActOfferFactory
 import VarFactory
 import BehExprDefs
 
-import PBranchUtils
+import BranchLinearityUtils
 
 data BranchData = BranchData { bOrigExpr :: TxsDefs.BExpr
                              , bHidChans :: Set.Set ChanId.ChanId

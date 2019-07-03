@@ -24,7 +24,6 @@ resolveProcPrefixes
 import qualified Data.Either as Either
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
 import qualified TxsDefs
@@ -52,7 +51,7 @@ resolvePrefixes bexpr = do
 
 resolveProcPrefixes :: ProcId.ProcId -> IOC.IOC ()
 resolveProcPrefixes pid = do
-    IOC.putInfo [ "resolveProcPrefixes " ++ (Text.unpack (ProcId.name pid)) ]
+    -- IOC.putInfo [ "resolveProcPrefixes " ++ TxsShow.fshow pid ]
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do

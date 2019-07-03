@@ -13,7 +13,7 @@ cabal-version:          >=1.10
 
 library
   hs-source-dirs:       src
-                      , src/pbranches
+                      , src/texprs
                       , src/preparation
                       , src/utils
 
@@ -26,14 +26,14 @@ library
                       , ProcSearch
                       , UniqueObjects
                       , FlattenedChannels
-                      , PBranchInst
+                      , ThreadInst
                       , ProcDepTree
                       , ProcInstUpdates
                       , SeqProgramCounters
                       , PrefixResolution
-                      , PBranchUtils
                       , BranchUtils
-                      , PBranchLinearization
+                      , BranchLinearityUtils
+                      , TExprLinearization
                       , LinearizeParallel
                       , LinearizeParallelUtils
 

@@ -6,7 +6,7 @@ See LICENSE at root directory of this repository.
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  PBranchLinearization
+-- Module      :  TExprLinearization
 -- Copyright   :  TNO and University of Twente
 -- License     :  BSD3
 -- Maintainer  :  djurrevanderwal@gmail.com
@@ -16,8 +16,8 @@ See LICENSE at root directory of this repository.
 
 {-# LANGUAGE ViewPatterns        #-}
 
-module PBranchLinearization (
-linearizePBranches
+module TExprLinearization (
+linearizeTExprs
 ) where
 
 import qualified Data.Map as Map
@@ -38,7 +38,7 @@ import ProcDepTree
 import qualified ProcInstUpdates
 
 import HideElim
-import PBranchUtils
+import BranchLinearityUtils
 import ProcSearch
 
 import qualified LinearizeParallel
@@ -46,38 +46,38 @@ import qualified LinearizeParallel
 -- import qualified LinearizeDisable
 -- import qualified LinearizeInterrupt
 
-linearizePBranches :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-linearizePBranches bexpr = do
+linearizeTExprs :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
+linearizeTExprs bexpr = do
     procDepTree <- getProcDepTree bexpr
     let orderedProcs = getProcsOrderedByMaxDepth procDepTree
-    procInstUpdateMap <- Monad.foldM linearizePBranchesInProcWithHide Map.empty orderedProcs
+    procInstUpdateMap <- Monad.foldM linearizeTExprsInProcWithHide Map.empty orderedProcs
     return (ProcInstUpdates.applyMapToProcInst procInstUpdateMap bexpr)
--- linearizePBranches
+-- linearizeTExprs
 
-linearizePBranchesInProcWithHide :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
-linearizePBranchesInProcWithHide procInstUpdateMap pid = do
+linearizeTExprsInProcWithHide :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
+linearizeTExprsInProcWithHide procInstUpdateMap pid = do
     IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("Linearizing " ++ showProcId pid ++ "...") ]
     (pid', procInstUpdateMap') <- eliminateHide (pid, procInstUpdateMap)
-    linearizePBranchesInProc procInstUpdateMap' pid'
--- linearizePBranchesInProcWithHide
+    linearizeTExprsInProc procInstUpdateMap' pid'
+-- linearizeTExprsInProcWithHide
 
-linearizePBranchesInProc :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
-linearizePBranchesInProc procInstUpdateMap pid = do
+linearizeTExprsInProc :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
+linearizeTExprsInProc procInstUpdateMap pid = do
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
           -- Function to be used for the instantiation of the linearized process:
           let createProcInst = procInst pid cidDecls
           
-          -- Distinguish branches in the body that are finished from branches with parallel structures:
-          let (pbranches, npbranches) = Set.partition isPBranch (getBranches body)
+          -- Distinguish linear branches in the body that are finished from non-linear branches (=branches with thread expressions):
+          let (nlbranches, lbranches) = Set.partition isNonLinearBranch (getBranches body)
           
-          -- Linearize branches with parallel structures:
+          -- Linearize non-linear branches:
           let tempProcInstUpdateMap = Map.insert pid (ProcInstUpdates.createIdentical pid) procInstUpdateMap
-          rs <- Monad.mapM (linearizePBranch createProcInst tempProcInstUpdateMap) (Set.toList pbranches)
+          rs <- Monad.mapM (linearizeTExpr createProcInst tempProcInstUpdateMap) (Set.toList nlbranches)
           
           -- Check if the result is linear. IT SHOULD BE LINEAR!
-          checkLinearBExprs pid (Set.toList pbranches) (Set.toList (Set.unions (map fst rs)))
+          checkLinearBExprs pid (Set.toList nlbranches) (Set.toList (Set.unions (map fst rs)))
           
           let newVids = concatMap snd rs
           let newVidDecls = vidDecls ++ newVids
@@ -91,7 +91,7 @@ linearizePBranchesInProc procInstUpdateMap pid = do
           -- Remember how such instantiations should be updated, for later use.
           newProcInstUpdate <- ProcInstUpdates.create newProcId vidDecls newVidDecls Map.empty
           let newProcInstUpdateMap = Map.insert pid newProcInstUpdate procInstUpdateMap
-          let newNPBranches = Set.map (ProcInstUpdates.applyMapToBExpr newProcInstUpdateMap) npbranches
+          let newNPBranches = Set.map (ProcInstUpdates.applyMapToBExpr newProcInstUpdateMap) lbranches
           
           -- Register the process with a new body.
           let newBody = choice (Set.union newNPBranches newPBranches)
@@ -99,19 +99,19 @@ linearizePBranchesInProc procInstUpdateMap pid = do
           
           return newProcInstUpdateMap
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
--- linearizePBranchesInProc
+-- linearizeTExprsInProc
 
-linearizePBranch :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
-linearizePBranch createProcInst procInstUpdateMap currentBExpr =
+linearizeTExpr :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> ProcInstUpdates.ProcInstUpdateMap -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
+linearizeTExpr createProcInst procInstUpdateMap currentBExpr =
     let remappedBExpr = ProcInstUpdates.applyMapToBExpr procInstUpdateMap currentBExpr in
       case remappedBExpr of
-        (TxsDefs.view -> Hide cidSet bexpr) -> do (bexprs, vids) <- linearizeNonHidePBranch createProcInst bexpr
+        (TxsDefs.view -> Hide cidSet bexpr) -> do (bexprs, vids) <- linearizeNonHideTExpr createProcInst bexpr
                                                   return (Set.map (applyHide cidSet) bexprs, vids)
-        _ -> linearizeNonHidePBranch createProcInst remappedBExpr
--- linearizePBranch
+        _ -> linearizeNonHideTExpr createProcInst remappedBExpr
+-- linearizeTExpr
 
-linearizeNonHidePBranch :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
-linearizeNonHidePBranch createProcInst currentBExpr = do
+linearizeNonHideTExpr :: ([TxsDefs.VExpr] -> TxsDefs.BExpr) -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])
+linearizeNonHideTExpr createProcInst currentBExpr = do
     case currentBExpr of
       (TxsDefs.view -> Guard g bexpr) -> do
           case bexpr of
@@ -121,7 +121,7 @@ linearizeNonHidePBranch createProcInst currentBExpr = do
             -- (TxsDefs.view -> Interrupt {}) -> LinearizeInterrupt.linearize pid g bexpr
             _ -> error ("No implementation yet for \"" ++ show currentBExpr ++ "\"!")
       _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
--- linearizeNonHidePBranch
+-- linearizeNonHideTExpr
 
 
 

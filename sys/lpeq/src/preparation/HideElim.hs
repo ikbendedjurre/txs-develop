@@ -60,15 +60,15 @@ eliminateHide (pid, procInstUpdateMap) = do
                   newProcInstUpdate <- ProcInstUpdates.createWithFreshPid pid vidDecls (vidDecls ++ flags) (Map.fromList (map (\f -> (f, cstrTrue)) flags))
                   let procInstUpdateMap' = Map.insert pid newProcInstUpdate procInstUpdateMap
                   
-                  newBranches <- Set.unions <$> Monad.mapM (getFlaggedBranches (fst newProcInstUpdate) hiddenChans flagPerChan) branches
+                  newBranches <- Set.unions <$> Monad.mapM (createFlaggedBranches (fst newProcInstUpdate) hiddenChans flagPerChan) branches
                   registerProc (fst newProcInstUpdate) (ProcDef.ProcDef cidDecls (vidDecls ++ flags) (choice newBranches))
                   
                   return (fst newProcInstUpdate, procInstUpdateMap')
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
 -- eliminateHide
 
-getFlaggedBranches :: ProcId.ProcId -> [ChanId.ChanId] -> Map.Map ChanId.ChanId VarId.VarId -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr)
-getFlaggedBranches ownerPid hiddenChans flagPerChan bexpr = do
+createFlaggedBranches :: ProcId.ProcId -> [ChanId.ChanId] -> Map.Map ChanId.ChanId VarId.VarId -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr)
+createFlaggedBranches ownerPid hiddenChans flagPerChan bexpr = do
     Set.fromList <$> Monad.mapM (getGuardedBranch . Set.fromList) (List.subsequences hiddenChans)
   where
     getGuardedBranch :: Set.Set ChanId.ChanId -> IOC.IOC TxsDefs.BExpr
@@ -92,7 +92,7 @@ getFlaggedBranches ownerPid hiddenChans flagPerChan bexpr = do
               return (actionPref newActOffer newProcInst)
           _ -> error ("ProcInst expected but found " ++ TxsShow.fshow recProcInst)
     -- getGuardedBranch
--- getFlaggedBranches
+-- createFlaggedBranches
 
 
 

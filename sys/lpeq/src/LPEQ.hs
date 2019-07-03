@@ -32,12 +32,12 @@ import UniqueObjects
 import ExclamToQuest
 import VEnvElim
 import FlattenedChannels
-import PBranchInst
+import ThreadInst
 import ProcDepTree
 import SeqProgramCounters
 import PrefixResolution
 import ProcSearch
-import PBranchLinearization
+import TExprLinearization
 
 -- Linearizes a model definition and (if successful) saves it to the current context.
 lpeq :: TxsDefs.ModelId -> TxsDefs.ModelDef -> String -> IOC.IOC (Either [String] (TxsDefs.ModelId, TxsDefs.ModelDef))
@@ -59,9 +59,9 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     
     -- TODO Eliminate StAuts
     
-    -- 5. Create process instantiations for branches within parallel structures (Parallel, Enable, Disable, Interrupt):
+    -- 5. Create process instantiations for `threads' (=sub-expressions of Parallel / Enable / Disable / Interrupt):
     let allChanIds = concatMap Set.toList (insyncs ++ outsyncs)
-    bexpr4 <- doPBranchInst allChanIds bexpr3
+    bexpr4 <- doThreadInst allChanIds bexpr3
     -- printProcsInBExpr "BEXPR4::" bexpr4
     
     -- 6. Create processes for each instantiation where the channels are different.
@@ -70,35 +70,32 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     -- printProcsInBExpr "BEXPR5::" bexpr5
     
     -- Before continuing, validate the process dependency tree.
-    -- This must (at least) happen AFTER doPBranchInst (since process instantiations are used to check for recurring visits)!
+    -- This must (at least) happen AFTER doThreadInst (since process instantiations are used to check for recurring visits)!
     problems <- getProcDepTreeProblems bexpr5
     if null problems
     then do 
             -- printProcsInBExpr "BEXPR5::" bexpr5
             
-            bexpr6 <- ensureFreshVarsInBExpr bexpr5
-            -- printProcsInBExpr "BEXPR6::" bexpr6
-            
             -- 7. Place all steps of a process (including steps inside instantiated processes) on the same level in a Choice expression, but
             --    with different requirements of the value of a program counter.
-            --    Each member of the Choice expression is called a 'branch' (and could become a summand later).
-            --    Exception: branches with parallel structures are not visited internally!
-            bexpr7 <- addSeqProgramCounters bexpr6
-            -- printProcsInBExpr "BEXPR7::" bexpr7
+            --    Each member of the Choice expression is called a `branch' (and could become a summand later).
+            --    Exception: branches with thread expressions (Parallel / Enable / Disable / Interrupt) are not visited internally!
+            bexpr6 <- addSeqProgramCounters bexpr5
+            -- printProcsInBExpr "BEXPR7::" bexpr6
             
-            -- 8. Rewrite the branches of the involved processes so that they have a single ActOffer.
-            --    Exception: branches with parallel structures are not rewritten here!
-            bexpr8 <- resolvePrefixes bexpr7
-            -- printProcsInBExpr "BEXPR8::" bexpr8
+            -- 8. Rewrite the branches of the involved processes so that they have exactly one ActOffer.
+            --    Exception: branches with thread expressions (Parallel / Enable / Disable / Interrupt) are not rewritten here!
+            bexpr7 <- resolvePrefixes bexpr6
+            -- printProcsInBExpr "BEXPR8::" bexpr7
             
-            -- 9. Linearize branches with parallel structures:
-            bexpr9 <- linearizePBranches bexpr8
-            printProcsInBExpr "BEXPR9::" bexpr9
+            -- 9. Linearize branches with thread expressions (Parallel / Enable / Disable / Interrupt):
+            bexpr8 <- linearizeTExprs bexpr7
+            printProcsInBExpr "BEXPR8::" bexpr8
             
             -- Save the result as a new model:
             tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
             newModelId <- getModelIdFromName (Text.pack ("LPEQ_" ++ outputModelName))
-            let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr9
+            let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr8
             let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs') }
             IOC.modifyCS (\st -> st { IOC.tdefs = tdefs'' })
             return (Right (newModelId, newModelDef))

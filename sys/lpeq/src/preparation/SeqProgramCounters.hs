@@ -23,10 +23,8 @@ addSeqProgramCounters
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
-import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ValExpr
@@ -42,7 +40,7 @@ import ActOfferFactory
 import ProcIdFactory
 import VarFactory
 
--- import UniqueObjects
+import UniqueObjects
 
 import qualified ProcInstUpdates
 
@@ -50,9 +48,7 @@ import ProcDepTree
 
 addSeqProgramCounters :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 addSeqProgramCounters bexpr = do
-    -- We already do this in LPEQ:
-    -- bexpr' <- ensureFreshVarsInBExpr bexpr
-    let bexpr' = bexpr
+    bexpr' <- ensureFreshVarsInBExpr bexpr
     procDepTree <- getProcDepTree bexpr'
     let orderedProcs = getProcsOrderedByMaxDepth procDepTree
     procInstUpdateMap <- Monad.foldM addSeqPCsToProc Map.empty orderedProcs
@@ -61,7 +57,7 @@ addSeqProgramCounters bexpr = do
 
 addSeqPCsToProc :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
 addSeqPCsToProc procInstUpdateMap pid = do
-    IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("addSeqPCsToProc " ++ (Text.unpack (ProcId.name pid))) ]
+    -- IOC.putInfo [ "addSeqPCsToProc " ++ TxsShow.fshow ProcId.name pid ]
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do

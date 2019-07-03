@@ -37,7 +37,7 @@ import ValFactory
 import VarFactory
 import BehExprDefs
 
-import PBranchUtils
+import BranchLinearityUtils
 import UniqueObjects
 import LinearizeParallelUtils
 
@@ -50,7 +50,7 @@ type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be use
             )
 -- Info
 
-linearize :: PBranchLinearizer
+linearize :: TExprLinearizer
 linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) = do
     -- We require that all thread processes are unique, as well as all variables that they declare!
     threads' <- ensureDistinguishableThreads threads
@@ -59,12 +59,12 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     -- Extract data from all parallel sub-expressions:
     dataPerThread <- Monad.mapM getThreadData threads'
     
-    -- List all channel combinations used in the branches;
-    -- then partition them into channel combinations that must synchronize and channel combinations that must not.
+    -- List all multi-channels used in the branches;
+    -- then partition them into multi-channels that must synchronize and multi-channels that must not.
     let allCidSets = Set.unions (map (Set.map bVizChans . tBranchData) dataPerThread)
     let (syncingCidSets, unsyncedCidSets) = Set.partition (\c -> Set.intersection c synchronizedChans /= Set.empty) allCidSets
     
-    -- Compute the minimum-sized sets of channels over which threads can synchronize:
+    -- Compute the multi-channels over which threads can synchronize (they cannot have other channels in common):
     let syncingCidMinSubSets = Set.map (Set.intersection synchronizedChans) syncingCidSets
     
     -- Set variable declarations required by the new branches:
@@ -87,10 +87,18 @@ synchronizeOneBranchPerThread info dataPerThread syncingCidSets syncingCidMinSub
   where
     buildList :: [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
     buildList finalList [] = do
-        Set.fromList <$> Monad.mapM (createSyncedBranch info syncingCidMinSubSet finalList) (List.subsequences (map snd finalList))
+        if noOtherSharedChannels (map fst finalList)
+        then Set.fromList <$> Monad.mapM (createSyncedBranch info syncingCidMinSubSet finalList) (List.subsequences (map snd finalList))
+        else return Set.empty
     buildList listSoFar (td:remaining) = do
         Set.unions <$> Monad.mapM (\bd -> buildList (listSoFar ++ [(bd, td)]) remaining) (Set.toList (tBranchData td))
     -- buildList
+    
+    noOtherSharedChannels :: [BranchData] -> Bool
+    noOtherSharedChannels bd = 
+        let allNonSyncChans = concatMap (\b -> Set.toList (bVizChans b Set.\\ syncingCidMinSubSet)) bd in
+          Set.size (Set.fromList allNonSyncChans) == length allNonSyncChans
+    -- noOtherSharedChannels
 -- createSyncedBranches
 
 -- Constructs a new branch from a number of synchronizable branches.

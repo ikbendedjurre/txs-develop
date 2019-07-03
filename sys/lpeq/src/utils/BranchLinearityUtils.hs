@@ -6,7 +6,7 @@ See LICENSE at root directory of this repository.
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  PBranchUtils
+-- Module      :  BranchLinearityUtils
 -- Copyright   :  TNO and University of Twente
 -- License     :  BSD3
 -- Maintainer  :  djurrevanderwal@gmail.com
@@ -16,9 +16,9 @@ See LICENSE at root directory of this repository.
 
 {-# LANGUAGE ViewPatterns        #-}
 
-module PBranchUtils (
-PBranchLinearizer,
-isPBranch,
+module BranchLinearityUtils (
+TExprLinearizer,
+isNonLinearBranch,
 isLinearBranch,
 isLinearBExpr,
 checkLinearBExpr,
@@ -43,15 +43,15 @@ import BranchUtils
 
 import ProcSearch
 
-type PBranchLinearizer  = ([TxsDefs.VExpr] -> TxsDefs.BExpr)                -- Function for the construction of a recursive process instantiation.
+type TExprLinearizer   =  ([TxsDefs.VExpr] -> TxsDefs.BExpr)                -- Function for the construction of a recursive process instantiation.
                        -> TxsDefs.VExpr                                     -- Guard that must hold for the non-linear branch to be enabled.
                        -> TxsDefs.BExpr                                     -- Non-linear branch.
                        -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])    -- New branches, and the parameters required by those branches.
 -- PBranchLinearizer
 
 -- Checks if the given expression is a branch that contains a parallel structure (Parallel, Enable, Disable, or Interrupt).
-isPBranch :: TxsDefs.BExpr -> Bool
-isPBranch currentBExpr =
+isNonLinearBranch :: TxsDefs.BExpr -> Bool
+isNonLinearBranch currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> Hide _cidSet bexpr) -> checkInnerExpr bexpr
       _ -> checkInnerExpr currentBExpr
@@ -72,7 +72,7 @@ isPBranch currentBExpr =
                 _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
           _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
     -- checkInnerExpr
--- isPBranch
+-- isNonLinearBranch
 
 -- Checks if the given branch is linear.
 -- This includes checking if the process instantiation is recursive.
