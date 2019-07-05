@@ -6,7 +6,7 @@ See LICENSE at root directory of this repository.
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  LinearizeParallelUtils
+-- Module      :  ThreadUtils
 -- Copyright   :  TNO and University of Twente
 -- License     :  BSD3
 -- Maintainer  :  djurrevanderwal@gmail.com
@@ -14,12 +14,13 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
-module LinearizeParallelUtils (
+module ThreadUtils (
 BranchData(..),
 getBranchData,
 ThreadData(..),
 getThreadData,
-filterThreadData
+filterThreadData,
+partitionThreadData
 ) where
 
 import qualified Data.Map as Map
@@ -74,8 +75,15 @@ getThreadData bexpr = do
     return (ThreadData { tBranchData = branchData, tInitFlag = initFlag, tInitEqs = initEqs })
 -- getThreadData
 
-filterThreadData :: Set.Set (Set.Set ChanId.ChanId) -> ThreadData -> ThreadData
-filterThreadData cidSetRestriction threadData =
-    threadData { tBranchData = Set.filter (\bd -> Set.member (bVizChans bd) cidSetRestriction) (tBranchData threadData) }
+filterThreadData :: (Set.Set ChanId.ChanId -> Bool) -> ThreadData -> ThreadData
+filterThreadData restrictionFunction threadData =
+    threadData { tBranchData = Set.filter (restrictionFunction . bVizChans) (tBranchData threadData) }
 -- filterThreadData
+
+partitionThreadData :: (Set.Set ChanId.ChanId -> Bool) -> ThreadData -> (ThreadData, ThreadData)
+partitionThreadData restrictionFunction threadData =
+    let (p, q) = Set.partition (restrictionFunction . bVizChans) (tBranchData threadData) in
+      (threadData { tBranchData = p }, threadData { tBranchData = q })
+-- partitionThreadData
+
 

@@ -39,7 +39,7 @@ import BehExprDefs
 
 import BranchLinearityUtils
 import UniqueObjects
-import LinearizeParallelUtils
+import ThreadUtils
 
 -- import ProcSearch
 
@@ -74,7 +74,7 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     -- Construct new branches:
     let info = (createProcInst, initFlags, newVidDecls, g)
     syncedBranches <- Set.unions <$> Monad.mapM (synchronizeOneBranchPerThread info dataPerThread syncingCidSets) (Set.toList syncingCidMinSubSets)
-    unsyncedBranches <- leaveBranchesUnsynchronized info (map (filterThreadData unsyncedCidSets) dataPerThread)
+    unsyncedBranches <- leaveBranchesUnsynchronized info (map (filterThreadData (`Set.member` unsyncedCidSets)) dataPerThread)
     
     return (Set.union syncedBranches unsyncedBranches, initFlags ++ newVidDecls)
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
@@ -83,7 +83,7 @@ linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ Tx
 -- Synchronizes those branches.
 synchronizeOneBranchPerThread :: Info -> [ThreadData] -> Set.Set (Set.Set ChanId.ChanId) -> Set.Set ChanId.ChanId -> IOC.IOC (Set.Set TxsDefs.BExpr)
 synchronizeOneBranchPerThread info dataPerThread syncingCidSets syncingCidMinSubSet =
-    buildList [] (map (filterThreadData syncingCidSets) dataPerThread)
+    buildList [] (map (filterThreadData (`Set.member` syncingCidSets)) dataPerThread)
   where
     buildList :: [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
     buildList finalList [] =

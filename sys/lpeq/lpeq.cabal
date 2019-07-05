@@ -34,8 +34,9 @@ library
                       , BranchUtils
                       , BranchLinearityUtils
                       , TExprLinearization
+                      , ThreadUtils
                       , LinearizeParallel
-                      , LinearizeParallelUtils
+                      , LinearizeEnable
 
   ghc-options:        -Werror -Wall -O2 -optc-O3 -optc-ffast-math
 

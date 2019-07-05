@@ -27,7 +27,6 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
-import qualified EnvData
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ValExpr
@@ -47,7 +46,7 @@ import BranchUtils
 
 eliminateHide :: (ProcId.ProcId, ProcInstUpdates.ProcInstUpdateMap) -> IOC.IOC (ProcId.ProcId, ProcInstUpdates.ProcInstUpdateMap)
 eliminateHide (pid, procInstUpdateMap) = do
-    IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("eliminateHideFrom " ++ TxsShow.fshow pid) ]
+    -- IOC.putInfo [ "eliminateHideFrom " ++ TxsShow.fshow pid ]
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
