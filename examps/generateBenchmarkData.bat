@@ -124,14 +124,14 @@ ren %BENCHDIR%%~1.txs %~3-original.txs
 :: Create a file that instructs the benchmark on how to test the ORIGINAL model (because its model name may be different for each file)
 echo exit > %BENCHDIR%%~3-nothing-stepper.txscmd
 echo stepper %~2 > %BENCHDIR%%~3-original-stepper.txscmd
-echo step 20 >> %BENCHDIR%%~3-original-stepper.txscmd
+echo step 100 >> %BENCHDIR%%~3-original-stepper.txscmd
 echo exit >> %BENCHDIR%%~3-original-stepper.txscmd
 echo lpe %~2 > %BENCHDIR%%~3-original-stepper-2.txscmd
 echo stepper LPE_proxyModel >> %BENCHDIR%%~3-original-stepper-2.txscmd
-echo step 20 >> %BENCHDIR%%~3-original-stepper-2.txscmd
+echo step 100 >> %BENCHDIR%%~3-original-stepper-2.txscmd
 echo exit >> %BENCHDIR%%~3-original-stepper-2.txscmd
 echo lpe Model > %BENCHDIR%%~3-original-stepper-3.txscmd
-echo lpeop step*20 LPE_proxyModel Dummy >> %BENCHDIR%%~3-original-stepper-3.txscmd
+echo lpeop step*100 LPE_proxyModel Dummy >> %BENCHDIR%%~3-original-stepper-3.txscmd
 echo exit >> %BENCHDIR%%~3-original-stepper-3.txscmd
 echo lpe Model > %BENCHDIR%%~3-original-stepper-4.txscmd
 echo lpeop step*0 LPE_proxyModel Dummy >> %BENCHDIR%%~3-original-stepper-4.txscmd

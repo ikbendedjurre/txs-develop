@@ -34,7 +34,6 @@ import qualified Data.List           as List
 import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified EnvCore             as IOC
-import qualified EnvData
 import qualified Satisfiability      as Sat
 import qualified TxsDefs
 import qualified ValExpr
@@ -83,14 +82,16 @@ getPossibleSuccessorMap :: LPE -> TxsDefs.VExpr -> Int -> IOC.IOC LPEPossibleSuc
 getPossibleSuccessorMap lpe invariant maxKeyLength =
     iter initialMap initialMap 0
   where
+    -- Without a known history, we assume all summands are possible:
     initialMap :: LPEPossibleSuccessorMap
     initialMap = Map.singleton [] (lpeSummands lpe)
     
+    -- In this function, keys are added with a length of (keyLength + 1):
     iter :: LPEPossibleSuccessorMap -> LPEPossibleSuccessorMap -> Int -> IOC.IOC LPEPossibleSuccessorMap
     iter soFar fringe keyLength =
         if keyLength >= maxKeyLength
         then return soFar
-        else do IOC.putMsgs [ EnvData.TXS_CORE_ANY ("Computing possible successor map (depth=" ++ show keyLength ++ "/" ++ show maxKeyLength ++ ", |fringe|=" ++ show (Map.size fringe) ++ ")...") ]
+        else do IOC.putInfo [ "Computing possible successor map (depth=" ++ show keyLength ++ "/" ++ show maxKeyLength ++ ", #successors=" ++ show (sum (map Set.size (Map.elems fringe))) ++ ")..." ]
                 let newSmdSeqs = concat [[ smdSeq ++ [s] | s <- Set.toList succs ] | (smdSeq, succs) <- Map.toList fringe ]
                 let prelimSuccsPerSeq = [ (newSmdSeq, Map.findWithDefault Set.empty (tail newSmdSeq) soFar) | newSmdSeq <- newSmdSeqs ]
                 refinedSuccsPerSeq <- Map.fromList <$> Monad.mapM refineSuccsPerSeq prelimSuccsPerSeq
@@ -124,7 +125,7 @@ showSummandIndexList lpe summands = List.intercalate ", " (map showSummand summa
 
 printPossibleSuccessorMap :: LPE -> LPEPossibleSuccessorMap -> IOC.IOC ()
 printPossibleSuccessorMap lpe possibleSuccessorMap =
-    Monad.mapM_ (\s -> IOC.putMsgs [ EnvData.TXS_CORE_ANY s ]) (showPossibleSuccessorMap lpe possibleSuccessorMap)
+    IOC.putInfo (showPossibleSuccessorMap lpe possibleSuccessorMap)
 -- printPossibleSuccessorMap
 
 -- getPossibleSuccessorMap :: LPE -> TxsDefs.VExpr -> IOC.IOC LPEPossibleSuccessorMap

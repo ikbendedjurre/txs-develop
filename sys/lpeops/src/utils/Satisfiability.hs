@@ -62,8 +62,8 @@ getSolution expr _invariant variables = do
     smtEnv <- IOC.getSMT "current"
     let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
     let assertions = Solve.add expr Solve.empty
-    (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
-    IOC.putSMT "current" smtEnv'
+    (sol, _smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.solve (Set.toList freeVars) assertions) smtEnv
+    -- IOC.putSMT "current" smtEnv'
     case sol of
       SolveDefs.Solved solMap -> return (buildSolution solMap variables)
       otherResult -> return otherResult
@@ -86,8 +86,8 @@ getRandomSolution expr invariant variables =
             let randomizationSetting = Solve.toRandParam parammap
             let freeVars = Set.fromList (FreeVar.freeVars expr ++ variables)
             let assertions = Solve.add expr Solve.empty
-            (sol, smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.randSolve randomizationSetting (Set.toList freeVars) assertions) smtEnv
-            IOC.putSMT "current" smtEnv'
+            (sol, _smtEnv') <- MonadState.lift $ MonadState.runStateT (Solve.randSolve randomizationSetting (Set.toList freeVars) assertions) smtEnv
+            -- IOC.putSMT "current" smtEnv'
             case sol of
               SolveDefs.Solved solMap -> return (buildSolution solMap variables)
               otherResult -> return otherResult

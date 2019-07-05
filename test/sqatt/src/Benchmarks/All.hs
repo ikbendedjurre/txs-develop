@@ -32,7 +32,7 @@ allExamples = [ --Choice.benchmarksSet
                   LPEBenchmarkSets.lpeBenchmarkSet "Adder" -- Works
                 , LPEBenchmarkSets.lpeBenchmarkSet "Adder3" -- Works
                 , LPEBenchmarkSets.lpeBenchmarkSet "MAdder" -- Works (except for sometimes?!)
-                -- , LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works (takes too long sometimes?!)
+                , LPEBenchmarkSets.lpeBenchmarkSet "Bakery" -- Works (takes too long sometimes?!)
               --, LPEBenchmarkSets.lpeBenchmarkSet "SpeedTest" -- 
               --, LPEBenchmarkSets.lpeBenchmarkSet "ControlLoop" -- Fails because of hidden variables...
               --, LPEBenchmarkSets.lpeBenchmarkSet "CustomersOrders" -- Takes too long!
