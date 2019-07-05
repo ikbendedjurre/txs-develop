@@ -50,7 +50,6 @@ where
 import           Control.Arrow   ((***))
 import           Control.DeepSeq
 import qualified Data.Map        as Map
-import qualified Data.Set        as Set
 import qualified Data.Text       as Text
 import           GHC.Generics    (Generic)
 
@@ -98,7 +97,7 @@ data  TxsDefs  =  TxsDefs { sortDefs   :: Map.Map SortId SortDef
                           , goalDefs   :: Map.Map GoalId () --BExpr    -- local, part of PurpDefs
                           , mapperDefs :: Map.Map MapperId MapperDef
                           , cnectDefs  :: Map.Map CnectId CnectDef
-                          , usedNames  :: Set.Set Text.Text
+                          , usedNames  :: Map.Map Text.Text Int
                           }
                   deriving (Eq,Ord,Read,Show, Generic, NFData)
 
@@ -115,7 +114,7 @@ empty = TxsDefs  Map.empty
                  Map.empty
                  Map.empty
                  Map.empty
-                 Set.empty
+                 Map.empty
 
 lookup :: Ident -> TxsDefs -> Maybe TxsDef
 lookup (IdSort s) txsdefs = case Map.lookup s (sortDefs txsdefs) of
@@ -235,7 +234,7 @@ union a b = TxsDefs
                 (Map.union (goalDefs a)  (goalDefs b)   )
                 (Map.union (mapperDefs a)(mapperDefs b) )
                 (Map.union (cnectDefs a) (cnectDefs b)  )
-                (Set.union (usedNames a) (usedNames b)  )
+                (Map.union (usedNames a) (usedNames b)  )
 
 
 -- ----------------------------------------------------------------------------------------- --

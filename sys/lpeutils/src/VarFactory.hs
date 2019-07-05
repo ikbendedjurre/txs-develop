@@ -40,14 +40,14 @@ import qualified SortOf
 import VarId
 import SortFactory
 
-getUsedNames :: IOC.IOC (Set.Set Text.Text)
+getUsedNames :: IOC.IOC (Map.Map Text.Text Int)
 getUsedNames = TxsDefs.usedNames <$> MonadState.gets (IOC.tdefs . IOC.state)
 
 printUsedNameCount :: String -> IOC.IOC ()
 printUsedNameCount caption = do
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
     let usedNames = TxsDefs.usedNames tdefs
-    IOC.putInfo ["Used Name Count [" ++ caption ++ "] = " ++ show (Set.size usedNames)]
+    IOC.putInfo ["[" ++ caption ++ "] Number of used names = " ++ show (Map.size usedNames)]
 -- printUsedNameCount
 
 -- Creates a variable of the specified sort, using the specified string as part of the name.
@@ -55,21 +55,20 @@ createFreshVarFromPrefix :: String -> SortId.SortId -> IOC.IOC VarId.VarId
 createFreshVarFromPrefix prefix sort = do
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
     let usedNames = TxsDefs.usedNames tdefs
-    -- IOC.putInfo (map (\t -> "Name Already In Use = " ++ Text.unpack t) (Set.toList usedNames))
-    let uniqueName = getUniqueName usedNames (reverse (dropWhile Char.isDigit (reverse prefix))) 1
-    -- IOC.putInfo ["New Unique Name (" ++ show (Set.size usedNames) ++ ") = " ++ Text.unpack uniqueName]
-    let tdefs' = tdefs { TxsDefs.usedNames = Set.insert uniqueName usedNames }
+    let namePrefix = reverse (dropWhile Char.isDigit (reverse prefix))
+    let nameSuffix = getNextNameSuffix usedNames namePrefix
+    let uniqueName = Text.pack (namePrefix ++ show nameSuffix)
+    let tdefs' = tdefs { TxsDefs.usedNames = Map.insert uniqueName nameSuffix usedNames }
     IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
     varUnid <- IOC.newUnid
     return VarId.VarId { VarId.name = uniqueName, VarId.unid = varUnid, VarId.varsort = sort }
   where
-    getUniqueName :: Set.Set Text.Text -> String -> Int -> Text.Text
-    getUniqueName usedNames truePrefix nr =
-        let attempt = Text.pack (truePrefix ++ show nr) in
-          if Set.member attempt usedNames
-          then getUniqueName usedNames truePrefix (nr + 1)
-          else attempt
-    -- getUniqueName
+    getNextNameSuffix :: Map.Map Text.Text Int -> String -> Int
+    getNextNameSuffix usedNames namePrefix =
+        case usedNames Map.!? Text.pack namePrefix of
+          Just nameSuffix -> nameSuffix + 1
+          Nothing -> 1
+    -- getNextNameSuffix
 -- createFreshVarFromPrefix
 
 createFreshVars :: Set.Set VarId.VarId -> IOC.IOC (Map.Map VarId.VarId VarId.VarId)

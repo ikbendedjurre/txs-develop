@@ -31,7 +31,6 @@ import qualified EnvCore as IOC
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified ProcId
 import qualified ChanId
@@ -45,18 +44,19 @@ createFreshProcIdFromProcId :: ProcId.ProcId -> IOC.IOC ProcId.ProcId
 createFreshProcIdFromProcId pid = do
     let prefix = Text.unpack (ProcId.name pid)
     tdefs <- MonadState.gets (IOC.tdefs . IOC.state)
-    let usedNames = Set.map ProcId.name (Map.keysSet (TxsDefs.procDefs tdefs))
-    let uniqueName = getUniqueName usedNames (reverse (dropWhile Char.isDigit (reverse prefix))) 1
+    let usedNames = TxsDefs.usedNames tdefs
+    let namePrefix = reverse (dropWhile Char.isDigit (reverse prefix))
+    let nameSuffix = getNextNameSuffix usedNames namePrefix
+    let uniqueName = Text.pack (namePrefix ++ show nameSuffix)
     varUnid <- IOC.newUnid
     return (pid { ProcId.name = uniqueName, ProcId.unid = varUnid })
   where
-    getUniqueName :: Set.Set Text.Text -> String -> Int -> Text.Text
-    getUniqueName usedNames truePrefix nr =
-        let attempt = Text.pack (truePrefix ++ show nr) in
-          if Set.member attempt usedNames
-          then getUniqueName usedNames truePrefix (nr + 1)
-          else attempt
-    -- getUniqueName
+    getNextNameSuffix :: Map.Map Text.Text Int -> String -> Int
+    getNextNameSuffix usedNames namePrefix =
+        case usedNames Map.!? Text.pack namePrefix of
+          Just nameSuffix -> nameSuffix + 1
+          Nothing -> 1
+    -- getNextNameSuffix
 -- getProcIdFromName
 
 createFreshProcIdFromChansAndVars :: Text.Text -> [ChanId.ChanId] -> [VarId.VarId] -> ProcId.ExitSort -> IOC.IOC ProcId.ProcId
