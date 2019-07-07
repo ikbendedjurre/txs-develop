@@ -14,13 +14,16 @@ See LICENSE at root directory of this repository.
 --
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE ViewPatterns        #-}
+
 module ThreadUtils (
 BranchData(..),
 getBranchData,
 ThreadData(..),
 getThreadData,
 filterThreadData,
-partitionThreadData
+partitionThreadData,
+isThreadSubExpr
 ) where
 
 import qualified Data.Map as Map
@@ -28,6 +31,7 @@ import qualified Data.Set as Set
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
 import qualified TxsDefs
+import qualified TxsShow
 import qualified ChanId
 import qualified VarId
 import ActOfferFactory
@@ -85,5 +89,35 @@ partitionThreadData restrictionFunction threadData =
     let (p, q) = Set.partition (restrictionFunction . bVizChans) (tBranchData threadData) in
       (threadData { tBranchData = p }, threadData { tBranchData = q })
 -- partitionThreadData
+
+isThreadSubExpr :: TxsDefs.BExpr -> Int -> Bool
+isThreadSubExpr currentBExpr subExprIndex =
+    case currentBExpr of
+      (TxsDefs.view -> ProcInst {}) -> False
+      (TxsDefs.view -> Guard {}) -> False
+      (TxsDefs.view -> Choice {}) -> False
+      (TxsDefs.view -> Parallel {}) -> True
+      (TxsDefs.view -> Hide {}) -> False
+      (TxsDefs.view -> Enable {}) -> subExprIndex == 0
+      (TxsDefs.view -> Disable {}) -> True -- TODO
+      (TxsDefs.view -> Interrupt {}) -> True -- TODO
+      (TxsDefs.view -> ActionPref {}) -> False
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+-- isThreadSubExpr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

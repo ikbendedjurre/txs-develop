@@ -72,14 +72,14 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     problems <- getProcDepTreeProblems bexpr5
     if null problems
     then do 
-            -- printProcsInBExpr "BEXPR5::" bexpr5
+            printProcsInBExpr "BEXPR5::" bexpr5
             
             -- 7. Place all steps of a process (including steps inside instantiated processes) on the same level in a Choice expression, but
             --    with different requirements of the value of a program counter.
             --    Each member of the Choice expression is called a `branch' (and could become a summand later).
             --    Exception: branches with thread expressions (Parallel / Enable / Disable / Interrupt) are not visited internally!
             bexpr6 <- addSeqProgramCounters bexpr5
-            -- printProcsInBExpr "BEXPR7::" bexpr6
+            printProcsInBExpr "BEXPR7::" bexpr6
             
             -- 8. Rewrite the branches of the involved processes so that they have exactly one ActOffer.
             --    Exception: branches with thread expressions (Parallel / Enable / Disable / Interrupt) are not rewritten here!

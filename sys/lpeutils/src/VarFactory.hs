@@ -58,7 +58,7 @@ createFreshVarFromPrefix prefix sort = do
     let namePrefix = reverse (dropWhile Char.isDigit (reverse prefix))
     let nameSuffix = getNextNameSuffix usedNames namePrefix
     let uniqueName = Text.pack (namePrefix ++ show nameSuffix)
-    let tdefs' = tdefs { TxsDefs.usedNames = Map.insert uniqueName nameSuffix usedNames }
+    let tdefs' = tdefs { TxsDefs.usedNames = Map.insert (Text.pack namePrefix) nameSuffix usedNames }
     IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
     varUnid <- IOC.newUnid
     return VarId.VarId { VarId.name = uniqueName, VarId.unid = varUnid, VarId.varsort = sort }

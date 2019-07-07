@@ -33,18 +33,17 @@ import qualified FreeVar
 import qualified Constant
 import qualified ProcId
 import qualified ProcDef
-import qualified ChanId
 import qualified VarId
 import BehExprDefs
 import ActOfferFactory
 import ProcIdFactory
 import VarFactory
 
-import UniqueObjects
-
 import qualified ProcInstUpdates
 
 import ProcDepTree
+import ThreadUtils
+import UniqueObjects
 
 addSeqProgramCounters :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 addSeqProgramCounters bexpr = do
@@ -62,168 +61,219 @@ addSeqPCsToProc procInstUpdateMap pid = do
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
           seqPC <- createFreshIntVarFromPrefix "seqPC"
-          extraVids <- getExtraVidDecls (Set.singleton pid) body
+          extraVids <- getSeqVidDecls (Set.singleton pid) body
           let ownerVidDecls = seqPC:Set.toList extraVids
           newProcInstUpdate <- ProcInstUpdates.createWithFreshPid pid vidDecls ownerVidDecls (Map.singleton seqPC (ValExpr.cstrConst (Constant.Cint 0)))
           -- IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("update " ++ ProcInstUpdates.showItem newProcInstUpdate) ]
           let procInstUpdateMap' = Map.insert pid newProcInstUpdate procInstUpdateMap
-          (_, body', _, _) <- constructBExpr procInstUpdateMap' (fst newProcInstUpdate) cidDecls ownerVidDecls seqPC 0 (body, Set.empty, Map.singleton pid 0, 0)
+          let createProcInst = procInst (fst newProcInstUpdate) cidDecls
+          (_, body', _, _) <- constructSeqBExpr procInstUpdateMap' createProcInst ownerVidDecls seqPC 0 (Map.singleton pid 0) body
           
           -- unregisterProc pid -- TODO Do this later
           registerProc (fst newProcInstUpdate) (ProcDef.ProcDef cidDecls ownerVidDecls (choice body'))
           return procInstUpdateMap'
-      Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
+      Nothing -> error ("Unknown process (\"" ++ TxsShow.fshow pid ++ "\")!")
 -- addSeqPCsToProc
 
-getExtraVidDecls :: Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set VarId.VarId)
-getExtraVidDecls visitedProcs currentBExpr =
+-- Extracts all variables that (may) need to be parameters when combining reachable processes.
+getSeqVidDecls :: Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set VarId.VarId)
+getSeqVidDecls visitedProcs currentBExpr =
     case currentBExpr of
-      (TxsDefs.view -> ProcInst pid _cids _vexprs) ->
-             if Set.member pid visitedProcs
-             then return (extractFreeVidsFromProcInst currentBExpr)
-             else do r <- getProcById pid
-                     case r of
-                       -- (We ignore the declared parameters; if they are never used, we do not need to set them, anyway.)
-                       Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> do
-                           extraVids <- getExtraVidDecls (Set.insert pid visitedProcs) body
-                           return (Set.union extraVids (extractFreeVidsFromProcInst currentBExpr))
-                       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
-      (TxsDefs.view -> Guard g bexpr) ->
-          do extraVids <- getExtraVidDecls visitedProcs bexpr
-             return (Set.union (Set.fromList (FreeVar.freeVars g)) extraVids)
+      (TxsDefs.view -> ProcInst pid _cids vexprs) -> do
+          let procInstVars = Set.fromList (concatMap FreeVar.freeVars vexprs)
+          if Set.member pid visitedProcs
+          then return procInstVars
+          else do r <- getProcById pid
+                  case r of
+                    -- (We ignore the declared parameters; if they are never used, we do not need to set them, anyway.)
+                    Just (ProcDef.ProcDef _cidDecls _vidDecls body) ->
+                        Set.union procInstVars <$> getSeqVidDecls (Set.insert pid visitedProcs) body
+                    Nothing -> error ("Unknown process (\"" ++ TxsShow.fshow pid ++ "\")!")
       (TxsDefs.view -> Choice bexprs) ->
-          Set.unions <$> Monad.mapM (getExtraVidDecls visitedProcs) (Set.toList bexprs)
+          Set.unions <$> Monad.mapM (getVidDecls currentBExpr 0 visitedProcs) (Set.toList bexprs)
       (TxsDefs.view -> Parallel _cidSet bexprs) ->
-          return (extractFreeVidsFromProcInsts bexprs)
+          Set.unions <$> Monad.mapM (getVidDecls currentBExpr 0 visitedProcs) bexprs
+      (TxsDefs.view -> Guard g bexpr) -> do
+          let guardVars = Set.fromList (FreeVar.freeVars g)
+          Set.union guardVars <$> getVidDecls currentBExpr 0 visitedProcs bexpr
+      (TxsDefs.view -> ActionPref actOffer bexpr) -> do
+          let actionPrefVars = Set.fromList (FreeVar.freeVars (TxsDefs.constraint actOffer))
+          Set.union actionPrefVars <$> getVidDecls currentBExpr 0 visitedProcs bexpr
       (TxsDefs.view -> Hide _cidSet bexpr) ->
-          getExtraVidDecls visitedProcs bexpr
-      (TxsDefs.view -> Enable bexpr1 _acceptOffers bexpr2) ->
-          return (extractFreeVidsFromProcInsts [bexpr1, bexpr2])
+          getVidDecls currentBExpr 0 visitedProcs bexpr
+      (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) -> do
+          let acceptVars = Set.fromList (map getChanOfferVar acceptOffers)
+          Set.union acceptVars <$> getBinVidDecls bexpr1 bexpr2
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          return (extractFreeVidsFromProcInsts [bexpr1, bexpr2])
+          getBinVidDecls bexpr1 bexpr2
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          return (extractFreeVidsFromProcInsts [bexpr1, bexpr2])
-      (TxsDefs.view -> ActionPref actOffer bexpr) ->
-          do extraVids <- getExtraVidDecls visitedProcs bexpr
-             return (Set.union (Set.fromList (FreeVar.freeVars (TxsDefs.constraint actOffer))) extraVids)
-      (TxsDefs.view -> ValueEnv _venv _bexpr) ->
-          error ("ValueEnv should have been eliminated by now (\"" ++ show currentBExpr ++ "\")!")
-      (TxsDefs.view -> StAut _sid _venv _transitions) ->
-          error ("StAut should have been eliminated by now (\"" ++ show currentBExpr ++ "\")!")
-      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
--- getExtraVidDecls
+          getBinVidDecls bexpr1 bexpr2
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+  where
+    getBinVidDecls :: TxsDefs.BExpr -> TxsDefs.BExpr -> IOC.IOC (Set.Set VarId.VarId)
+    getBinVidDecls bexpr1 bexpr2 = do
+        vidDecls1 <- getVidDecls currentBExpr 0 visitedProcs bexpr1
+        vidDecls2 <- getVidDecls currentBExpr 1 visitedProcs bexpr2
+        return (Set.union vidDecls1 vidDecls2)
+    -- getBinVidDecls
+-- getSeqVidDecls
 
-extractFreeVidsFromProcInsts :: [TxsDefs.BExpr] -> Set.Set VarId.VarId
-extractFreeVidsFromProcInsts bexprs = Set.unions (map extractFreeVidsFromProcInst bexprs)
-
-extractFreeVidsFromProcInst :: TxsDefs.BExpr -> Set.Set VarId.VarId
-extractFreeVidsFromProcInst (TxsDefs.view -> ProcInst _ _ vexprs) = Set.fromList (concatMap FreeVar.freeVars vexprs)
-extractFreeVidsFromProcInst currentBExpr = error ("Process instantiation expected, but found (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
-
-type ConstructionState = ( TxsDefs.BExpr                   -- If input: Behavioral expression that must be added to the body of the process that is under construction.
-                                                           -- If output: Recursive process instantiation that expresses the input expression.
-                         , Set.Set TxsDefs.BExpr           -- Contains the body so far of the process that is under construction.
-                         , Map.Map ProcId.ProcId Integer   -- Contains initial value of the PC for visiting a particular process.
-                         , Integer )                       -- Next available value for the PC.
--- ConstructionState
-
-constructBExpr :: ProcInstUpdates.ProcInstUpdateMap    -- Contains information about how parallel processes on which we are dependent should be instantiated.
-               -> ProcId.ProcId                        -- ID of the process to which we are adding a sequential PC.
-               -> [ChanId.ChanId]                      -- All channels of the process to which we are adding a sequential PC (same for all processes!).
-               -> [VarId.VarId]                        -- All parameters of the process to which we are adding a sequential PC (including the PC).
-               -> VarId.VarId                          -- The sequential PC.
-               -> Integer                              -- Value of the PC at the level of the current behavioral expression.
-               -> ConstructionState                    -- Input construction state.
-               -> IOC.IOC ConstructionState            -- Output construction state.
-constructBExpr procInstUpdateMap ownerPid ownerCids ownerVidDecls seqPC seqPCValue (currentBExpr, bodySoFar, visitedProcs, _nextSeqPC) = do
-    let defaultConstructBExpr = constructBExpr procInstUpdateMap ownerPid ownerCids ownerVidDecls seqPC
-    let getOwnerProcInst pc = let f vid = if vid == seqPC
-                                          then ValExpr.cstrConst (Constant.Cint pc)
-                                          else ValExpr.cstrVar vid in procInst ownerPid ownerCids (map f ownerVidDecls)
+getParVidDecls :: Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set VarId.VarId)
+getParVidDecls _visitedProcs currentBExpr =
     case currentBExpr of
-      (TxsDefs.view -> ProcInst pid _cids vexprs) ->
-          do r <- getProcById pid
-             case r of
-               Just (ProcDef.ProcDef _cidDecls vidDecls body) ->
-                   case visitedProcs Map.!? pid of
-                     Just initSeqPC -> do
-                         let f vid = case List.elemIndex vid vidDecls of
-                                       Just i -> vexprs !! i
-                                       Nothing -> if vid == seqPC
-                                                  then ValExpr.cstrConst (Constant.Cint initSeqPC)
-                                                  else ValExpr.cstrVar vid
-                         let ownerProcInst = procInst ownerPid ownerCids (map f ownerVidDecls)
-                         return (ownerProcInst, bodySoFar, visitedProcs, seqPCValue)
-                     Nothing -> do
-                         (_, bodySoFar', visitedProcs', nextSeqPC') <- defaultConstructBExpr seqPCValue (body, bodySoFar, Map.insert pid seqPCValue visitedProcs, 0)
-                         let f vid = case List.elemIndex vid vidDecls of
-                                       Just i -> vexprs !! i
-                                       Nothing -> if vid == seqPC
-                                                  then ValExpr.cstrConst (Constant.Cint seqPCValue)
-                                                  else ValExpr.cstrVar vid
-                         let ownerProcInst = procInst ownerPid ownerCids (map f ownerVidDecls)
-                         return (ownerProcInst, bodySoFar', visitedProcs', nextSeqPC')
-               Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
-      (TxsDefs.view -> Guard g bexpr) ->
-          do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
-             (bexpr', bodySoFar', visitedProcs', nextSeqPC') <- defaultConstructBExpr (seqPCValue + 1) (bexpr, bodySoFar, visitedProcs, 0)
-             let bexpr'' = guard (ValExpr.cstrAnd (Set.fromList [g, g'])) bexpr'
-             return (getOwnerProcInst seqPCValue, Set.insert bexpr'' bodySoFar', visitedProcs', nextSeqPC')
-      (TxsDefs.view -> Choice bexprs) ->
-             if Set.null bexprs
-             then return (getOwnerProcInst (-1), bodySoFar, visitedProcs, seqPCValue)
-             else do let f (bsf, vp, _nspc) b = do (_b', bsf', vp', nspc') <- defaultConstructBExpr seqPCValue (b, bsf, vp, 0)
-                                                   return (bsf', vp', nspc')
-                     (bodySoFar', visitedProcs', nextSeqPC') <- Monad.foldM f (bodySoFar, visitedProcs, 0) (Set.toList bexprs)
-                     return (getOwnerProcInst seqPCValue, bodySoFar', visitedProcs', nextSeqPC')
-      (TxsDefs.view -> Hide cidSet bexpr) ->
-          do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
-             (bexpr', bodySoFar', visitedProcs', nextSeqPC') <- defaultConstructBExpr (seqPCValue + 1) (bexpr, bodySoFar, visitedProcs, 0)
-             let bexpr'' = hide cidSet (guard g' bexpr')
-             return (getOwnerProcInst seqPCValue, Set.insert bexpr'' bodySoFar', visitedProcs', nextSeqPC')
-      (TxsDefs.view -> ActionPref actOffer bexpr) ->
-          do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
-             (bexpr', bodySoFar', visitedProcs', nextSeqPC') <- defaultConstructBExpr (seqPCValue + 1) (bexpr, bodySoFar, visitedProcs, 0)
-             let actOffer' = actOffer { TxsDefs.constraint = ValExpr.cstrAnd (Set.fromList [TxsDefs.constraint actOffer, g']) }
-             
-             -- Communication variables and state variables (=parameters) should not overlap; this messes up later substitutions.
-             -- We ignored this until here, where we substitute the original communication variables with fresh ones:
-             let (vizVars, hidVars) = getActOfferVars actOffer
-             actOfferSubst <- createFreshVars (Set.union vizVars hidVars)
-             let bexpr'' = Subst.subst (Map.map ValExpr.cstrVar actOfferSubst) Map.empty bexpr'
-             
-             -- Use a dedicated function to replace variables in ActOffers (because Subst.subst replaces free variables only):
-             let bexpr''' = actionPref (replaceVarsInActOffer actOfferSubst actOffer') bexpr''
-             return (getOwnerProcInst seqPCValue, Set.insert bexpr''' bodySoFar', visitedProcs', nextSeqPC')
-      
-      -- Non-linear branches are only nested in a guard (they are processed more thoroughly later):
-      (TxsDefs.view -> Parallel cidSet bexprs) ->
-          do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
-             let bexprs' = rewriteProcInsts procInstUpdateMap bexprs
-             let bexpr'' = guard g' (parallel cidSet bexprs')
-             return (getOwnerProcInst seqPCValue, Set.insert bexpr'' bodySoFar, visitedProcs, seqPCValue + 1)
-      (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
-          do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
-             let [bexpr1', bexpr2'] = rewriteProcInsts procInstUpdateMap [bexpr1, bexpr2]
-             let bexpr'' = guard g' (enable bexpr1' acceptOffers bexpr2')
-             return (getOwnerProcInst seqPCValue, Set.insert bexpr'' bodySoFar, visitedProcs, seqPCValue + 1)
-      (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
-             let [bexpr1', bexpr2'] = rewriteProcInsts procInstUpdateMap [bexpr1, bexpr2]
-             let bexpr'' = guard g' (disable bexpr1' bexpr2')
-             return (getOwnerProcInst seqPCValue, Set.insert bexpr'' bodySoFar, visitedProcs, seqPCValue + 1)
-      (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          do let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
-             let [bexpr1', bexpr2'] = rewriteProcInsts procInstUpdateMap [bexpr1, bexpr2]
-             let bexpr'' = guard g' (interrupt bexpr1' bexpr2')
-             return (getOwnerProcInst seqPCValue, Set.insert bexpr'' bodySoFar, visitedProcs, seqPCValue + 1)
-      (TxsDefs.view -> ValueEnv _venv _bexpr) ->
-          error ("ValueEnv should have been eliminated by now (\"" ++ show currentBExpr ++ "\")!")
-      (TxsDefs.view -> StAut _sid _venv _transitions) ->
-          error ("StAut should have been eliminated by now (\"" ++ show currentBExpr ++ "\")!")
-      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
+      (TxsDefs.view -> ProcInst _pid _cids vexprs) -> return (Set.fromList (concatMap FreeVar.freeVars vexprs))
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+-- getParVidDecls
+
+getVidDecls :: TxsDefs.BExpr -> Int -> Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set VarId.VarId)
+getVidDecls currentBExpr subExprIndex = if isThreadSubExpr currentBExpr subExprIndex then getParVidDecls else getSeqVidDecls
+
+constructSeqBExpr :: ProcInstUpdates.ProcInstUpdateMap         -- Contains information about how parallel processes on which we are dependent should be instantiated.
+                  -> ([TxsDefs.VExpr] -> TxsDefs.BExpr)        -- Function that constructs a recursive process instantiation.
+                  -> [VarId.VarId]                             -- All parameters of the process to which we are adding a sequential PC (including the PC).
+                  -> VarId.VarId                               -- The sequential PC.
+                  -> Integer                                   -- Value of the PC at the level of the current behavioral expression.
+                  -> Map.Map ProcId.ProcId Integer             -- Current PC values per visited process.
+                  -> TxsDefs.BExpr                             -- Current behavioral expression.
+                  -> IOC.IOC ( TxsDefs.BExpr                   -- Instantiation that can replace the current behavioral expression.
+                             , Set.Set TxsDefs.BExpr           -- Body constructed from the current behavioral expression.
+                             , Map.Map ProcId.ProcId Integer   -- New PC values per visited process.
+                             , Integer                         -- Value of the PC at the level of the next behavioral expression.
+                             )
+constructSeqBExpr procInstUpdateMap createProcInst ownerVidDecls seqPC seqPCValue pcValuePerProc currentBExpr = do
+    let defaultConstructBExpr subExprIndex = constructBExpr currentBExpr subExprIndex procInstUpdateMap createProcInst ownerVidDecls seqPC
+    let defaultSeqConstructBExpr = constructSeqBExpr procInstUpdateMap createProcInst ownerVidDecls seqPC
+    let defaultParConstructBExpr = constructParBExpr procInstUpdateMap createProcInst ownerVidDecls seqPC 0
+    let defaultValues pc = let f vid = if vid == seqPC then ValExpr.cstrConst (Constant.Cint pc) else ValExpr.cstrVar vid in
+                             map f ownerVidDecls
+    let g' = ValExpr.cstrEqual (ValExpr.cstrVar seqPC) (ValExpr.cstrConst (Constant.Cint seqPCValue))
+    
+    case currentBExpr of
+      (TxsDefs.view -> ProcInst pid _cids vexprs) -> do
+          r <- getProcById pid
+          case r of
+            Just (ProcDef.ProcDef _cidDecls vidDecls body) ->
+                case pcValuePerProc Map.!? pid of
+                  Just initSeqPC -> do
+                      let f vid = case List.elemIndex vid vidDecls of
+                                    Just i -> vexprs !! i
+                                    Nothing -> if vid == seqPC
+                                               then ValExpr.cstrConst (Constant.Cint initSeqPC)
+                                               else ValExpr.cstrVar vid
+                      return (createProcInst (map f ownerVidDecls), Set.empty, pcValuePerProc, seqPCValue)
+                  Nothing -> do
+                      (_inst, body', pcValuePerProc', seqPCValue') <- defaultSeqConstructBExpr seqPCValue (Map.insert pid seqPCValue pcValuePerProc) body
+                      let f vid = case List.elemIndex vid vidDecls of
+                                    Just i -> vexprs !! i
+                                    Nothing -> if vid == seqPC
+                                               then ValExpr.cstrConst (Constant.Cint seqPCValue)
+                                               else ValExpr.cstrVar vid
+                      return (createProcInst (map f ownerVidDecls), body', pcValuePerProc', seqPCValue')
+            Nothing -> error ("Unknown process (\"" ++ TxsShow.fshow pid ++ "\")!")
+      (TxsDefs.view -> Choice bexprs) -> do
+          let f (insts, bd, pcs, npc) b = do (inst', bd', pcs', npc') <- defaultSeqConstructBExpr npc pcs b
+                                             return (Set.insert inst' insts, Set.union bd bd', pcs', npc')
+          (insts, body', pcValuePerProc', seqPCValue') <- Monad.foldM f (Set.empty, Set.empty, pcValuePerProc, seqPCValue + 1) (Set.toList bexprs)
+          -- (If there are no choices (e.g. STOP), there will be no summands with PC==seqPCValue, because seqPCValue'>=seqPCValue + 1.)
+          return (createProcInst (defaultValues seqPCValue), Set.union (Set.map (guard g') insts) body', pcValuePerProc', seqPCValue')
+      (TxsDefs.view -> Parallel cidSet bexprs) -> do
+          let f (insts, bd, pcs) b = do (inst', bd', pcs', _) <- defaultParConstructBExpr pcs b
+                                        return (Set.insert inst' insts, Set.union bd bd', pcs')
+          (insts, body', pcValuePerProc') <- Monad.foldM f (Set.empty, Set.empty, pcValuePerProc) bexprs
+          let bexpr' = guard g' (parallel cidSet (Set.toList insts))
+          -- Parallel is the end of a branch; it does not increase the PC any further.
+          -- It must also communicate the initial value of the PC of the next branch (which must be at least seqPCValue + 1).
+          return (createProcInst (defaultValues seqPCValue), Set.insert bexpr' body', pcValuePerProc', seqPCValue + 1)
+      (TxsDefs.view -> Guard g bexpr) -> do
+          (inst, body', pcValuePerProc', seqPCValue') <- defaultConstructBExpr 0 (seqPCValue + 1) pcValuePerProc bexpr
+          let bexpr' = guard (ValExpr.cstrAnd (Set.fromList [g, g'])) inst
+          return (createProcInst (defaultValues seqPCValue), Set.insert bexpr' body', pcValuePerProc', seqPCValue')
+      (TxsDefs.view -> ActionPref actOffer bexpr) -> do
+          (inst, body', pcValuePerProc', seqPCValue') <- defaultConstructBExpr 0 (seqPCValue + 1) pcValuePerProc bexpr
+          let actOffer' = addActOfferConjunct actOffer g'
+          
+          -- Communication variables and state variables (=parameters) should not overlap; this messes up later substitutions.
+          -- We ignored this until here, where we substitute the original communication variables with fresh ones:
+          let (vizVars, hidVars) = getActOfferVars actOffer
+          actOfferSubst <- createFreshVars (Set.union vizVars hidVars)
+          let inst' = Subst.subst (Map.map ValExpr.cstrVar actOfferSubst) Map.empty inst
+          -- Use a dedicated function to replace variables in ActOffers (because Subst.subst replaces free variables only):
+          let bexpr' = actionPref (replaceVarsInActOffer actOfferSubst actOffer') inst'
+          
+          return (createProcInst (defaultValues seqPCValue), Set.insert bexpr' body', pcValuePerProc', seqPCValue')
+      (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) -> do
+          (inst1, inst2, body', pcValuePerProc', seqPCValue') <- getBinDefaultConstructBExpr bexpr1 bexpr2
+          let bexpr' = guard g' (enable inst1 acceptOffers inst2)
+          return (createProcInst (defaultValues seqPCValue), Set.insert bexpr' body', pcValuePerProc', seqPCValue')
+      (TxsDefs.view -> Disable bexpr1 bexpr2) -> do
+          (inst1, inst2, body', pcValuePerProc', seqPCValue') <- getBinDefaultConstructBExpr bexpr1 bexpr2
+          let bexpr' = guard g' (disable inst1 inst2)
+          return (createProcInst (defaultValues seqPCValue), Set.insert bexpr' body', pcValuePerProc', seqPCValue')
+      (TxsDefs.view -> Interrupt bexpr1 bexpr2) -> do
+          (inst1, inst2, body', pcValuePerProc', seqPCValue') <- getBinDefaultConstructBExpr bexpr1 bexpr2
+          let bexpr' = guard g' (interrupt inst1 inst2)
+          return (createProcInst (defaultValues seqPCValue), Set.insert bexpr' body', pcValuePerProc', seqPCValue')
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+  where
+    getBinDefaultConstructBExpr :: TxsDefs.BExpr -> TxsDefs.BExpr -> IOC.IOC ( TxsDefs.BExpr                   -- Instantiation 1.
+                                                                             , TxsDefs.BExpr                   -- Instantiation 2.
+                                                                             , Set.Set TxsDefs.BExpr           -- Constructed body.
+                                                                             , Map.Map ProcId.ProcId Integer   -- New PC values per visited process.
+                                                                             , Integer                         -- Next PC value.
+                                                                             )
+    getBinDefaultConstructBExpr bexpr1 bexpr2 = do
+        (inst1, body1, pcs1, seqPCValue1) <- constructBExpr currentBExpr 0 procInstUpdateMap createProcInst ownerVidDecls seqPC (seqPCValue + 1) pcValuePerProc bexpr1
+        (inst2, body2, pcs2, seqPCValue2) <- constructBExpr currentBExpr 1 procInstUpdateMap createProcInst ownerVidDecls seqPC (seqPCValue1 + 1) pcs1 bexpr2
+        return (inst1, inst2, Set.union body1 body2, pcs2, seqPCValue2)
+    -- getBinDefaultConstructBExpr
 -- constructBExpr
 
-rewriteProcInsts :: ProcInstUpdates.ProcInstUpdateMap -> [TxsDefs.BExpr] -> [TxsDefs.BExpr]
-rewriteProcInsts procInstUpdateMap = map (ProcInstUpdates.applyMapToProcInst procInstUpdateMap)
+constructParBExpr :: ProcInstUpdates.ProcInstUpdateMap         -- Contains information about how parallel processes on which we are dependent should be instantiated.
+                  -> ([TxsDefs.VExpr] -> TxsDefs.BExpr)        -- Function that constructs a recursive process instantiation.
+                  -> [VarId.VarId]                             -- All parameters of the process to which we are adding a sequential PC (including the PC).
+                  -> VarId.VarId                               -- The sequential PC.
+                  -> Integer                                   -- Value of the PC at the level of the current behavioral expression.
+                  -> Map.Map ProcId.ProcId Integer             -- Current PC values per visited process.
+                  -> TxsDefs.BExpr                             -- Current behavioral expression.
+                  -> IOC.IOC ( TxsDefs.BExpr                   -- Instantiation that can replace the current behavioral expression.
+                             , Set.Set TxsDefs.BExpr           -- Body constructed from the current behavioral expression.
+                             , Map.Map ProcId.ProcId Integer   -- New PC values per visited process.
+                             , Integer                         -- Value of the PC at the level of the next behavioral expression.
+                             )
+constructParBExpr procInstUpdateMap _createProcInst _ownerVidDecls _seqPC seqPCValue pcValuePerProc currentBExpr =
+    case currentBExpr of
+      (TxsDefs.view -> ProcInst {}) -> return (ProcInstUpdates.applyMapToProcInst procInstUpdateMap currentBExpr, Set.empty, pcValuePerProc, seqPCValue + 1)
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+-- constructParBExpr
+
+constructBExpr :: TxsDefs.BExpr
+               -> Int
+               -> ProcInstUpdates.ProcInstUpdateMap         -- Contains information about how parallel processes on which we are dependent should be instantiated.
+               -> ([TxsDefs.VExpr] -> TxsDefs.BExpr)        -- Function that constructs a recursive process instantiation.
+               -> [VarId.VarId]                             -- All parameters of the process to which we are adding a sequential PC (including the PC).
+               -> VarId.VarId                               -- The sequential PC.
+               -> Integer                                   -- Value of the PC at the level of the current behavioral expression.
+               -> Map.Map ProcId.ProcId Integer             -- Current PC values per visited process.
+               -> TxsDefs.BExpr                             -- Current behavioral expression.
+               -> IOC.IOC ( TxsDefs.BExpr                   -- Instantiation that can replace the current behavioral expression.
+                          , Set.Set TxsDefs.BExpr           -- Body constructed from the current behavioral expression.
+                          , Map.Map ProcId.ProcId Integer   -- New PC values per visited process.
+                          , Integer                         -- Value of the PC at the level of the next behavioral expression.
+                          )
+constructBExpr currentBExpr subExprIndex = if isThreadSubExpr currentBExpr subExprIndex then constructParBExpr else constructSeqBExpr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

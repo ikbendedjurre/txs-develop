@@ -107,7 +107,7 @@ replacePidsInBExpr freshPidMap currentBExpr =
           replacePidsInBExpr freshPidMap bexpr
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...
-      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
+      _ -> error ("Behavioral expression not anticipated (\"" ++ show currentBExpr ++ "\")!")
 -- replacePidsInBExpr
 
 ensureDistinguishableThreads :: [TxsDefs.BExpr] -> IOC.IOC [TxsDefs.BExpr]
@@ -127,7 +127,7 @@ ensureDistinguishableThreads threads = do
                       return (soFar ++ [procInst freshPid cids vexprs], Set.insert freshPid visitedProcs)
                   Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
         else return (soFar ++ [bexpr], Set.insert pid visitedProcs)
-    addThread _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
+    addThread _ bexpr = error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 -- ensureDistinguishableThreads
 
 ensureFreshVarsInProcInst :: TxsDefs.BExpr -> IOC.IOC ()
@@ -140,7 +140,7 @@ ensureFreshVarsInProcInst (TxsDefs.view -> ProcInst pid _cids _vexprs) = do
           let body' = choice (Set.fromList newBranches)
           registerProc pid (ProcDef.ProcDef cidDecls (map (subst Map.!) vidDecls) body')
       Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
-ensureFreshVarsInProcInst currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+ensureFreshVarsInProcInst currentBExpr = error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
 ensureFreshVarsInBranch :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 ensureFreshVarsInBranch subst currentBExpr = do
@@ -153,7 +153,7 @@ ensureFreshVarsInBranch subst currentBExpr = do
           let bexpr' = Subst.subst (Map.map ValExpr.cstrVar subst') Map.empty bexpr
           let actionPref' = actionPref actOffer' bexpr'
           return (applyHide hiddenChans actionPref')
-      _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 -- ensureFreshVarsInBranch
 
 ensureFreshVarsInBExpr :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
@@ -219,7 +219,7 @@ replaceVidsInBExpr subst currentBExpr = do
              return (valueEnv (applySubstToVEnv venv) bexpr')
       -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
           -- ...
-      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
+      _ -> error ("Behavioral expression not anticipated (\"" ++ show currentBExpr ++ "\")!")
 -- replaceVidsInBExpr
 
 

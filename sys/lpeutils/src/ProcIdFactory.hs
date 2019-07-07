@@ -38,6 +38,7 @@ import qualified VarId
 import qualified SortId
 import qualified SortOf
 import qualified TxsDefs
+-- import qualified TxsShow
 
 -- Creates a fresh process id based on a given process id:
 createFreshProcIdFromProcId :: ProcId.ProcId -> IOC.IOC ProcId.ProcId
@@ -48,8 +49,12 @@ createFreshProcIdFromProcId pid = do
     let namePrefix = reverse (dropWhile Char.isDigit (reverse prefix))
     let nameSuffix = getNextNameSuffix usedNames namePrefix
     let uniqueName = Text.pack (namePrefix ++ show nameSuffix)
+    let tdefs' = tdefs { TxsDefs.usedNames = Map.insert (Text.pack namePrefix) nameSuffix usedNames }
+    IOC.modifyCS $ \st -> st { IOC.tdefs = tdefs' }
     varUnid <- IOC.newUnid
-    return (pid { ProcId.name = uniqueName, ProcId.unid = varUnid })
+    let newPid = (pid { ProcId.name = uniqueName, ProcId.unid = varUnid })
+    -- IOC.putInfo [ "New process id (" ++ show usedNames ++ ") = " ++ TxsShow.fshow newPid ++ "[" ++ show varUnid ++ "]" ]
+    return newPid
   where
     getNextNameSuffix :: Map.Map Text.Text Int -> String -> Int
     getNextNameSuffix usedNames namePrefix =

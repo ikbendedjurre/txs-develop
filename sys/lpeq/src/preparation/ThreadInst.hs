@@ -36,6 +36,7 @@ import ProcIdFactory
 import qualified Scopes
 
 import ProcSearch
+import ThreadUtils
 
 -- `Threads' are sub-expressions of Parallel / Enable / Disable / Interrupt expressions.
 -- This function recursively identifies such sub-expressions in a given behavioral expression, and
@@ -66,39 +67,35 @@ lookForThread location scope currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
           return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
+      (TxsDefs.view -> Choice bexprs) ->
+          do (bexprs', exit') <- forAllBExprs (lookForThread location scope) (Set.toList bexprs)
+             return (choice (Set.fromList bexprs'), exit')
       (TxsDefs.view -> Parallel cidSet bexprs) ->
           do (bexprs', exit') <- forAllBExprs (instThread location scope) bexprs
              return (parallel (Scopes.applyToChanSet scope cidSet) bexprs', exit')
       (TxsDefs.view -> Guard g bexpr) ->
-          do (bexpr', exit') <- lookForThread location scope bexpr
+          do (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope bexpr
              return (guard (Scopes.applyToVExpr scope g) bexpr', exit')
-      (TxsDefs.view -> Choice bexprs) ->
-          do (bexprs', exit') <- forAllBExprs (lookForThread location scope) (Set.toList bexprs)
-             return (choice (Set.fromList bexprs'), exit')
       (TxsDefs.view -> Hide cidSet bexpr) ->
-          do (bexpr', exit') <- lookForThread location scope bexpr
+          do (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope bexpr
              return (hide (Scopes.applyToChanSet scope cidSet) bexpr', exit')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
-          do (bexpr1', _) <- instThread location scope bexpr1
-             (bexpr2', exit') <- instThread location (Scopes.addChanOffers scope acceptOffers) bexpr2
+          do (bexpr1', _) <- handleSubExpr currentBExpr 0 location scope bexpr1
+             (bexpr2', exit') <- handleSubExpr currentBExpr 1 location (Scopes.addChanOffers scope acceptOffers) bexpr2
              return (enable bexpr1' (map (Scopes.applyToChanOffer scope) acceptOffers) bexpr2', exit')
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          do (bexpr1', _) <- instThread location scope bexpr1
-             (bexpr2', exit') <- instThread location scope bexpr2
+          do (bexpr1', _) <- handleSubExpr currentBExpr 0 location scope bexpr1
+             (bexpr2', exit') <- handleSubExpr currentBExpr 1 location scope bexpr2
              return (disable bexpr1' bexpr2', exit')
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          do (bexpr1', _) <- instThread location scope bexpr1
-             (bexpr2', exit') <- instThread location scope bexpr2
+          do (bexpr1', _) <- handleSubExpr currentBExpr 0 location scope bexpr1
+             (bexpr2', exit') <- handleSubExpr currentBExpr 1 location scope bexpr2
              return (interrupt bexpr1' bexpr2', exit')
       (TxsDefs.view -> ActionPref actOffer bexpr) ->
           do let scope' = Scopes.addActOffer scope actOffer
-             (bexpr', exit') <- instThread location scope' bexpr
+             (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope' bexpr
              return (actionPref (Scopes.applyToActOffer scope' actOffer) bexpr', exit')
-      (TxsDefs.view -> ValueEnv _venv _bexpr) ->
-           error ("ValExpr should have already been rewritten (\"" ++ show currentBExpr ++ "\")!")
-      -- (TxsDefs.view -> StAut _sid _venv transitions) -> 
-          -- ...
-      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
+      _ -> error ("Behavioral expression not anticipated (\"" ++ show currentBExpr ++ "\")!")
 -- lookForThread
 
 instThread :: String -> Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
@@ -106,55 +103,54 @@ instThread location scope currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> ProcInst pid cids vexprs) ->
           return (procInst pid (Scopes.applyToChans scope cids) (Scopes.applyToVExprs scope vexprs), ProcId.procexit pid)
-      (TxsDefs.view -> Guard g bexpr) ->
-          do scope' <- Scopes.cloneScope scope
-             (bexpr', exit') <- lookForThread location scope' bexpr
-             regAndInstProc location scope' exit' (guard (Scopes.applyToVExpr scope' g) bexpr')
-      (TxsDefs.view -> ActionPref actOffer bexpr) ->
-          do scope' <- Scopes.cloneScope scope
-             let scope'' = Scopes.addActOffer scope' actOffer
-             (bexpr', exit') <- lookForThread location scope'' bexpr
-             regAndInstProc location scope' exit' (actionPref (Scopes.applyToActOffer scope'' actOffer) bexpr')
-      (TxsDefs.view -> ValueEnv _venv _bexpr) ->
-          error ("ValExpr should have already been rewritten (\"" ++ show currentBExpr ++ "\")!")
       (TxsDefs.view -> Choice bexprs) ->
           do scope' <- Scopes.cloneScope scope
              (bexprs', exit') <- forAllBExprs (lookForThread location scope') (Set.toList bexprs)
              regAndInstProc location scope' exit' (choice (Set.fromList bexprs'))
-      (TxsDefs.view -> Hide cidSet bexpr) ->
-          do scope' <- Scopes.cloneScope scope
-             (bexpr', exit') <- lookForThread location scope' bexpr
-             regAndInstProc location scope' exit' (hide (Scopes.applyToChanSet scope' cidSet) bexpr')
-       -- Parallel expression can contain parallel sub-expressions:
       (TxsDefs.view -> Parallel cidSet bexprs) ->
           do scope' <- Scopes.cloneScope scope
              (bexprs', exit') <- forAllBExprs (instThread location scope') bexprs
              regAndInstProc location scope' exit' (parallel (Scopes.applyToChanSet scope' cidSet) bexprs')
+      (TxsDefs.view -> Guard g bexpr) ->
+          do scope' <- Scopes.cloneScope scope
+             (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope' bexpr
+             regAndInstProc location scope' exit' (guard (Scopes.applyToVExpr scope' g) bexpr')
+      (TxsDefs.view -> ActionPref actOffer bexpr) ->
+          do scope' <- Scopes.cloneScope scope
+             let scope'' = Scopes.addActOffer scope' actOffer
+             (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope'' bexpr
+             regAndInstProc location scope' exit' (actionPref (Scopes.applyToActOffer scope'' actOffer) bexpr')
+      (TxsDefs.view -> Hide cidSet bexpr) ->
+          do scope' <- Scopes.cloneScope scope
+             (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope' bexpr
+             regAndInstProc location scope' exit' (hide (Scopes.applyToChanSet scope' cidSet) bexpr')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
           do scope1 <- Scopes.cloneScope scope
-             (bexpr1', _) <- instThread location scope1 bexpr1
+             (bexpr1', _) <- handleSubExpr currentBExpr 0 location scope1 bexpr1
              let scope2 = Scopes.addChanOffers scope1 acceptOffers
-             (bexpr2', exit') <- instThread location scope2 bexpr2
+             (bexpr2', exit') <- handleSubExpr currentBExpr 1 location scope2 bexpr2
              regAndInstProc location scope1 exit' (enable bexpr1' (map (Scopes.applyToChanOffer scope2) acceptOffers) bexpr2')
       (TxsDefs.view -> Disable bexpr1 bexpr2) ->
-          do (bexpr1', scope') <- cloneScopeAndInstThread bexpr1
-             (bexpr2', exit') <- instThread location scope' bexpr2
+          do (bexpr1', bexpr2', exit', scope') <- cloneScopeAndInstThread bexpr1 bexpr2
              regAndInstProc location scope' exit' (disable bexpr1' bexpr2')
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
-          do (bexpr1', scope') <- cloneScopeAndInstThread bexpr1
-             (bexpr2', exit') <- instThread location scope' bexpr2
+          do (bexpr1', bexpr2', exit', scope') <- cloneScopeAndInstThread bexpr1 bexpr2
              regAndInstProc location scope' exit' (interrupt bexpr1' bexpr2')
-      -- (TxsDefs.view -> StAut _sid _venv transitions) ->
-          -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
   where
     -- Because LINT wants to reduce duplication so badly...:
-    cloneScopeAndInstThread :: TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, Scopes.Scope)
-    cloneScopeAndInstThread bexpr1 = do
+    cloneScopeAndInstThread :: TxsDefs.BExpr -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, TxsDefs.BExpr, ProcId.ExitSort, Scopes.Scope)
+    cloneScopeAndInstThread bexpr1 bexpr2 = do
         scope' <- Scopes.cloneScope scope
-        (bexpr1', _) <- instThread location scope' bexpr1
-        return (bexpr1', scope')
+        (bexpr1', _) <- handleSubExpr currentBExpr 0 location scope' bexpr1
+        (bexpr2', exit') <- handleSubExpr currentBExpr 1 location scope' bexpr2
+        return (bexpr1', bexpr2', exit', scope')
+    -- cloneScopeAndInstThread
 -- instThread
+
+-- Determines whether a behavioral expression should be instantiated or not.
+handleSubExpr :: TxsDefs.BExpr -> Int -> String -> Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
+handleSubExpr currentBExpr subExprIndex = if isThreadSubExpr currentBExpr subExprIndex then instThread else lookForThread
 
 -- Multiple branches are evaluated in the same manner with this function.
 forAllBExprs :: (TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)) -> [TxsDefs.BExpr] -> IOC.IOC ([TxsDefs.BExpr], ProcId.ExitSort)
@@ -180,4 +176,22 @@ regAndInstProc location scope exit body = do
     let newProcValues = map (ValExpr.cstrVar . fst) vids
     return (procInst newPid (map fst cids) newProcValues, exit)
 -- regAndInstProcUsingVarEnv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

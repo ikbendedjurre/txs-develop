@@ -34,7 +34,7 @@ import ValFactory
 import BehExprDefs
 
 import BranchLinearityUtils
-import UniqueObjects
+-- import UniqueObjects
 import ThreadUtils
 
 -- import ProcSearch
@@ -50,12 +50,12 @@ type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be use
 linearize :: TExprLinearizer
 linearize createProcInst g (TxsDefs.view -> Enable thread1 chanOffers thread2) = do
     -- We require that all thread processes are unique, as well as all variables that they declare!
-    [thread1', thread2'] <- ensureDistinguishableThreads [thread1, thread2]
-    ensureFreshVarsInProcInst thread1'
-    ensureFreshVarsInProcInst thread2'
+    --[thread1', thread2'] <- ensureDistinguishableThreads [thread1, thread2]
+    --ensureFreshVarsInProcInst thread1'
+    --ensureFreshVarsInProcInst thread2'
     
     -- Extract data from all parallel sub-expressions:
-    [threadData1, threadData2] <- Monad.mapM getThreadData [thread1', thread2']
+    [threadData1, threadData2] <- Monad.mapM getThreadData [thread1, thread2]
     
     let initFlag1 = tInitFlag threadData1
     let initFlag2 = tInitFlag threadData2
@@ -90,7 +90,7 @@ createSyncedExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls
     
     let exitParamEqs = Map.fromList (zip (map getChanOfferVar chanOffers) (map ValExpr.cstrVar (getOfferVarsPerChan (bActOffer bd) Map.! chanIdExit)))
     let applyExitParamEqs = Subst.subst (Map.union exitParamEqs (Map.fromList (tInitEqs td2))) Map.empty
-    let applyInitEqs = if initFlagValue1 == False then Subst.subst (Map.fromList (tInitEqs td1)) Map.empty else id
+    let applyInitEqs = if not initFlagValue1 then Subst.subst (Map.fromList (tInitEqs td1)) Map.empty else id
     return (applyHide (bHidChans bd) (applyExitParamEqs (applyInitEqs newActionPref)))
 -- createSyncedExitBranch
 
@@ -101,7 +101,7 @@ createUnsyncedBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, 
     let newProcInst = createNewProcInst info nextInitFlagValue1 nextInitFlagValue2 bd
     let newActionPref = actionPref newActOffer newProcInst
     
-    let applyInitEqs = if ((tInitFlag td == initFlag1) && (initFlagValue1 == False)) || ((tInitFlag td == initFlag2) && (initFlagValue2 == False)) then Subst.subst (Map.fromList (tInitEqs td)) Map.empty else id
+    let applyInitEqs = if ((tInitFlag td == initFlag1) && not initFlagValue1) || ((tInitFlag td == initFlag2) && not initFlagValue2) then Subst.subst (Map.fromList (tInitEqs td)) Map.empty else id
     return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
 -- createUnsyncedBranch
 
