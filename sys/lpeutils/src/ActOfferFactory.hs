@@ -26,7 +26,8 @@ getOfferVars,
 getChanOfferVar,
 getActOfferChans,
 mergeActOffers,
-addActOfferConjunct
+addActOfferConjunct,
+removeChanFromActOffer
 ) where
 
 import qualified Data.Map as Map
@@ -88,6 +89,12 @@ mergeActOffers actOffer1 actOffer2 =
 addActOfferConjunct :: TxsDefs.ActOffer -> TxsDefs.VExpr -> TxsDefs.ActOffer
 addActOfferConjunct actOffer conjunct = actOffer { TxsDefs.constraint = ValExpr.cstrAnd (Set.fromList [conjunct, TxsDefs.constraint actOffer]) }
 
-
+removeChanFromActOffer :: TxsDefs.ActOffer -> ChanId.ChanId -> TxsDefs.ActOffer
+removeChanFromActOffer actOffer targetChan =
+    let (match, mismatch) = Set.partition (\offer -> TxsDefs.chanid offer == targetChan) (TxsDefs.offers actOffer) in
+      actOffer { TxsDefs.offers = mismatch
+               , TxsDefs.hiddenvars = Set.union (TxsDefs.hiddenvars actOffer) (Set.fromList (concatMap getOfferVars (Set.toList match)))
+               }
+-- removeChanFromActOffer
 
 

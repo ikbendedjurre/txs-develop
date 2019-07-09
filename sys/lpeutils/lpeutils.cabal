@@ -27,6 +27,8 @@ library
                       , SetUnions
                       , SortFactory
                       , ActOfferFactory
+                      , MapDebug
+                      , IntercalateMap
 
   other-modules:      
 

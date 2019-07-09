@@ -24,10 +24,12 @@ isLinearBExpr,
 checkLinearBExpr,
 checkLinearBExprs,
 extractProcInstData,
+extractParamEqs,
 module BranchUtils
 ) where
 
 import qualified Data.List as List
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
@@ -126,9 +128,16 @@ extractProcInstData (TxsDefs.view -> ProcInst pid _ vexprs) = do
       Just (ProcDef.ProcDef _cidDecls vidDecls body) ->
           return (getBranches body, zip vidDecls vexprs)
       Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
-extractProcInstData currentBExpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+extractProcInstData currentBExpr = error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
-
+extractParamEqs :: TxsDefs.BExpr -> IOC.IOC (Map.Map VarId.VarId TxsDefs.VExpr)
+extractParamEqs (TxsDefs.view -> ProcInst pid _ vexprs) = do
+    r <- getProcById pid
+    case r of
+      Just (ProcDef.ProcDef _cidDecls vidDecls _body) ->
+          return (Map.fromList (zip vidDecls vexprs))
+      Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
+extractParamEqs currentBExpr = error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 
 
 

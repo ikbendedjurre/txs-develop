@@ -41,6 +41,9 @@ import BranchLinearityUtils
 import UniqueObjects
 import ThreadUtils
 
+-- import IntercalateMap
+import MapDebug
+
 -- import ProcSearch
 
 type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be used to recursively instantiate the parent process.
@@ -77,13 +80,14 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     unsyncedBranches <- leaveBranchesUnsynchronized info (map (filterThreadData (`Set.member` unsyncedCidSets)) dataPerThread)
     
     return (Set.union syncedBranches unsyncedBranches, initFlags ++ newVidDecls)
-linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
+linearize _ _ bexpr = error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
 -- Considers all lists consisting of one branch per thread.
 -- Synchronizes those branches.
 synchronizeOneBranchPerThread :: Info -> [ThreadData] -> Set.Set (Set.Set ChanId.ChanId) -> Set.Set ChanId.ChanId -> IOC.IOC (Set.Set TxsDefs.BExpr)
-synchronizeOneBranchPerThread info dataPerThread syncingCidSets syncingCidMinSubSet =
-    buildList [] (map (filterThreadData (`Set.member` syncingCidSets)) dataPerThread)
+synchronizeOneBranchPerThread info dataPerThread syncingCidSets syncingCidMinSubSet = do
+    let filteredSyncingCidSets = Set.filter (syncingCidMinSubSet `Set.isSubsetOf`) syncingCidSets
+    buildList [] (map (filterThreadData (`Set.member` filteredSyncingCidSets)) dataPerThread)
   where
     buildList :: [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
     buildList finalList [] =
@@ -109,7 +113,7 @@ createSyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) synchronizi
     -- Create a fresh variable for shared communication variables that are related:
     let sharedVars = map (\(bd, _td) -> concatMap (bOfferVarsPerChan bd Map.!) (Set.toList synchronizingChans)) dataPerBranch
     freshVars <- createFreshVars (Set.fromList (head sharedVars))
-    let orderedFreshVars = map (freshVars Map.!) (head sharedVars)
+    let orderedFreshVars = map (getOrError freshVars TxsShow.fshow) (head sharedVars)
     let freshVarPerSharedVar = Map.fromList (concatMap (`zip` orderedFreshVars) sharedVars)
     let applyFreshVars = Subst.subst (Map.map ValExpr.cstrVar freshVarPerSharedVar) Map.empty
     
