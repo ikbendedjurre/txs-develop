@@ -39,7 +39,7 @@ library
                       , LinearizeParallel
                       , LinearizeEnable
                       , LinearizeDisable
-                      --, LinearizeInterrupt
+                      , LinearizeInterrupt
 
   ghc-options:        -Werror -Wall -O2 -optc-O3 -optc-ffast-math
 

@@ -43,7 +43,7 @@ import ProcSearch
 import qualified LinearizeParallel
 import qualified LinearizeEnable
 import qualified LinearizeDisable
---import qualified LinearizeInterrupt
+import qualified LinearizeInterrupt
 
 linearizeTExprs :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 linearizeTExprs bexpr = do
@@ -121,7 +121,7 @@ linearizeNonHideTExpr createProcInst currentBExpr =
             (TxsDefs.view -> Parallel {}) -> LinearizeParallel.linearize createProcInst g bexpr
             (TxsDefs.view -> Enable {}) -> LinearizeEnable.linearize createProcInst g bexpr
             (TxsDefs.view -> Disable {}) -> LinearizeDisable.linearize createProcInst g bexpr
-            --(TxsDefs.view -> Interrupt {}) -> LinearizeInterrupt.linearize createProcInst g bexpr
+            (TxsDefs.view -> Interrupt {}) -> LinearizeInterrupt.linearize createProcInst g bexpr
             _ -> error ("No implementation yet for \"" ++ show currentBExpr ++ "\"!")
       _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 -- linearizeNonHideTExpr
