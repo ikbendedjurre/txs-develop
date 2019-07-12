@@ -130,7 +130,9 @@ getVidDecls :: TxsDefs.BExpr -> Int -> Set.Set ProcId.ProcId -> TxsDefs.BExpr ->
 getVidDecls currentBExpr subExprIndex =
     case getSubExprType currentBExpr subExprIndex of
       StpSequential -> getSeqVidDecls
-      _ -> getParVidDecls
+      StpPrefixed -> getSeqVidDecls
+      StpStackable -> getParVidDecls
+      StpUnsafe -> getParVidDecls
 -- getVidDecls
 
 constructSeqBExpr :: ProcInstUpdates.ProcInstUpdateMap         -- Contains information about how parallel processes on which we are dependent should be instantiated.
@@ -271,7 +273,9 @@ constructBExpr :: TxsDefs.BExpr
 constructBExpr currentBExpr subExprIndex =
     case getSubExprType currentBExpr subExprIndex of
       StpSequential -> constructSeqBExpr
-      _ -> constructParBExpr
+      StpPrefixed -> constructSeqBExpr
+      StpStackable -> constructParBExpr
+      StpUnsafe -> constructParBExpr
 -- constructBExpr
 
 

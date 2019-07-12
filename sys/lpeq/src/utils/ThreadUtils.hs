@@ -43,7 +43,11 @@ import BehExprDefs
 
 import BranchLinearityUtils
 
-data SubExprType = StpSequential | StpThread | StpStackable deriving (Eq, Ord, Show)
+data SubExprType = StpSequential    -- Behavioral expression that does not known to occur after an action.
+                 | StpPrefixed      -- Behavioral expression that is known to occur after an action.
+                 | StpStackable     -- Parent process can be instantiated in this sub-expression iff there is a stack that keeps track of the parameters of each instance.
+                 | StpUnsafe        -- Parent process cannot be recursively instantiated in this sub-expression (to avoid infinite recursion).
+                   deriving (Eq, Ord, Show)
 
 getSubExprType :: TxsDefs.BExpr -> Int -> SubExprType
 getSubExprType currentBExpr subExprIndex =
@@ -51,12 +55,12 @@ getSubExprType currentBExpr subExprIndex =
       (TxsDefs.view -> ProcInst {}) -> StpSequential
       (TxsDefs.view -> Guard {}) -> StpSequential
       (TxsDefs.view -> Choice {}) -> StpSequential
-      (TxsDefs.view -> Parallel {}) -> StpThread
+      (TxsDefs.view -> Parallel {}) -> StpUnsafe
       (TxsDefs.view -> Hide {}) -> StpSequential
-      (TxsDefs.view -> Enable {}) -> if subExprIndex == 0 then StpStackable else StpSequential
-      (TxsDefs.view -> Disable {}) -> if subExprIndex == 0 then StpThread else StpSequential
-      (TxsDefs.view -> Interrupt {}) -> if subExprIndex == 0 then StpThread else StpStackable
-      (TxsDefs.view -> ActionPref {}) -> StpSequential
+      (TxsDefs.view -> Enable {}) -> if subExprIndex == 0 then StpStackable else StpPrefixed
+      (TxsDefs.view -> Disable {}) -> if subExprIndex == 0 then StpUnsafe else StpPrefixed
+      (TxsDefs.view -> Interrupt {}) -> if subExprIndex == 0 then StpUnsafe else StpStackable
+      (TxsDefs.view -> ActionPref {}) -> StpPrefixed
       _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 -- getSubExprType
 

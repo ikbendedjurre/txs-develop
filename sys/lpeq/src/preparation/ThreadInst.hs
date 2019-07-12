@@ -157,7 +157,9 @@ handleSubExpr :: TxsDefs.BExpr -> Int -> String -> Scopes.Scope -> TxsDefs.BExpr
 handleSubExpr currentBExpr subExprIndex =
     case getSubExprType currentBExpr subExprIndex of
       StpSequential -> lookForThread
-      _ -> instThread
+      StpPrefixed -> lookForThread
+      StpStackable -> instThread
+      StpUnsafe -> instThread
 -- handleSubExpr
 
 -- Multiple branches are evaluated in the same manner with this function.
