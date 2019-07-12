@@ -20,6 +20,7 @@ Table~\ref{basiclpeops:table} gives an overview of the basic LPE operations.
 \begin{tabularx}{\linewidth}{l|X|}
 \textbf{Operation} & \textbf{Description} \\ \hline
 \texttt{stop} & End the chain of operations immediately. \\ \hline
+\texttt{valid} & Validate the input LPE. \\ \hline
 \texttt{show} & Print the input LPE to the terminal. \\ \hline
 \texttt{show*} & Same as \texttt{show}, but the output is compilable \txs{} code, and identifiers in the output have been shortened for readability. \\ \hline
 \texttt{export} & Save the input LPE to \textit{base}\texttt{.txt}. \\ \hline
@@ -45,6 +46,7 @@ Table~\ref{lpeanalysisops:table} gives an overview of the LPE analysis operation
 \texttt{isdet} & Return the input LPE after assessing whether it is deterministic. May yield false negatives. \\ \hline
 \texttt{mcrl2} & Convert the current LPE to an \mcrl{} specification (so that \mcrl{} can analyze it), and save it to \textit{base}\texttt{.mcrl2}. \\ \hline
 \texttt{confcheck} & Perform a confluence analysis on the input LPE, and return the input LPE in which confluent \texttt{ISTEP}s have been renamed to \texttt{CISTEP}s. \\ \hline
+\texttt{step*}$N$ & Follow a trace of up to $N$ steps through the input LPE. \\ \hline
 \end{tabularx}
 \caption{LPE analysis operations.}
 \label{lpeanalysisops:table}
@@ -72,7 +74,7 @@ Table~\ref{lperewriteopsprops:table} shows the equivalence that is preserved by 
 \texttt{parreset} & Set parameters of which it can be established via symbolic reachability that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
 \texttt{datareset} & Set parameters of which it can be established via control-flow analysis that their value is no longer used after a specific summand to a default value in the process instantiation of that summand. \\ \hline
 \texttt{confelm} & Rewrite the input LPE so that confluent \texttt{ISTEP} summands are prioritized. \\ \hline
-\texttt{det} & \textit{Experimental.} Rewrite the input LPE in an attempt to reduce non-determinism. By design, \texttt{det} does not generally remove all non-determinism in one execution because it may not terminate (so use with \texttt{loop}). \\ \hline
+\texttt{det} & \textit{Experimental.} Rewrite the input LPE in an attempt to reduce non-determinism. By design, \texttt{det} does not generally remove all non-determinism in one execution because it may not terminate (see if there is a fixed point with \texttt{loop}). \\ \hline
 \texttt{uguard} & \textit{Experimental.} Search for underspecified summands and remove them. \\ \hline
 \end{tabularx}
 \caption{LPE rewrite operations.}

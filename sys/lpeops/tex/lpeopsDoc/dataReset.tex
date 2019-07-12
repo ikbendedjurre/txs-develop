@@ -140,45 +140,6 @@ where
 \item $\text{source}(i, f)$ is a function that gives the destination value of a control-flow parameter $f$ for a summand $i$.
 \end{itemize}
 
-\section{Example TODO}
-
-Consider the following LPE:
-
-\begin{lstlisting}
-//Process definition:
-PROCDEF example[A :: Int, B](x, y :: Int)
-  = A ? i [[x==0]] >-> example[A, B](1, i)
-  + A ? i [[x==1 && i==y]] >-> example[A, B](2, y)
-  + B [[x==2]] >-> example[A, B](3, y)
-  + B [[x==3]] >-> example[A, B](0, y)
-  ;
-
-//Initialization:
-example[A, B](0, 0);
-\end{lstlisting}
-
-Finding the successors of each summand is easy: each summand has exactly one successor, namely the next one, except in case of the fourth summand, where the first summand is the successor.
-
-It is also obvious that $x$ will always be in $R_s$ for each summand $s$, because each summand uses $x$ in its guard.
-
-Process parameter $y$ will always be in $R_{s_1}$, where $s_1$ is the first summand, because $y$ is used in the guard of $s_1$'s successor (the second summand).
-After a few iterations, however, $y$ is removed from $R_{s_2}$ to $R_{s_4}$.
-This means that $y$ is assigned a default value in the corresponding summands.
-Depending on the mood of the SMT solver, this could give
-
-\begin{lstlisting}
-//Process definition:
-PROCDEF example[A :: Int, B](x, y :: Int)
-  = A ? i [[x==0]] >-> example[A, B](1, i)
-  + A ? i [[x==1 && i==y]] >-> example[A, B](2, 0)
-  + B [[x==2]] >-> example[A, B](3, 0)
-  + B [[x==3]] >-> example[A, B](0, 0)
-  ;
-
-//Initialization:
-example[A, B](0, 0);
-\end{lstlisting}
-
 \section{Benchmark results}
 
 The following durations were measured with a benchmark for several models:

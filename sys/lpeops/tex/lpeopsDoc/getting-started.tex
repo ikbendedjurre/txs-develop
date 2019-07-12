@@ -8,7 +8,7 @@ This section gives an overview of how to get started with these techniques.
 \section{Installation}
 
 \begin{enumerate}
-\item Download \texttt{stack} from
+\item Download \texttt{stack} as described on
 \begin{align*}
 \texttt{https://docs.haskellstack.org/en/stable/README/}
 \end{align*}
@@ -23,11 +23,11 @@ and install it.
 Add the binaries of the SMT solver to \texttt{PATH}.
 \item Clone the \texttt{develop} branch from
 \begin{align*}
-\texttt{https://github.com/TorXakis/TorXakis}
+\texttt{https://github.com/ikbendedjurre/txs-develop}
 \end{align*}
 \item In a terminal, navigate to the repository directory and run
 \begin{itemize}
-\item \texttt{stack setup}
+\item \texttt{stack -v setup}
 \item \texttt{stack -v --profile build}
 \end{itemize}
 \item The \txs{} binaries can be found in
@@ -37,14 +37,14 @@ Add the binaries of the SMT solver to \texttt{PATH}.
 
 in the repository directory (the \texttt{23f9efff} hash is build-dependent).
 
-Add the binaries to \texttt{PATH}.
+Add the binaries to \texttt{PATH} (there may be a way to do this more easily with \texttt{stack}).
 \end{enumerate}
 
 \section{Starting \txs{}} \label{starttxs}
 
 \begin{enumerate}
 \item Make it so that \texttt{txsserver.exe} and \texttt{torxakis.exe} are in \texttt{PATH}.
-\item Start two terminals, one for the \txs{} server and one for the \txs{} client -- this has the advantage of any errors that occur on the server-side to be visible.
+\item Start two terminals, one for the \txs{} server and one for the \txs{} client -- this has the advantage that errors that occur on the server-side will be visible.
 \item In both terminals, navigate to the directory with a \txs{} specification file (such as \texttt{example.txs}).
 \item In one terminal, run \texttt{txsserver --no-smt-log 50001} where the number \texttt{50001} is the port number that the \txs{} server will listen for clients.
 \item In the other terminal, run \texttt{torxakis 50001 example.txs}.
@@ -152,4 +152,8 @@ For more benchmark parameters, see \url{http://www.serpentine.com/criterion/tuto
 
 \item Wait for the benchmark to finish.
 \end{enumerate}
+
+
+
+
 
