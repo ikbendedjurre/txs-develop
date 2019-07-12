@@ -46,25 +46,26 @@ import BranchUtils
 
 eliminateHide :: (ProcId.ProcId, ProcInstUpdates.ProcInstUpdateMap) -> IOC.IOC (ProcId.ProcId, ProcInstUpdates.ProcInstUpdateMap)
 eliminateHide (pid, procInstUpdateMap) = do
-    -- IOC.putInfo [ "eliminateHideFrom " ++ TxsShow.fshow pid ]
+    IOC.putInfo [ "eliminateHideFrom " ++ TxsShow.fshow pid ]
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
           let branches = Set.toList (getBranches body)
           let hiddenChans = Set.toList (Set.unions (map (snd . removeHide) branches))
+          IOC.putInfo [ "hiddenChans = " ++ show hiddenChans ]
           if List.null hiddenChans
           then return (pid, procInstUpdateMap)
           else do flags <- Monad.mapM (createFreshBoolVarFromPrefix . (\cid -> "flag" ++ Text.unpack (ChanId.name cid))) hiddenChans
                   let flagPerChan = Map.fromList (zip hiddenChans flags)
                   
                   newProcInstUpdate <- ProcInstUpdates.createWithFreshPid pid vidDecls (vidDecls ++ flags) (Map.fromList (map (, cstrTrue) flags))
-                  let procInstUpdateMap' = Map.insert pid newProcInstUpdate procInstUpdateMap
+                  let procInstUpdateMap' = ProcInstUpdates.addToMap procInstUpdateMap pid newProcInstUpdate
                   
                   newBranches <- Set.unions <$> Monad.mapM (createFlaggedBranches (fst newProcInstUpdate) hiddenChans flagPerChan) branches
                   registerProc (fst newProcInstUpdate) (ProcDef.ProcDef cidDecls (vidDecls ++ flags) (choice newBranches))
                   
                   return (fst newProcInstUpdate, procInstUpdateMap')
-      Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
+      Nothing -> error ("Unknown process (\"" ++ TxsShow.fshow pid ++ "\")!")
 -- eliminateHide
 
 createFlaggedBranches :: ProcId.ProcId -> [ChanId.ChanId] -> Map.Map ChanId.ChanId VarId.VarId -> TxsDefs.BExpr -> IOC.IOC (Set.Set TxsDefs.BExpr)

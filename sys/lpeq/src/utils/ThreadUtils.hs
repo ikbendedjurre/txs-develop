@@ -17,13 +17,15 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 
 module ThreadUtils (
+SubExprType(..),
+getSubExprType,
 BranchData(..),
+emptyBranchData,
 getBranchData,
 ThreadData(..),
 getThreadData,
 filterThreadData,
-partitionThreadData,
-isThreadSubExpr
+partitionThreadData
 ) where
 
 import qualified Data.Map as Map
@@ -34,11 +36,29 @@ import qualified TxsDefs
 import qualified TxsShow
 import qualified ChanId
 import qualified VarId
+import qualified SortId
 import ActOfferFactory
 import VarFactory
 import BehExprDefs
 
 import BranchLinearityUtils
+
+data SubExprType = StpSequential | StpThread | StpStackable deriving (Eq, Ord, Show)
+
+getSubExprType :: TxsDefs.BExpr -> Int -> SubExprType
+getSubExprType currentBExpr subExprIndex =
+    case currentBExpr of
+      (TxsDefs.view -> ProcInst {}) -> StpSequential
+      (TxsDefs.view -> Guard {}) -> StpSequential
+      (TxsDefs.view -> Choice {}) -> StpSequential
+      (TxsDefs.view -> Parallel {}) -> StpThread
+      (TxsDefs.view -> Hide {}) -> StpSequential
+      (TxsDefs.view -> Enable {}) -> if subExprIndex == 0 then StpStackable else StpSequential
+      (TxsDefs.view -> Disable {}) -> if subExprIndex == 0 then StpThread else StpSequential
+      (TxsDefs.view -> Interrupt {}) -> if subExprIndex == 0 then StpThread else StpStackable
+      (TxsDefs.view -> ActionPref {}) -> StpSequential
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+-- getSubExprType
 
 data BranchData = BranchData { bOrigExpr :: TxsDefs.BExpr
                              , bHidChans :: Set.Set ChanId.ChanId
@@ -48,6 +68,16 @@ data BranchData = BranchData { bOrigExpr :: TxsDefs.BExpr
                              , bOfferVarsPerChan :: Map.Map ChanId.ChanId [VarId.VarId]
                              } deriving (Eq, Ord, Show)
 -- BranchData
+
+emptyBranchData :: BranchData
+emptyBranchData = BranchData { bOrigExpr = stop
+                             , bHidChans = Set.empty
+                             , bVizChans = Set.empty
+                             , bActOffer = emptyActOffer
+                             , bParamEqs = Map.empty
+                             , bOfferVarsPerChan = Map.empty
+                             }
+-- emptyBranchData
 
 getBranchData :: TxsDefs.BExpr -> IOC.IOC BranchData
 getBranchData bexpr = do
@@ -64,19 +94,19 @@ getBranchData bexpr = do
 -- getBranchData
 
 data ThreadData = ThreadData { tBranchData :: Set.Set BranchData            -- (Data about the) branches of the thread to which the ProcInst refers.
-                             , tInitFlag :: VarId.VarId                     -- Flag that indicates whether the thread has been initialized.
+                             , tInitVar :: VarId.VarId                      -- Flag that indicates whether the thread has been initialized.
                              , tInitEqs :: [(VarId.VarId, TxsDefs.VExpr)]   -- Equations with which the thread should be initialized.
                              } deriving (Eq, Ord, Show)
 -- ThreadData
 
 -- Extracts data from a thread (which must have the form of a process instantiation).
 -- Also creates an initialization flag for the thread.
-getThreadData :: TxsDefs.BExpr -> IOC.IOC ThreadData
-getThreadData bexpr = do
+getThreadData :: String -> SortId.SortId -> TxsDefs.BExpr -> IOC.IOC ThreadData
+getThreadData initVarPrefix initVarSort bexpr = do
     (branches, initEqs) <- extractProcInstData bexpr
     branchData <- Set.fromList <$> Monad.mapM getBranchData (Set.toList branches)
-    initFlag <- createFreshBoolVarFromPrefix "initFlag"
-    return (ThreadData { tBranchData = branchData, tInitFlag = initFlag, tInitEqs = initEqs })
+    initVar <- createFreshVarFromPrefix initVarPrefix initVarSort
+    return (ThreadData { tBranchData = branchData, tInitVar = initVar, tInitEqs = initEqs })
 -- getThreadData
 
 filterThreadData :: (Set.Set ChanId.ChanId -> Bool) -> ThreadData -> ThreadData
@@ -90,20 +120,7 @@ partitionThreadData restrictionFunction threadData =
       (threadData { tBranchData = p }, threadData { tBranchData = q })
 -- partitionThreadData
 
-isThreadSubExpr :: TxsDefs.BExpr -> Int -> Bool
-isThreadSubExpr currentBExpr subExprIndex =
-    case currentBExpr of
-      (TxsDefs.view -> ProcInst {}) -> False
-      (TxsDefs.view -> Guard {}) -> False
-      (TxsDefs.view -> Choice {}) -> False
-      (TxsDefs.view -> Parallel {}) -> True
-      (TxsDefs.view -> Hide {}) -> False
-      (TxsDefs.view -> Enable {}) -> subExprIndex == 0
-      (TxsDefs.view -> Disable {}) -> True -- TODO
-      (TxsDefs.view -> Interrupt {}) -> True -- TODO
-      (TxsDefs.view -> ActionPref {}) -> False
-      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
--- isThreadSubExpr
+
 
 
 

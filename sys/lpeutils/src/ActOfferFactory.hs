@@ -15,6 +15,7 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 module ActOfferFactory (
+emptyActOffer,
 doActOfferSubst,
 replaceVarsInActOffer,
 replaceVarsInOffer,
@@ -30,13 +31,24 @@ addActOfferConjunct,
 removeChanFromActOffer
 ) where
 
+-- import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified TxsDefs
+import qualified TxsShow
 import qualified ValExpr
 import qualified ChanId
 import qualified VarId
 import qualified Subst
+
+import ValFactory
+
+emptyActOffer :: TxsDefs.ActOffer
+emptyActOffer = TxsDefs.ActOffer { TxsDefs.offers = Set.empty
+                                 , TxsDefs.hiddenvars = Set.empty
+                                 , TxsDefs.constraint = cstrFalse
+                                 }
+-- emptyActOffer
 
 doActOfferSubst :: Map.Map VarId.VarId TxsDefs.VExpr -> TxsDefs.ActOffer -> TxsDefs.ActOffer
 doActOfferSubst subst actOffer =
@@ -47,7 +59,7 @@ replaceVarsInActOffer :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.ActOffer -> 
 replaceVarsInActOffer subst actOffer =
     let valSubst = Subst.subst (Map.map ValExpr.cstrVar subst) Map.empty in
       TxsDefs.ActOffer { TxsDefs.offers = Set.map (replaceVarsInOffer subst) (TxsDefs.offers actOffer)
-                       , TxsDefs.hiddenvars = Set.map (subst Map.!) (TxsDefs.hiddenvars actOffer)
+                       , TxsDefs.hiddenvars = Set.map (replaceVar subst) (TxsDefs.hiddenvars actOffer)
                        , TxsDefs.constraint = valSubst (TxsDefs.constraint actOffer)
                        }
 -- replaceVarsInActOffer
@@ -56,8 +68,14 @@ replaceVarsInOffer :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.Offer -> TxsDef
 replaceVarsInOffer subst offer = offer { TxsDefs.chanoffers = map (replaceVarsInChanOffer subst) (TxsDefs.chanoffers offer) }
 
 replaceVarsInChanOffer :: Map.Map VarId.VarId VarId.VarId -> TxsDefs.ChanOffer -> TxsDefs.ChanOffer
-replaceVarsInChanOffer subst (TxsDefs.Quest v) = TxsDefs.Quest (subst Map.! v)
-replaceVarsInChanOffer _ chanOffer = error ("ChanOffer should not contain an Exclam (\"" ++ show chanOffer ++ "\")!")
+replaceVarsInChanOffer subst (TxsDefs.Quest v) = TxsDefs.Quest (replaceVar subst v)
+replaceVarsInChanOffer _ chanOffer = error ("ChanOffer should not contain an Exclam (\"" ++ TxsShow.fshow chanOffer ++ "\")!")
+
+replaceVar :: Map.Map VarId.VarId VarId.VarId -> VarId.VarId -> VarId.VarId
+replaceVar subst v = Map.findWithDefault v v subst
+
+-- replaceVarWithError :: Map.Map VarId.VarId VarId.VarId -> VarId.VarId -> VarId.VarId
+-- replaceVarWithError subst v = Map.findWithDefault (error ("Could not find " ++ TxsShow.fshow v ++ " in {" ++ List.intercalate ", " (map TxsShow.fshow (Map.keys subst)) ++ "}")) v substA
 
 getOfferVarsPerChan :: TxsDefs.ActOffer -> Map.Map ChanId.ChanId [VarId.VarId]
 getOfferVarsPerChan actOffer = Map.fromList (map (\o -> (TxsDefs.chanid o, getOfferVars o)) (Set.toList (TxsDefs.offers actOffer)))
@@ -73,7 +91,7 @@ getOfferVars offer = map getChanOfferVar (TxsDefs.chanoffers offer)
 
 getChanOfferVar :: TxsDefs.ChanOffer -> VarId.VarId
 getChanOfferVar (TxsDefs.Quest v) = v
-getChanOfferVar chanOffer = error ("ChanOffer should not contain an Exclam (\"" ++ show chanOffer ++ "\")!")
+getChanOfferVar chanOffer = error ("ChanOffer should not contain an Exclam (\"" ++ TxsShow.fshow chanOffer ++ "\")!")
 
 getActOfferChans :: TxsDefs.ActOffer -> Set.Set ChanId.ChanId
 getActOfferChans actOffer = Set.map TxsDefs.chanid (TxsDefs.offers actOffer)

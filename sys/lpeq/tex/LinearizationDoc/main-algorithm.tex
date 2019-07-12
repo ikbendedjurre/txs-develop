@@ -54,14 +54,119 @@ Such expressions are also called `variable environments'.
 \section{Instantiating threads} \label{thread-inst:section}
 
 \pedi{} expressions include at least two sub-expressions.
-These sub-expressions are considered to run concurrently, and are therefore called `threads'.
-The root behavioral expression of the model is also classified as a thread.
+Some of these sub-expressions are considered to run concurrently or may run concurrently `with themselves' in case of recursion.
+These sub-expressions are therefore called `threads'.
 
-For convenience (and for the computation of the process dependency tree in phase 6, described in Section~\ref{procdeptree:section}) \lpeq{} does the following for each thread:
+Furthermore, we distinguish a subcategory of threads that are called `stackable'.
+A \emph{stackable thread} is a thread of which there can exist multiple concurrent instances -- as a result of recursive instantiation -- but where only the most recently started instance can take actions.
+(Note that the existence of stackable threads makes the state size automatically unbounded.)
+
+Table~\ref{txsthreads:table} gives an overview of the threads that have been identified in the semantics of \txs{}.
+The following subsections give more information about why certain sub-expressions have been categorized in the way that they are.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabularx}{\linewidth}{l|Y|Y|Y|Y|}
+\textbf{Name} & \textbf{Expression} & \textbf{Stackable threads} & \textbf{Non-stackable threads} & \textbf{Other sub-expressions} \\ \hline
+Parallel & $B_1 || \cdots || B_n$ & $\emptyset{}$ & $\set{B_1, \cdots{}, B_n}$ & $\emptyset{}$ \\ \hline
+Enable & $\txsEnable{B_1}{B_2}$ & $\set{B_1}$ & $\emptyset{}$ & $\set{B_2}$ \\ \hline
+Disable & $\txsDisable{B_1}{B_2}$ & $\emptyset{}$ & $\set{B_1}$ & $\set{B_2}$ \\ \hline
+Interrupt & $\txsInterrupt{B_1}{B_2}$ & $\set{B_2}$ & $\set{B_1}$ & $\emptyset{}$ \\ \hline
+\end{tabularx}
+\caption{LPE rewrite operations.}
+\label{txsthreads:table}
+\end{center}
+\end{table}
+
+For convenience (and for the computation of the process dependency tree in phase 6, described in Section~\ref{procdeptree:section}) \lpeq{} does the following for each thread as well as for the root behavioral expression of the model:
 \begin{enumerate}[1.]
 \item A new process $P$ is created, with the thread expression as its body.
 \item The sub-expression itself (at its original location) is replaced by the appropriate instantiation of $P$.
 \end{enumerate}
+
+(In the future, stackable and non-stackable threads can possibly be treated differently, thus increasing the range of linearizable models.)
+
+\subsection{Enable threads}
+
+Suppose that we have
+\begin{align*}
+P(x) = \txsEnable{(\txsChoice{a(x).P(x + 1)}{\txsExit{}})}{(b(x).\txsExit{})}
+\end{align*}
+
+This may result in a trace such as
+\begin{align*}
+a(1).a(2).a(3).\cdots{}.b(3).b(2).b(1)
+\end{align*}
+
+Informally, we observe that this behaviour can be simulated with a single process if we were to record the state of each instance of $P$ in a stack.
+The left-hand side of Enable is therefore categorized as `stackable'.
+
+The right-hand sub-expression \emph{can} contain recursion without causing issues, because all behaviour of the left-hand side of Enable `has already been popped' when the right-hand sub-expression is eventually executed.
+
+\subsection{Disable threads}
+
+Suppose that we have
+\begin{align*}
+P(x) = \txsDisable{(\txsChoice{a(x).P(x + 1)}{\txsExit{}})}{b(x)}
+\end{align*}
+
+This may result in traces such as
+\begin{align*}
+&a(1).a(2).a(3).\cdots{}.b(3).b(2).b(1) \\
+&a(1).a(2).a(3).\cdots{}.b(2).b(1) \\
+&a(1).a(2).a(3).\cdots{}.b(1) \\
+&a(1).a(2).a(3).\cdots{}.b(3).b(1) \\
+&a(1).a(2).a(3).\cdots{}.b(2) \\
+&\cdots{}
+\end{align*}
+
+Informally, we observe that as a consequence of the recursion in the first sub-expression \txs{} is required to make a non-deterministic choice between an unbounded number of actions (all actions that originate from $b(x)$).
+Unbounded quantification is not allowed in \txs{}, and we can only think of single-process implementations that would produce extra \istep{} actions that are not present in the input model. (In particular, the top element of a process stack could be popped non-deterministically.)
+
+Unsurprisingly, we therefore consider the right-hand sub-expression of Enable to be a non-stackable thread.
+
+Also consider the situation
+\begin{align*}
+P(x) = \txsDisable{(a(x).b(x).\txsExit{})}{(c(x).P(x + 1))}
+\end{align*}
+
+which may result in a trace such as
+\begin{align*}
+a(1).c(1).a(2).c(2).a(3).b(3)
+\end{align*}
+
+This example illustrates that there is no stacking behaviour when there is only recursion in the right-hand sub-expression of Disable.
+The sub-expression is not a thread (or rather, it does not have to be treated as a thread).
+
+\subsection{Interrupt threads}
+
+Suppose that we have the situation
+\begin{align*}
+P(x) = \txsInterrupt{(\txsChoice{a(x).b(x).P(x + 1)}{\txsExit{}})}{(c(x).d(x).\txsExit{})}
+\end{align*}
+
+This may result in a trace such as
+\begin{align*}
+a(1).b(1).a(2).\textbf{c(2).c(1).d(1).d(2)}.b(2).a(3).\textbf{c(1).d(1)}.b(3)
+\end{align*}
+
+The number of expressions that can interrupt the left-hand sub-expression is unbounded, and \txs{} would have to choose between them non-deterministically.
+\txs{} does not allow the quantification that this requires.
+Consequently, the left-hand sub-expression is a non-stackable thread.
+
+On the other hand, suppose that we have the situation
+\begin{align*}
+P(x) = \txsInterrupt{(a(x).b(x).\txsExit{})}{(c(x).P(x + 1))}
+\end{align*}
+
+This may result in traces such as
+\begin{align*}
+&a(1).c(1).a(2).b(2).b(1) \\
+&a(1).b(1).c(1).a(2).c(2).a(3).c(3).a(4).b(4).b(3).b(2) \\
+&\cdots{}
+\end{align*}
+
+We observe stack-like behaviour under these circumstances, which means that the right-hand sub-expression of Interrupt is a stackable thread.
 
 \section{Flattening channels}
 
@@ -140,6 +245,7 @@ Where possible, \lpeq{} makes the structure of thread processes more regular by 
 This is accomplished by substitution: \lpeq{} essentially repeatedly replaces recursive instantiations of a thread process $P$ without a preceding action prefix by the body of $P$ until a situation is reached where all instantiations of $P$ are preceded by action prefixes.
 This procedure terminates because the model does not contain infinite sequential recursion, a property that is established in phase 6 (see Section~\ref{procdeptree:section}).
 
+\clearpage
 \section{Linearizing expressions with threads}
 
 \subsection{Current state of the model}
@@ -164,7 +270,8 @@ For each thread process $P$, \lpeq{} does the following:
 \item One by one, choices with a \pedi{} expression are linearized.
 In preparation, \lpeq{} rewrites the thread processes on which a \pedi{} expression depends so that they no longer contain \texttt{HIDE} expressions.
 Linearization of the \pedi{} expression results in a number of new choices that are added to the new body of $P$ that is being composed.
-\item \lpeq{} checks that the final form of the new body of $P$ is indeed linear.
+\item \lpeq{} does another round of \emph{prefix resolution} (see Section~\ref{prefix-resolution:section}).
+The reason for this simple, namely that some linearization methods produce choices that do not have an action prefix.
 \end{enumerate}
 
 \lpeq{} does the above tasks for thread processes in such an order that when work starts on a thread process $P$ all thread processes on which $P$ depends have already been through the same procedure.
@@ -180,6 +287,7 @@ A graphical overview of the procedure can also be found in Figure~\ref{pbranch-f
 \end{center}
 \end{figure}
 
+\clearpage
 \subsection{Eliminating HIDE expressions}
 
 \lpeq{} eliminates \texttt{HIDE} expressions as follows:

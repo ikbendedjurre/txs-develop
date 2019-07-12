@@ -25,6 +25,7 @@ createIdentical,
 createAndApply,
 showItem,
 showMap,
+addToMap,
 apply,
 applyMapToProcInst,
 applyMapToBExpr
@@ -45,6 +46,7 @@ import BehExprDefs
 import ProcIdFactory
 import ValFactory
 
+import BranchLinearityUtils
 import ProcSearch
 
 type ProcInstUpdate = (ProcId.ProcId, [Either Int TxsDefs.VExpr])
@@ -64,6 +66,23 @@ showMap m = List.intercalate "\n" (map showEntry (Map.toList m))
     showEntry :: (ProcId.ProcId, ProcInstUpdate) -> String
     showEntry (pid, paramUpdate) = showProcId pid ++ " -> " ++ showItem paramUpdate
 -- showMap
+
+(-->) :: ProcInstUpdate -> ProcInstUpdate -> ProcInstUpdate
+(_pid1, xs1) --> (pid2, xs2) = (pid2, map f xs2)
+  where
+    f :: Either Int TxsDefs.VExpr -> Either Int TxsDefs.VExpr
+    f (Left index) = xs1 !! index
+    f (Right vexpr) = Right vexpr
+-- -->
+
+addToMap :: ProcInstUpdateMap -> ProcId.ProcId -> ProcInstUpdate -> ProcInstUpdateMap
+addToMap procInstUpdateMap pid procInstUpdate =
+    Map.insert pid procInstUpdate (Map.map chainUpdate procInstUpdateMap)
+  where
+    chainUpdate :: ProcInstUpdate -> ProcInstUpdate
+    chainUpdate (p, u) | p /= pid = (p, u)
+    chainUpdate (p, u) = (p, u) --> procInstUpdate
+-- addToMap
 
 create :: ProcId.ProcId -> [VarId.VarId] -> [VarId.VarId] -> Map.Map VarId.VarId TxsDefs.VExpr -> IOC.IOC ProcInstUpdate
 create newPid oldVars newVars predefInits = do
@@ -88,10 +107,10 @@ createWithFreshPid oldPid oldVars newVars predefInits = do
 createIdentical :: ProcId.ProcId -> ProcInstUpdate
 createIdentical pid = (pid, map Left [0..length (ProcId.procvars pid) - 1])
 
-createAndApply :: ProcId.ProcId -> ProcId.ProcId -> [VarId.VarId] -> (Set.Set TxsDefs.BExpr, [VarId.VarId]) -> IOC.IOC (Set.Set TxsDefs.BExpr)
-createAndApply oldPid newPid newVars (bexprs, oldVars) = do
-    upd <- create newPid oldVars newVars Map.empty
-    return (Set.map (applyMapToBExpr (Map.singleton oldPid upd)) bexprs)
+createAndApply :: ProcId.ProcId -> ProcId.ProcId -> [VarId.VarId] -> TExprLinResult -> IOC.IOC (Set.Set TxsDefs.BExpr)
+createAndApply oldPid newPid newVars linResult = do
+    upd <- create newPid (lrParams linResult) newVars (lrPredefInits linResult)
+    return (Set.map (applyMapToBExpr (Map.singleton oldPid upd)) (lrBranches linResult))
 -- createAndApply
 
 apply :: ProcInstUpdate -> [ChanId.ChanId] -> [TxsDefs.VExpr] -> TxsDefs.BExpr

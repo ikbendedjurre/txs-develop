@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 
 module BranchLinearityUtils (
+TExprLinResult(..),
 TExprLinearizer,
 isNonLinearBranch,
 isLinearBranch,
@@ -45,10 +46,16 @@ import BranchUtils
 
 import ProcSearch
 
-type TExprLinearizer   =  ([TxsDefs.VExpr] -> TxsDefs.BExpr)                -- Function for the construction of a recursive process instantiation.
-                       -> TxsDefs.VExpr                                     -- Guard that must hold for the non-linear branch to be enabled.
-                       -> TxsDefs.BExpr                                     -- Non-linear branch.
-                       -> IOC.IOC (Set.Set TxsDefs.BExpr, [VarId.VarId])    -- New branches, and the parameters required by those branches.
+data TExprLinResult = TExprLinResult { lrBranches :: Set.Set TxsDefs.BExpr                        -- New branches.
+                                     , lrParams :: [VarId.VarId]                                  -- Parameters required by those branches (in order).
+                                     , lrPredefInits :: Map.Map VarId.VarId TxsDefs.VExpr         -- Initial values of parameters (if necessary).
+                                     }
+-- TExprLinResult
+
+type TExprLinearizer   =  ([TxsDefs.VExpr] -> TxsDefs.BExpr)                                 -- Function for the construction of a recursive process instantiation.
+                       -> TxsDefs.VExpr                                                      -- Guard that must hold for the non-linear branch to be enabled.
+                       -> TxsDefs.BExpr                                                      -- Non-linear branch.
+                       -> IOC.IOC TExprLinResult
 -- PBranchLinearizer
 
 -- Checks if the given expression is a branch that contains a parallel structure (Parallel, Enable, Disable, or Interrupt).

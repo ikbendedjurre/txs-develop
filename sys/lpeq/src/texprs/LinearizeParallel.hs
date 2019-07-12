@@ -15,6 +15,7 @@ See LICENSE at root directory of this repository.
 -----------------------------------------------------------------------------
 
 {-# LANGUAGE ViewPatterns        #-}
+{-# LANGUAGE TupleSections       #-}
 
 module LinearizeParallel (
 linearize
@@ -23,7 +24,6 @@ linearize
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
--- import qualified Data.Text as Text
 import qualified Control.Monad as Monad
 import qualified EnvCore as IOC
 import qualified TxsDefs
@@ -35,16 +35,14 @@ import qualified VarId
 import ActOfferFactory
 import ValFactory
 import VarFactory
+import SortFactory
 import BehExprDefs
 
 import BranchLinearityUtils
 import UniqueObjects
 import ThreadUtils
 
--- import IntercalateMap
 import MapDebug
-
--- import ProcSearch
 
 type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be used to recursively instantiate the parent process.
             , [VarId.VarId]                       -- Flag variables that indicate whether a child process has been initialized.
@@ -60,7 +58,7 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     Monad.mapM_ ensureFreshVarsInProcInst threads'
     
     -- Extract data from all parallel sub-expressions:
-    dataPerThread <- Monad.mapM getThreadData threads'
+    dataPerThread <- Monad.mapM (getThreadData "initFlag" getBoolSort) threads'
     
     -- List all multi-channels used in the branches;
     -- then partition them into multi-channels that must synchronize and multi-channels that must not.
@@ -71,7 +69,7 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     let syncingCidMinSubSets = Set.map (Set.intersection synchronizedChans) syncingCidSets
     
     -- Set variable declarations required by the new branches:
-    let initFlags = map tInitFlag dataPerThread
+    let initFlags = map tInitVar dataPerThread
     let newVidDecls = concatMap (map fst . tInitEqs) dataPerThread
     
     -- Construct new branches:
@@ -79,7 +77,10 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     syncedBranches <- Set.unions <$> Monad.mapM (synchronizeOneBranchPerThread info dataPerThread syncingCidSets) (Set.toList syncingCidMinSubSets)
     unsyncedBranches <- leaveBranchesUnsynchronized info (map (filterThreadData (`Set.member` unsyncedCidSets)) dataPerThread)
     
-    return (Set.union syncedBranches unsyncedBranches, initFlags ++ newVidDecls)
+    return (TExprLinResult { lrBranches = Set.union syncedBranches unsyncedBranches
+                           , lrParams = initFlags ++ newVidDecls
+                           , lrPredefInits = Map.fromList (map (, cstrFalse) initFlags)
+                           })
 linearize _ _ bexpr = error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
 -- Considers all lists consisting of one branch per thread.
@@ -110,14 +111,15 @@ createSyncedBranch :: Info -> Set.Set ChanId.ChanId -> [(BranchData, ThreadData)
 createSyncedBranch _ _ [] _ = error "There should be at least two elements"
 createSyncedBranch _ _ [_] _ = error "There should be at least two elements"
 createSyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) synchronizingChans dataPerBranch initializedBranches = do
-    -- Create a fresh variable for shared communication variables that are related:
+    -- Create fresh variables for shared communication variables that are related:
     let sharedVars = map (\(bd, _td) -> concatMap (bOfferVarsPerChan bd Map.!) (Set.toList synchronizingChans)) dataPerBranch
     freshVars <- createFreshVars (Set.fromList (head sharedVars))
     let orderedFreshVars = map (getOrError freshVars TxsShow.fshow) (head sharedVars)
     let freshVarPerSharedVar = Map.fromList (concatMap (`zip` orderedFreshVars) sharedVars)
     let applyFreshVars = Subst.subst (Map.map ValExpr.cstrVar freshVarPerSharedVar) Map.empty
     
-    -- Combine all ActOffers into a single new one:
+    -- Rewrite all ActOffers so that they use the shared communication variables.
+    -- Also substitute the initialization values of the thread (if the thread has not yet been initialized).
     let getNewActOffer (bd, td) = let applyInitEqs = if td `List.elem` initializedBranches then id else doActOfferSubst (Map.fromList (tInitEqs td)) in
                                     replaceVarsInActOffer freshVarPerSharedVar (applyInitEqs (bActOffer bd))
     let newActOfferPerBExpr = map getNewActOffer dataPerBranch
@@ -125,11 +127,11 @@ createSyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) synchronizi
     -- Replace variables in the ParamEqs:
     let getNewParamEqs (bd, td) = let applyInitEqs = if td `List.elem` initializedBranches then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty in
                                   let vidDeclEqs = Map.map applyFreshVars (Map.map applyInitEqs (bParamEqs bd)) in
-                                    Map.insert (tInitFlag td) cstrTrue vidDeclEqs
+                                    Map.insert (tInitVar td) cstrTrue vidDeclEqs
     let newParamEqsPerBExpr = map getNewParamEqs dataPerBranch
     
     -- Construct the new guard:
-    let getInitFlagValue flag = if flag `List.elem` map tInitFlag initializedBranches
+    let getInitFlagValue flag = if flag `List.elem` map tInitVar initializedBranches
                                 then ValExpr.cstrVar flag
                                 else ValExpr.cstrNot (ValExpr.cstrVar flag)
     let newGuard = ValExpr.cstrAnd (Set.fromList (g : map getInitFlagValue initFlags))
@@ -137,7 +139,7 @@ createSyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) synchronizi
     -- Combine everything:
     let newActOffer = addActOfferConjunct (foldl1 mergeActOffers newActOfferPerBExpr) newGuard
     let newParamEqsWithoutInitFlags = Map.union (Map.unions newParamEqsPerBExpr) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
-    let newInitFlagValues = Map.fromSet (const cstrTrue) (Set.fromList (map (tInitFlag . snd) dataPerBranch))
+    let newInitFlagValues = Map.fromSet (const cstrTrue) (Set.fromList (map (tInitVar . snd) dataPerBranch))
     let newProcInst = createNewProcInst info newInitFlagValues newParamEqsWithoutInitFlags
     
     let newActionPref = actionPref newActOffer newProcInst
@@ -160,12 +162,12 @@ leaveBranchesUnsynchronized info threadData =
 
 createUnsyncedBranch :: Info -> (BranchData, ThreadData) -> Bool -> IOC.IOC TxsDefs.BExpr
 createUnsyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) (bd, td) isInitialized = do
-    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrBoolEq isInitialized (ValExpr.cstrVar (tInitFlag td)), g])
+    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrBoolEq isInitialized (ValExpr.cstrVar (tInitVar td)), g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
     
     -- Re-use existing ParamEqs if possible (Map.union is left-biased):
     let newParamEqsWithoutInitFlags = Map.union (bParamEqs bd) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
-    let newInitFlagValues = Map.singleton (tInitFlag td) cstrTrue
+    let newInitFlagValues = Map.singleton (tInitVar td) cstrTrue
     let newProcInst = createNewProcInst info newInitFlagValues newParamEqsWithoutInitFlags
     
     let newActionPref = actionPref newActOffer newProcInst

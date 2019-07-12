@@ -29,6 +29,7 @@ applyToVExpr,
 applyToVExprs,
 applyToChanOffer,
 applyToActOffer,
+addChanSet,
 addActOffer,
 addOffer,
 addChanOffers,
@@ -123,6 +124,9 @@ applyToOffer scope offer =
 
 applyToChanOffer :: Scope -> TxsDefs.ChanOffer -> TxsDefs.ChanOffer
 applyToChanOffer _scope chanOffer = chanOffer
+
+addChanSet :: Scope -> Set.Set ChanId.ChanId -> Scope
+addChanSet scope cidSet = scope { chanMap = Map.union (Map.fromSet id cidSet) (chanMap scope) }
 
 addActOffer :: Scope -> TxsDefs.ActOffer -> Scope
 addActOffer scope actOffer = foldl addOffer scope (TxsDefs.offers actOffer)

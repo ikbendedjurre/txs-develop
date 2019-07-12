@@ -41,6 +41,7 @@ import VarFactory
 
 import qualified ProcInstUpdates
 
+import BranchUtils
 import ProcDepTree
 import ThreadUtils
 import UniqueObjects
@@ -56,7 +57,7 @@ addSeqProgramCounters bexpr = do
 
 addSeqPCsToProc :: ProcInstUpdates.ProcInstUpdateMap -> ProcId.ProcId -> IOC.IOC ProcInstUpdates.ProcInstUpdateMap
 addSeqPCsToProc procInstUpdateMap pid = do
-    -- IOC.putInfo [ "addSeqPCsToProc " ++ TxsShow.fshow ProcId.name pid ]
+    IOC.putInfo [ "addSeqPCsToProc " ++ TxsShow.fshow pid ]
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
@@ -65,7 +66,7 @@ addSeqPCsToProc procInstUpdateMap pid = do
           let ownerVidDecls = seqPC:Set.toList extraVids
           newProcInstUpdate <- ProcInstUpdates.createWithFreshPid pid vidDecls ownerVidDecls (Map.singleton seqPC (ValExpr.cstrConst (Constant.Cint 0)))
           -- IOC.putMsgs [ EnvData.TXS_CORE_USER_INFO ("update " ++ ProcInstUpdates.showItem newProcInstUpdate) ]
-          let procInstUpdateMap' = Map.insert pid newProcInstUpdate procInstUpdateMap
+          let procInstUpdateMap' = ProcInstUpdates.addToMap procInstUpdateMap pid newProcInstUpdate
           let createProcInst = procInst (fst newProcInstUpdate) cidDecls
           (_, body', _, _) <- constructSeqBExpr procInstUpdateMap' createProcInst ownerVidDecls seqPC 0 (Map.singleton pid 0) body
           
@@ -126,7 +127,11 @@ getParVidDecls _visitedProcs currentBExpr =
 -- getParVidDecls
 
 getVidDecls :: TxsDefs.BExpr -> Int -> Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC (Set.Set VarId.VarId)
-getVidDecls currentBExpr subExprIndex = if isThreadSubExpr currentBExpr subExprIndex then getParVidDecls else getSeqVidDecls
+getVidDecls currentBExpr subExprIndex =
+    case getSubExprType currentBExpr subExprIndex of
+      StpSequential -> getSeqVidDecls
+      _ -> getParVidDecls
+-- getVidDecls
 
 constructSeqBExpr :: ProcInstUpdates.ProcInstUpdateMap         -- Contains information about how parallel processes on which we are dependent should be instantiated.
                   -> ([TxsDefs.VExpr] -> TxsDefs.BExpr)        -- Function that constructs a recursive process instantiation.
@@ -201,6 +206,9 @@ constructSeqBExpr procInstUpdateMap createProcInst ownerVidDecls seqPC seqPCValu
           let bexpr' = actionPref (replaceVarsInActOffer actOfferSubst actOffer') inst'
           
           return (createProcInst (defaultValues seqPCValue), Set.insert bexpr' body', pcValuePerProc', seqPCValue')
+      (TxsDefs.view -> Hide cidSet bexpr) -> do
+          (inst, body', pcValuePerProc', seqPCValue') <- defaultConstructBExpr 0 seqPCValue pcValuePerProc bexpr
+          return (inst, Set.map (applyHide cidSet) body', pcValuePerProc', seqPCValue')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) -> do
           (inst1, inst2, body', pcValuePerProc', seqPCValue') <- getBinDefaultConstructBExpr bexpr1 bexpr2
           let bexpr' = guard g' (enable inst1 acceptOffers inst2)
@@ -260,7 +268,11 @@ constructBExpr :: TxsDefs.BExpr
                           , Map.Map ProcId.ProcId Integer   -- New PC values per visited process.
                           , Integer                         -- Value of the PC at the level of the next behavioral expression.
                           )
-constructBExpr currentBExpr subExprIndex = if isThreadSubExpr currentBExpr subExprIndex then constructParBExpr else constructSeqBExpr
+constructBExpr currentBExpr subExprIndex =
+    case getSubExprType currentBExpr subExprIndex of
+      StpSequential -> constructSeqBExpr
+      _ -> constructParBExpr
+-- constructBExpr
 
 
 

@@ -48,15 +48,17 @@ data ProcDepTree = Uninitialized
 
 showProcDepTree :: String -> String -> ProcDepTree -> [String]
 showProcDepTree pidPrefix _depsPrefix Uninitialized = [pidPrefix ++ "UNINIT"]
-showProcDepTree pidPrefix depsPrefix (Branch ownerPid dependencies) =
-    let pidStrs = [pidPrefix ++ TxsShow.fshow ownerPid] in
-      if null dependencies
-      then pidStrs
-      else let depsStrs = concatMap (showProcDepTree (depsPrefix ++ "|-") (depsPrefix ++ "| ")) (List.init dependencies) in
-           let lastStrs = showProcDepTree (depsPrefix ++ "\\-") (depsPrefix ++ ". ") (List.last dependencies) in
-             pidStrs ++ depsStrs ++ lastStrs
+showProcDepTree pidPrefix depsPrefix (Branch ownerPid dependencies) = [pidPrefix ++ TxsShow.fshow ownerPid] ++ showProcDepTreeDeps depsPrefix dependencies
 showProcDepTree pidPrefix _depsPrefix (Circular ownerPid) = [pidPrefix ++ "CIRCULAR " ++ TxsShow.fshow ownerPid]
 showProcDepTree pidPrefix _depsPrefix (InfiniteLoop ownerPid) = [pidPrefix ++ "INFLOOP " ++ TxsShow.fshow ownerPid]
+
+showProcDepTreeDeps :: String -> [ProcDepTree] -> [String]
+showProcDepTreeDeps _depsPrefix [] = []
+showProcDepTreeDeps depsPrefix deps =
+    let depsStrs = concatMap (showProcDepTree (depsPrefix ++ "|-") (depsPrefix ++ "| ")) (List.init deps) in
+    let lastStrs = showProcDepTree (depsPrefix ++ "\\-") (depsPrefix ++ ". ") (List.last deps) in
+      depsStrs ++ lastStrs
+-- showProcDepTreeDeps
 
 instance Show ProcDepTree where
     show = List.intercalate "\n" . showProcDepTree "" ""
@@ -85,7 +87,7 @@ getProcDepTreeProblems startBExpr = do
 -- Builds the process dependency tree for a given behavioral expression.
 -- Depends on PBranchInst having been applied first.
 getProcDepTree :: TxsDefs.BExpr -> IOC.IOC ProcDepTree
-getProcDepTree bexpr = head <$> getParTrees (Nothing, Set.empty, Set.empty, Set.empty) bexpr
+getProcDepTree currentBExpr = head <$> getParTrees (Nothing, Set.empty, Set.empty, Set.empty) currentBExpr
 
 type Visited = ( Maybe ProcId.ProcId
                , Set.Set ProcId.ProcId
@@ -154,7 +156,11 @@ getParTrees (parentParProc, parProcs, seqProcs, seqProcsAfterAct) currentBExpr =
 -- getParTrees
 
 getTrees :: TxsDefs.BExpr -> Int -> Visited -> TxsDefs.BExpr -> IOC.IOC [ProcDepTree]
-getTrees currentBExpr subExprIndex = if isThreadSubExpr currentBExpr subExprIndex then getParTrees else getSeqTrees
+getTrees currentBExpr subExprIndex =
+    case getSubExprType currentBExpr subExprIndex of
+      StpSequential -> getSeqTrees
+      _ -> getParTrees
+-- getTrees
 
 -- buildTree :: ProcDepTree -> [ProcId.ProcId] -> Set.Set ProcId.ProcId -> Set.Set ProcId.ProcId -> TxsDefs.BExpr -> IOC.IOC ProcDepTree
 -- buildTree tree@(Circular _) _ _ _ _ = error ("Should not be extending a circular tree (\"" ++ show tree ++ "\")!")

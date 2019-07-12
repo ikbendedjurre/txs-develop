@@ -97,8 +97,8 @@ getBranchSegments currentBExpr =
           (TxsDefs.view -> ActionPref actOffer bexpr) ->
               case bexpr of
                 (TxsDefs.view -> ProcInst {}) -> (cidSet, applyHideToActOffer cidSet actOffer, bexpr)
-                _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
-          _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+                _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+          _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
     -- getFromInnerExpr
 -- getBranchChan
 

@@ -19,22 +19,24 @@ lpeq
 ) where
 
 import qualified Data.Map as Map
-import qualified Data.Set as Set
+-- import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
 import qualified TxsDefs
 import ModelIdFactory
 
+import ChanSearch
+import ProcSearch
 import UniqueObjects
+import ProcDepTree
+
 import ExclamToQuest
 import VEnvElim
 import FlattenedChannels
 import ThreadInst
-import ProcDepTree
 import SeqProgramCounters
 import PrefixResolution
-import ProcSearch
 import TExprLinearization
 
 -- Linearizes a model definition and (if successful) saves it to the current context.
@@ -58,7 +60,8 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     -- TODO Eliminate StAuts
     
     -- 5. Create process instantiations for `threads' (=sub-expressions of Parallel / Enable / Disable / Interrupt):
-    let allChanIds = concatMap Set.toList (insyncs ++ outsyncs)
+    -- let allChanIds = concatMap Set.toList (insyncs ++ outsyncs)
+    allChanIds <- getChansInBExpr insyncs outsyncs bexpr3
     bexpr4 <- doThreadInst allChanIds bexpr3
     -- printProcsInBExpr "BEXPR4::" bexpr4
     

@@ -19,6 +19,7 @@ See LICENSE at root directory of this repository.
 module ProcSearch (
 showProcId,
 getProcsInBExpr,
+printProcsInBody,
 printProcsInBExpr,
 showProcsInBExpr
 ) where
@@ -83,6 +84,14 @@ searchBExprForProcs soFar currentBExpr =
           -- ...
       _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
 -- searchBExprForProcs
+
+printProcsInBody :: String -> ProcId.ProcId -> IOC.IOC ()
+printProcsInBody caption pid = do
+    r <- getProcById pid
+    case r of
+      Just (ProcDef.ProcDef _cidDecls _vidDecls body) -> printProcsInBExpr caption body
+      Nothing -> error ("Unknown process (\"" ++ showProcId pid ++ "\")!")
+-- printProcsInBody
 
 printProcsInBExpr :: String -> TxsDefs.BExpr -> IOC.IOC ()
 printProcsInBExpr caption startBExpr = do

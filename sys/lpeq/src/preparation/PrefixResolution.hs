@@ -18,6 +18,7 @@ See LICENSE at root directory of this repository.
 
 module PrefixResolution (
 resolvePrefixes,
+resolveProcPrefixesInBody,
 resolveProcPrefixes
 ) where
 
@@ -29,8 +30,8 @@ import qualified EnvCore as IOC
 import qualified TxsDefs
 import qualified TxsShow
 import qualified ValExpr
-import qualified ProcId
 import qualified Subst
+import qualified ProcId
 import qualified ProcDef
 import qualified ChanId
 import qualified VarId
@@ -55,13 +56,19 @@ resolveProcPrefixes pid = do
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
-          let (wrong, done) = Set.partition hasWrongPrefix (getBranches body)
-          let f (w, d) = let combined = [ combineChoices pid cidDecls vidDecls c1 c2 | c1 <- Set.toList w, c2 <- Set.toList (Set.union w d) ] in
-                           (Set.union w (Set.fromList (Either.lefts combined)), Set.union d (Set.fromList (Either.rights combined)))
-          let (_, done') = untilFixedPoint f (wrong, done)
-          registerProc pid (ProcDef.ProcDef cidDecls vidDecls (choice done'))
+          body' <- resolveProcPrefixesInBody pid cidDecls vidDecls body
+          registerProc pid (ProcDef.ProcDef cidDecls vidDecls body')
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
 -- resolveProcPrefixes
+
+resolveProcPrefixesInBody :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
+resolveProcPrefixesInBody pid cidDecls vidDecls body = do
+    let (wrong, done) = Set.partition hasWrongPrefix (getBranches body)
+    let f (w, d) = let combined = [ combineChoices pid cidDecls vidDecls c1 c2 | c1 <- Set.toList w, c2 <- Set.toList (Set.union w d) ] in
+                     (Set.union w (Set.fromList (Either.lefts combined)), Set.union d (Set.fromList (Either.rights combined)))
+    let (_, done') = untilFixedPoint f (wrong, done)
+    return (choice done')
+-- resolveProcPrefixesInBody
 
 -- Wrong:
 --  - (Hide =>) Guard => ProcInst

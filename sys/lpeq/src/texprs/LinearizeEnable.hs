@@ -31,6 +31,7 @@ import qualified Subst
 import qualified VarId
 import ActOfferFactory
 import ValFactory
+import SortFactory
 import BehExprDefs
 
 import BranchLinearityUtils
@@ -45,12 +46,12 @@ type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be use
 
 linearize :: TExprLinearizer
 linearize createProcInst g (TxsDefs.view -> Enable thread chanOffers exitBExpr) = do
-    threadData <- getThreadData thread
+    threadData <- getThreadData "initFlag" getBoolSort thread
     let (exitThreadData, nonExitThreadData) = partitionThreadData (Set.member chanIdExit) threadData
     let exitBranchData = Set.toList (tBranchData exitThreadData)
     let nonExitBranchData = Set.toList (tBranchData nonExitThreadData)
     
-    let initFlag = tInitFlag threadData
+    let initFlag = tInitVar threadData
     let newVidDecls = map fst (tInitEqs threadData)
     let info = (createProcInst, initFlag, newVidDecls, g)
     
@@ -59,11 +60,14 @@ linearize createProcInst g (TxsDefs.view -> Enable thread chanOffers exitBExpr) 
     syncedUninitedExitBranches <- Monad.mapM (createSyncedExitBranch info chanOffers False threadData exitBExpr) exitBranchData
     syncedInitedExitBranches <- Monad.mapM (createSyncedExitBranch info chanOffers True threadData exitBExpr) exitBranchData
     
-    return (Set.fromList (concat [ unsyncedUninitedBeforeExitBranches
-                                 , unsyncedInitedBeforeExitBranches
-                                 , syncedUninitedExitBranches
-                                 , syncedInitedExitBranches
-                                 ]), initFlag : newVidDecls)
+    return (TExprLinResult { lrBranches = Set.fromList (concat [ unsyncedUninitedBeforeExitBranches
+                                                               , unsyncedInitedBeforeExitBranches
+                                                               , syncedUninitedExitBranches
+                                                               , syncedInitedExitBranches
+                                                               ])
+                           , lrParams = initFlag : newVidDecls
+                           , lrPredefInits = Map.singleton initFlag cstrFalse
+                           })
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
 createBeforeExitBranch :: Info -> Bool -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr

@@ -27,6 +27,7 @@ import qualified Control.Monad as Monad
 import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
 import qualified TxsDefs
+import qualified TxsShow
 import qualified ValExpr
 import qualified ProcId
 import qualified ProcDef
@@ -56,9 +57,10 @@ doThreadInst allChanIds startBExpr = do
         r <- getProcById pid
         case r of
           Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
+              -- IOC.putInfo [ "doThreadInst " ++ TxsShow.fshow pid ]
               (body', _exit) <- lookForThread (Text.unpack (ProcId.name pid)) (Scopes.fromDecls cidDecls vidDecls) body
               registerProc pid (ProcDef.ProcDef cidDecls vidDecls body')
-          Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
+          Nothing -> error ("Unknown process (\"" ++ TxsShow.fshow pid ++ "\")!")
 -- doThreadInst
 
 -- Searches a given expression for parallel sub-expressions.
@@ -77,8 +79,9 @@ lookForThread location scope currentBExpr =
           do (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope bexpr
              return (guard (Scopes.applyToVExpr scope g) bexpr', exit')
       (TxsDefs.view -> Hide cidSet bexpr) ->
-          do (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope bexpr
-             return (hide (Scopes.applyToChanSet scope cidSet) bexpr', exit')
+          do let scope' = Scopes.addChanSet scope cidSet
+             (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope' bexpr
+             return (hide (Scopes.applyToChanSet scope' cidSet) bexpr', exit')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
           do (bexpr1', _) <- handleSubExpr currentBExpr 0 location scope bexpr1
              (bexpr2', exit') <- handleSubExpr currentBExpr 1 location (Scopes.addChanOffers scope acceptOffers) bexpr2
@@ -95,7 +98,7 @@ lookForThread location scope currentBExpr =
           do let scope' = Scopes.addActOffer scope actOffer
              (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope' bexpr
              return (actionPref (Scopes.applyToActOffer scope' actOffer) bexpr', exit')
-      _ -> error ("Behavioral expression not anticipated (\"" ++ show currentBExpr ++ "\")!")
+      _ -> error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 -- lookForThread
 
 instThread :: String -> Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
@@ -122,8 +125,9 @@ instThread location scope currentBExpr =
              regAndInstProc location scope' exit' (actionPref (Scopes.applyToActOffer scope'' actOffer) bexpr')
       (TxsDefs.view -> Hide cidSet bexpr) ->
           do scope' <- Scopes.cloneScope scope
-             (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope' bexpr
-             regAndInstProc location scope' exit' (hide (Scopes.applyToChanSet scope' cidSet) bexpr')
+             let scope'' = Scopes.addChanSet scope' cidSet
+             (bexpr', exit') <- handleSubExpr currentBExpr 0 location scope'' bexpr
+             regAndInstProc location scope'' exit' (hide (Scopes.applyToChanSet scope'' cidSet) bexpr')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
           do scope1 <- Scopes.cloneScope scope
              (bexpr1', _) <- handleSubExpr currentBExpr 0 location scope1 bexpr1
@@ -136,7 +140,7 @@ instThread location scope currentBExpr =
       (TxsDefs.view -> Interrupt bexpr1 bexpr2) ->
           do (bexpr1', bexpr2', exit', scope') <- cloneScopeAndInstThread bexpr1 bexpr2
              regAndInstProc location scope' exit' (interrupt bexpr1' bexpr2')
-      _ -> error ("Behavioral expression not accounted for (\"" ++ show currentBExpr ++ "\")!")
+      _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
   where
     -- Because LINT wants to reduce duplication so badly...:
     cloneScopeAndInstThread :: TxsDefs.BExpr -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, TxsDefs.BExpr, ProcId.ExitSort, Scopes.Scope)
@@ -150,7 +154,11 @@ instThread location scope currentBExpr =
 
 -- Determines whether a behavioral expression should be instantiated or not.
 handleSubExpr :: TxsDefs.BExpr -> Int -> String -> Scopes.Scope -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)
-handleSubExpr currentBExpr subExprIndex = if isThreadSubExpr currentBExpr subExprIndex then instThread else lookForThread
+handleSubExpr currentBExpr subExprIndex =
+    case getSubExprType currentBExpr subExprIndex of
+      StpSequential -> lookForThread
+      _ -> instThread
+-- handleSubExpr
 
 -- Multiple branches are evaluated in the same manner with this function.
 forAllBExprs :: (TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, ProcId.ExitSort)) -> [TxsDefs.BExpr] -> IOC.IOC ([TxsDefs.BExpr], ProcId.ExitSort)
