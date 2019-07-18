@@ -129,10 +129,7 @@ createLhsNonExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls
     let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
     let newProcInst = createNewProcInst info getExitFlagInited initFlagValue2 bd
-    let newActionPref = actionPref newActOffer newProcInst
-    
-    let applyInitEqs = if initFlagValue1 /= getExitFlagIdle then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
-    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+    createBranch newActOffer newProcInst initFlagValue1 td bd
 -- createLhsNonExitBranch
 
 createLhsExitBranch :: Info -> Integer -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
@@ -140,10 +137,7 @@ createLhsExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, g
     let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
     let newActOffer = removeChanFromActOffer (addActOfferConjunct (bActOffer bd) newGuard) chanIdExit
     let newProcInst = createNewProcInst info getExitFlagInited getExitFlagCancelled bd
-    let newActionPref = actionPref newActOffer newProcInst
-    
-    let applyInitEqs = if initFlagValue1 /= getExitFlagIdle then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
-    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+    createBranch newActOffer newProcInst initFlagValue1 td bd
 -- createLhsExitBranch
 
 createRhsNonExitBranch :: Info -> Integer -> Integer -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
@@ -151,10 +145,7 @@ createRhsNonExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls
     let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
     let newProcInst = createNewProcInst info nextInitFlagValue1 getExitFlagInited bd
-    let newActionPref = actionPref newActOffer newProcInst
-    
-    let applyInitEqs = if initFlagValue2 /= getExitFlagIdle then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
-    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+    createBranch newActOffer newProcInst initFlagValue2 td bd
 -- createRhsNonExitBranch
 
 createRhsExitBranch :: Info -> Integer -> Integer -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
@@ -162,10 +153,7 @@ createRhsExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, g
     let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
     let newActOffer = removeChanFromActOffer (addActOfferConjunct (bActOffer bd) newGuard) chanIdExit
     let newProcInst = createNewProcInst info nextInitFlagValue1 getExitFlagIdle bd
-    let newActionPref = actionPref newActOffer newProcInst
-    
-    let applyInitEqs = if initFlagValue2 /= getExitFlagIdle then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
-    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+    createBranch newActOffer newProcInst initFlagValue2 td bd
 -- createRhsExitBranch
 
 -- Because LINT wants to reduce duplication so badly...:
@@ -177,9 +165,13 @@ createNewProcInst (createProcInst, initFlag1, initFlag2, newVidDecls, _g) nextIn
       createProcInst (map (newParamEqs Map.!) (initFlag1 : initFlag2 : newVidDecls))
 -- createNewProcInst
 
-
-
-
+-- Because LINT wants to reduce duplication so badly...:
+createBranch :: TxsDefs.ActOffer -> TxsDefs.BExpr -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
+createBranch newActOffer newProcInst initFlagValue td bd = do
+    let newActionPref = actionPref newActOffer newProcInst
+    let applyInitEqs = if initFlagValue /= getExitFlagIdle then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
+    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+-- createBranch
 
 
 

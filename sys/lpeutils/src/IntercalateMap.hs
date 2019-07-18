@@ -21,5 +21,5 @@ intercalateMap
 import qualified Data.List as List
 
 intercalateMap :: [b] -> (a -> [b]) -> [a] -> [b]
-intercalateMap s f = List.intercalate s . (map f)
+intercalateMap s f = List.intercalate s . map f
 

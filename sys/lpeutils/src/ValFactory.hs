@@ -57,7 +57,7 @@ cstrIntEq x = ValExpr.cstrEqual (cstrInt x)
 cstrIntEqs :: [Integer] -> TxsDefs.VExpr -> TxsDefs.VExpr
 cstrIntEqs [] _ = cstrTrue
 cstrIntEqs [x] v = cstrIntEq x v
-cstrIntEqs xs v = ValExpr.cstrOr (Set.fromList (map (\x -> cstrIntEq x v) xs))
+cstrIntEqs xs v = ValExpr.cstrOr (Set.fromList (map (`cstrIntEq` v) xs))
 
 sort2defaultValue :: TxsDefs.TxsDefs -> SortId.SortId -> TxsDefs.VExpr
 sort2defaultValue tdefs sortId = ValExpr.cstrConst (sort2defaultConst tdefs sortId)

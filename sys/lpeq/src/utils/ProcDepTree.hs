@@ -50,7 +50,7 @@ data ProcDepTree = Uninitialized
 
 showProcDepTree :: String -> String -> ProcDepTree -> [String]
 showProcDepTree pidPrefix _depsPrefix Uninitialized = [pidPrefix ++ "UNINIT"]
-showProcDepTree pidPrefix depsPrefix (Branch ownerPid location dependencies) = [pidPrefix ++ TxsShow.fshow ownerPid ++ " (" ++ location ++ ")"] ++ showProcDepTreeDeps depsPrefix dependencies
+showProcDepTree pidPrefix depsPrefix (Branch ownerPid location dependencies) = (pidPrefix ++ TxsShow.fshow ownerPid ++ " (" ++ location ++ ")") : showProcDepTreeDeps depsPrefix dependencies
 showProcDepTree pidPrefix _depsPrefix (Circular ownerPid location) = [pidPrefix ++ "CIRCULAR " ++ TxsShow.fshow ownerPid ++ " (" ++ location ++ ")"]
 showProcDepTree pidPrefix _depsPrefix (InfiniteLoop ownerPid) = [pidPrefix ++ "INFLOOP " ++ TxsShow.fshow ownerPid]
 

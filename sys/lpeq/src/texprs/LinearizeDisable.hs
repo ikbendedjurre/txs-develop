@@ -103,10 +103,7 @@ createLhsNonExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls
     let newGuard = ValExpr.cstrAnd (Set.fromList [cstrBoolEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
     let newProcInst = createNewProcInst info True initFlagValue2 bd
-    let newActionPref = actionPref newActOffer newProcInst
-    
-    let applyInitEqs = if initFlagValue1 then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
-    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+    createBranch newActOffer newProcInst initFlagValue1 td bd
 -- createLhsNonExitBranch
 
 createLhsExitBranch :: Info -> Bool -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
@@ -114,10 +111,7 @@ createLhsExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, g
     let newGuard = ValExpr.cstrAnd (Set.fromList [cstrBoolEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
     let newActOffer = removeChanFromActOffer (addActOfferConjunct (bActOffer bd) newGuard) chanIdExit
     let newProcInst = createNewProcInst info True getExitFlagCancelled bd
-    let newActionPref = actionPref newActOffer newProcInst
-    
-    let applyInitEqs = if initFlagValue1 then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
-    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+    createBranch newActOffer newProcInst initFlagValue1 td bd
 -- createNonExitBranch
 
 createRhsBranch :: Info -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
@@ -140,7 +134,13 @@ createNewProcInst (createProcInst, initFlag1, initFlag2, newVidDecls, _g) nextIn
       createProcInst (map (newParamEqs Map.!) (initFlag1 : initFlag2 : newVidDecls))
 -- createNewProcInst
 
-
+-- Because LINT wants to reduce duplication so badly...:
+createBranch :: TxsDefs.ActOffer -> TxsDefs.BExpr -> Bool -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
+createBranch newActOffer newProcInst initFlagValue td bd = do
+    let newActionPref = actionPref newActOffer newProcInst
+    let applyInitEqs = if initFlagValue then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
+    return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
+-- createBranch
 
 
 
