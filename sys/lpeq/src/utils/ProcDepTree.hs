@@ -71,8 +71,9 @@ getProcDepTreeProblems startBExpr = do
     tree <- getProcDepTree startBExpr
     let problems = getProblems tree
     if null problems
-    then do procStrs <- showProcsInBExpr startBExpr
-            IOC.putInfo (showProcDepTree "" "" tree ++ procStrs)
+    then do -- procStrs <- showProcsInBExpr startBExpr
+            -- IOC.putInfo (showProcDepTree "" "" tree ++ procStrs)
+            IOC.putInfo (showProcDepTree "" "" tree)
             return []
     else do let problemsStrs = ["Encountered problems while constructing process dependency tree:"] ++ map ("|-" ++) (List.init problems) ++ ["\\-" ++ List.last problems]
             let treeStrs = "Process dependency tree:" : showProcDepTree "" "" tree

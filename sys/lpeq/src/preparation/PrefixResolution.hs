@@ -22,7 +22,6 @@ resolveProcPrefixesInBody,
 resolveProcPrefixes
 ) where
 
-import qualified Data.Either as Either
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Control.Monad as Monad
@@ -35,12 +34,14 @@ import qualified ProcId
 import qualified ProcDef
 import qualified ChanId
 import qualified VarId
-import qualified Constant
 import BehExprDefs
 import ProcIdFactory
+-- import ValFactory
 import UntilFixedPoint
 import ProcDepTree
 import BranchUtils
+
+data BranchVerdict = BVStop | BVDone | BVWrongPrefix deriving (Eq, Ord, Show)
 
 resolvePrefixes :: TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 resolvePrefixes bexpr = do
@@ -56,80 +57,88 @@ resolveProcPrefixes pid = do
     r <- getProcById pid
     case r of
       Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
+          -- let stopValues = Map.singleton pc (cstrInt (-1))
           body' <- resolveProcPrefixesInBody pid cidDecls vidDecls body
           registerProc pid (ProcDef.ProcDef cidDecls vidDecls body')
+      -- Just _ -> error ("Process does not have a program counter (\"" ++ show pid ++ "\")!")
       Nothing -> error ("Unknown process (\"" ++ show pid ++ "\")!")
 -- resolveProcPrefixes
 
 resolveProcPrefixesInBody :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
 resolveProcPrefixesInBody pid cidDecls vidDecls body = do
-    let (wrong, done) = Set.partition hasWrongPrefix (getBranches body)
-    let f (w, d) = let combined = [ combineChoices pid cidDecls vidDecls c1 c2 | c1 <- Set.toList w, c2 <- Set.toList (Set.union w d) ] in
-                     (Set.union w (Set.fromList (Either.lefts combined)), Set.union d (Set.fromList (Either.rights combined)))
-    let (_, done') = untilFixedPoint f (wrong, done)
-    return (choice done')
+    let branchesWithVerdicts = Set.map addBranchVerdict (getBranches body)
+    let f cs = let combined = [ combineChoices pid cidDecls vidDecls c1 c2 | (c1, v1) <- Set.toList cs, (c2, _) <- Set.toList cs, v1 == BVWrongPrefix ] in
+                 (Set.union cs (Set.fromList combined))
+    let branchesWithVerdicts' = Set.filter ((BVDone ==) . snd) (untilFixedPoint f branchesWithVerdicts)
+    return (choice (Set.map fst branchesWithVerdicts'))
 -- resolveProcPrefixesInBody
 
+-- Stop:
+--  - (Hide =>) (Guard =>) Stop
 -- Wrong:
 --  - (Hide =>) Guard => ProcInst
 -- Done:
 --  - (Hide =>) ActionPref => ProcInst
 --  - (Hide =>) Guard => Parallel/...
-hasWrongPrefix :: TxsDefs.BExpr -> Bool
-hasWrongPrefix currentBExpr =
+addBranchVerdict :: TxsDefs.BExpr -> (TxsDefs.BExpr, BranchVerdict)
+addBranchVerdict currentBExpr =
     case currentBExpr of
-      (TxsDefs.view -> Hide _cidSet bexpr) -> checkInnerExpr bexpr
-      _ -> checkInnerExpr currentBExpr
+      (TxsDefs.view -> Hide _cidSet bexpr) -> (currentBExpr, getInnerExprVerdict bexpr)
+      _ -> (currentBExpr, getInnerExprVerdict currentBExpr)
   where
-    checkInnerExpr :: TxsDefs.BExpr -> Bool
-    checkInnerExpr innerExpr =
-        case innerExpr of
-          (TxsDefs.view -> ActionPref _actOffer bexpr) ->
-              case bexpr of
-                (TxsDefs.view -> ProcInst {}) -> False
-                _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
-          (TxsDefs.view -> Guard _g bexpr) ->
-              case bexpr of
-                (TxsDefs.view -> ProcInst {}) -> True
-                (TxsDefs.view -> Parallel {}) -> False
-                (TxsDefs.view -> Enable {}) -> False
-                (TxsDefs.view -> Disable {}) -> False
-                (TxsDefs.view -> Interrupt {}) -> False
-                _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
-          _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
-    -- checkInnerExpr
--- hasWrongPrefix
+    getInnerExprVerdict :: TxsDefs.BExpr -> BranchVerdict
+    getInnerExprVerdict innerExpr =
+        if isStop innerExpr
+        then BVStop
+        else case innerExpr of
+               (TxsDefs.view -> ActionPref _actOffer bexpr) ->
+                   case bexpr of
+                     (TxsDefs.view -> ProcInst {}) -> BVDone
+                     _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+               (TxsDefs.view -> Guard _g bexpr) ->
+                   case bexpr of
+                     (TxsDefs.view -> ProcInst {}) -> BVWrongPrefix
+                     (TxsDefs.view -> Parallel {}) -> BVDone
+                     (TxsDefs.view -> Enable {}) -> BVDone
+                     (TxsDefs.view -> Disable {}) -> BVDone
+                     (TxsDefs.view -> Interrupt {}) -> BVDone
+                     _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+               _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
+    -- getInnerExprVerdict
+-- addBranchVerdict
 
-combineChoices :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> TxsDefs.BExpr -> TxsDefs.BExpr -> Either TxsDefs.BExpr TxsDefs.BExpr
-combineChoices pid _ [] _ _ = error ("Process without program counter found (\"" ++ show pid ++ "\")!")
-combineChoices pid cidDecls (seqPC:vidDecls) wrongChoice otherChoice =
+combineChoices :: ProcId.ProcId -> [ChanId.ChanId] -> [VarId.VarId] -> TxsDefs.BExpr -> TxsDefs.BExpr -> (TxsDefs.BExpr, BranchVerdict)
+combineChoices _pid _cidDecls vidDecls wrongChoice otherChoice =
     let (wcBExpr, wcHiddenChanSet) = removeHide wrongChoice in
     let (ocBExpr, ocHiddenChanSet) = removeHide otherChoice in
     let hiddenChanSet = Set.union wcHiddenChanSet ocHiddenChanSet in
-    let newBExpr = applyHide hiddenChanSet (combineNonHideChoices wcBExpr ocBExpr) in
-      if hasWrongPrefix newBExpr
-      then Left newBExpr
-      else Right newBExpr
+      addBranchVerdict (applyHide hiddenChanSet (combineNonHideChoices wcBExpr ocBExpr))
   where
     combineNonHideChoices :: TxsDefs.BExpr -> TxsDefs.BExpr -> TxsDefs.BExpr
     combineNonHideChoices wcBExpr ocBExpr =
+        -- A wrong choice looks like Guard => ProcInst; first, we break the expression down:
         case wcBExpr of
           (TxsDefs.view -> Guard wcGuard wcProcInst) ->
               case wcProcInst of
                 (TxsDefs.view -> ProcInst _wcPid _wcCids wcVExprs) ->
-                    let ocBExpr' = Subst.subst (Map.fromList (zip (seqPC:vidDecls) wcVExprs)) Map.empty ocBExpr in
+                    -- The wrong choice will come before the other choice, so
+                    -- we apply the ParamEqs of the wrong choice to the other choice:
+                    let ocBExpr' = Subst.subst (Map.fromList (zip vidDecls wcVExprs)) Map.empty ocBExpr in
+                      
+                      -- We break the other choice down:
                       case ocBExpr' of
+                        -- ActionPref => ProcInst
                         (TxsDefs.view -> ActionPref ocActOffer ocProcInst) ->
-                            let ocActOffer' = ocActOffer { TxsDefs.constraint = ValExpr.cstrAnd (Set.fromList [wcGuard, TxsDefs.constraint ocActOffer]) } in
+                            let newConstraint = ValExpr.cstrAnd (Set.fromList [wcGuard, TxsDefs.constraint ocActOffer]) in
+                            let ocActOffer' = ocActOffer { TxsDefs.constraint = newConstraint } in
                               actionPref ocActOffer' ocProcInst
+                        -- Guard => Parallel/...:
                         (TxsDefs.view -> Guard ocGuard ocGuardedBExpr) ->
                             let ocGuard' = ValExpr.cstrAnd (Set.fromList [wcGuard, ocGuard]) in
                               guard ocGuard' ocGuardedBExpr
-                        -- Through substitution, a Guard may have disappeared (because it is always true) or
-                        -- replaced by Stop (because it is always false):
-                        _ -> if isStop ocBExpr'
-                             then guard wcGuard (procInst pid cidDecls (ValExpr.cstrConst (Constant.Cint (-1)):map ValExpr.cstrVar vidDecls))
-                             else guard wcGuard ocBExpr'
+                        -- Through the substitution from before, the Guard of the other choice may have disappeared (because it is always true/false).
+                        -- We must not forget to add the Guard from the wrong choice in such cases:
+                        _ -> guard wcGuard ocBExpr'
                 _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow wrongChoice ++ "\"; " ++ show wrongChoice ++ ")!")
           _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow wrongChoice ++ "\"; " ++ show wrongChoice ++ ")!")
     -- combineNonHideChoices

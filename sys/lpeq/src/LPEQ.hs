@@ -19,7 +19,7 @@ lpeq
 ) where
 
 import qualified Data.Map as Map
--- import qualified Data.Set as Set
+import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Control.Monad.State as MonadState
 import qualified EnvCore as IOC
@@ -27,7 +27,7 @@ import qualified TxsDefs
 import ModelIdFactory
 
 import ChanSearch
-import ProcSearch
+-- import ProcSearch
 import UniqueObjects
 import ProcDepTree
 
@@ -66,8 +66,8 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     -- printProcsInBExpr "BEXPR4::" bexpr4
     
     -- 6. Create processes for each instantiation where the channels are different.
-    --    This makes the channel-related part of process signature redundant.
-    bexpr5 <- flattenChannels allChanIds bexpr4
+    --    This makes the channel-related part of process signatures redundant.
+    (bexpr5, extraOutChans) <- flattenChannels (getChansInModel insyncs outsyncs) bexpr4
     -- printProcsInBExpr "BEXPR5::" bexpr5
     
     -- Before continuing, validate the process dependency tree.
@@ -76,6 +76,7 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
     if null problems
     then do 
             -- printProcsInBExpr "BEXPR5::" bexpr5
+            IOC.putInfo [ "BEXPR5" ]
             
             -- 7. Place all steps of a process (including steps inside instantiated processes) on the same level in a Choice expression, but
             --    with different requirements of the value of a program counter.
@@ -87,16 +88,16 @@ lpeq _modelId (TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr) outputModelName
             -- 8. Rewrite the branches of the involved processes so that they have exactly one ActOffer.
             --    Exception: branches with thread expressions (Parallel / Enable / Disable / Interrupt) are not rewritten here!
             bexpr7 <- resolvePrefixes bexpr6
-            printProcsInBExpr "BEXPR7::" bexpr7
+            -- printProcsInBExpr "BEXPR7::" bexpr7
             
             -- 9. Linearize branches with thread expressions (Parallel / Enable / Disable / Interrupt):
             bexpr8 <- linearizeTExprs bexpr7
-            printProcsInBExpr "BEXPR8::" bexpr8
+            -- printProcsInBExpr "BEXPR8::" bexpr8
             
             -- Save the result as a new model:
             tdefs' <- MonadState.gets (IOC.tdefs . IOC.state)
             newModelId <- getModelIdFromName (Text.pack ("LPEQ_" ++ outputModelName))
-            let newModelDef = TxsDefs.ModelDef insyncs outsyncs splsyncs bexpr8
+            let newModelDef = TxsDefs.ModelDef insyncs (outsyncs ++ map Set.singleton (Set.toList extraOutChans)) splsyncs bexpr8
             let tdefs'' = tdefs' { TxsDefs.modelDefs = Map.insert newModelId newModelDef (TxsDefs.modelDefs tdefs') }
             IOC.modifyCS (\st -> st { IOC.tdefs = tdefs'' })
             return (Right (newModelId, newModelDef))

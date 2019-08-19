@@ -70,8 +70,8 @@ linearizeTExprsInProc procInstUpdateMap pid = do
           let tempProcInstUpdateMap = ProcInstUpdates.addToMap procInstUpdateMap pid (ProcInstUpdates.createIdentical pid)
           rs <- Monad.mapM (linearizeTExpr createProcInst tempProcInstUpdateMap) (Set.toList nlbranches)
           
-          -- Check if the result is linear. IT SHOULD BE LINEAR!
-          checkLinearBExprs pid (Set.toList nlbranches) (Set.toList (Set.unions (map lrBranches rs)))
+          -- Check if the result is linear. IT SHOULD BE LINEAR (except for STOP summands)!
+          checkLinearBExprs isStop pid (Set.toList nlbranches) (Set.toList (Set.unions (map lrBranches rs)))
           
           let newVids = concatMap lrParams rs
           let newVidDecls = vidDecls ++ newVids
@@ -96,7 +96,7 @@ linearizeTExprsInProc procInstUpdateMap pid = do
           registerProc newProcId (ProcDef.ProcDef cidDecls newVidDecls newBody)
           
           -- Check if the result is linear. IT SHOULD BE LINEAR!
-          checkLinearBExprs newProcId (Set.toList newBranches) (Set.toList (getBranches newBody))
+          checkLinearBExprs (const False) newProcId (Set.toList newBranches) (Set.toList (getBranches newBody))
           
           (_newProcId', newProcInstUpdateMap') <- eliminateHide (newProcId, newProcInstUpdateMap)
           -- printProcsInBody "AFTER HIDE ------> " newProcId'
@@ -118,10 +118,14 @@ linearizeNonHideTExpr createProcInst currentBExpr =
     case currentBExpr of
       (TxsDefs.view -> Guard g bexpr) ->
           case bexpr of
-            (TxsDefs.view -> Parallel {}) -> LinearizeParallel.linearize createProcInst g bexpr
-            (TxsDefs.view -> Enable {}) -> LinearizeEnable.linearize createProcInst g bexpr
-            (TxsDefs.view -> Disable {}) -> LinearizeDisable.linearize createProcInst g bexpr
-            (TxsDefs.view -> Interrupt {}) -> LinearizeInterrupt.linearize createProcInst g bexpr
+            (TxsDefs.view -> Parallel {}) -> do IOC.putInfo [ "PARALLEL" ]
+                                                LinearizeParallel.linearize createProcInst g bexpr
+            (TxsDefs.view -> Enable {}) -> do IOC.putInfo [ "ENABLE" ]
+                                              LinearizeEnable.linearize createProcInst g bexpr
+            (TxsDefs.view -> Disable {}) -> do IOC.putInfo [ "DISABLE" ]
+                                               LinearizeDisable.linearize createProcInst g bexpr
+            (TxsDefs.view -> Interrupt {}) -> do IOC.putInfo [ "INTERRUPT" ]
+                                                 LinearizeInterrupt.linearize createProcInst g bexpr
             _ -> error ("No implementation yet for \"" ++ show currentBExpr ++ "\"!")
       _ -> error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow currentBExpr ++ "\")!")
 -- linearizeNonHideTExpr

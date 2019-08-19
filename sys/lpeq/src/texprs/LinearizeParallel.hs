@@ -51,6 +51,15 @@ type Info = ( [TxsDefs.VExpr] -> TxsDefs.BExpr    -- Function that should be use
             )
 -- Info
 
+getInitFlagFalse :: Integer
+getInitFlagFalse = 0
+
+getInitFlagTrue :: Integer
+getInitFlagTrue = 1
+
+getInitFlagStop :: Integer
+getInitFlagStop = -1
+
 linearize :: TExprLinearizer
 linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) = do
     -- We require that all thread processes are unique, as well as all variables that they declare!
@@ -58,7 +67,7 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     Monad.mapM_ ensureFreshVarsInProcInst threads'
     
     -- Extract data from all parallel sub-expressions:
-    dataPerThread <- Monad.mapM (getThreadData "initFlag" getBoolSort) threads'
+    dataPerThread <- Monad.mapM (getThreadData "initFlag" getIntSort) threads'
     
     -- List all multi-channels used in the branches;
     -- then partition them into multi-channels that must synchronize and multi-channels that must not.
@@ -79,7 +88,8 @@ linearize createProcInst g (TxsDefs.view -> Parallel synchronizedChans threads) 
     
     return (TExprLinResult { lrBranches = Set.union syncedBranches unsyncedBranches
                            , lrParams = initFlags ++ newVidDecls
-                           , lrPredefInits = Map.fromList (map (, cstrFalse) initFlags)
+                           , lrPredefInits = Map.fromList (map (, cstrInt getInitFlagFalse) initFlags)
+                           , lrStopValues = Map.fromList (map (, cstrInt getInitFlagStop) initFlags)
                            })
 linearize _ _ bexpr = error ("Behavioral expression not anticipated (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
@@ -87,17 +97,25 @@ linearize _ _ bexpr = error ("Behavioral expression not anticipated (\"" ++ TxsS
 -- Synchronizes those branches.
 synchronizeOneBranchPerThread :: Info -> [ThreadData] -> Set.Set (Set.Set ChanId.ChanId) -> Set.Set ChanId.ChanId -> IOC.IOC (Set.Set TxsDefs.BExpr)
 synchronizeOneBranchPerThread info dataPerThread syncingCidSets syncingCidMinSubSet = do
+    -- IOC.putInfo [ "syncingCidSets = " ++ show syncingCidSets ]
     let filteredSyncingCidSets = Set.filter (syncingCidMinSubSet `Set.isSubsetOf`) syncingCidSets
     buildList [] (map (filterThreadData (`Set.member` filteredSyncingCidSets)) dataPerThread)
   where
     buildList :: [(BranchData, ThreadData)] -> [ThreadData] -> IOC.IOC (Set.Set TxsDefs.BExpr)
     buildList finalList [] =
         if noOtherSharedChannels (map fst finalList)
-        then Set.fromList <$> Monad.mapM (createSyncedBranch info syncingCidMinSubSet finalList) (List.subsequences (map snd finalList))
+        then do let subseqs = List.subsequences (map snd finalList)
+                Set.fromList <$> Monad.mapM (createFromSubsequence finalList (length subseqs)) (zip [1..] (List.subsequences (map snd finalList)))
         else return Set.empty
     buildList listSoFar (td:remaining) =
         Set.unions <$> Monad.mapM (\bd -> buildList (listSoFar ++ [(bd, td)]) remaining) (Set.toList (tBranchData td))
     -- buildList
+    
+    createFromSubsequence :: [(BranchData, ThreadData)] -> Int -> (Int, [ThreadData]) -> IOC.IOC TxsDefs.BExpr
+    createFromSubsequence finalList _subsequenceCount (_nr, subsequence) = do
+        -- IOC.putInfo [ "Subsequence " ++ show nr ++ " of " ++ show subsequenceCount ]
+        createSyncedBranch info syncingCidMinSubSet finalList subsequence
+    -- createFromSubsequence
     
     noOtherSharedChannels :: [BranchData] -> Bool
     noOtherSharedChannels bd = 
@@ -127,20 +145,20 @@ createSyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) synchronizi
     -- Replace variables in the ParamEqs:
     let getNewParamEqs (bd, td) = let applyInitEqs = if td `List.elem` initializedBranches then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty in
                                   let vidDeclEqs = Map.map applyFreshVars (Map.map applyInitEqs (bParamEqs bd)) in
-                                    Map.insert (tInitVar td) cstrTrue vidDeclEqs
+                                    Map.insert (tInitVar td) (cstrInt getInitFlagTrue) vidDeclEqs
     let newParamEqsPerBExpr = map getNewParamEqs dataPerBranch
     
     -- Construct the new guard:
-    let getInitFlagValue flag = if flag `List.elem` map tInitVar initializedBranches
-                                then ValExpr.cstrVar flag
-                                else ValExpr.cstrNot (ValExpr.cstrVar flag)
-    let newGuard = ValExpr.cstrAnd (Set.fromList (g : map getInitFlagValue initFlags))
+    let getInitFlagEq flag = if flag `List.elem` map tInitVar initializedBranches
+                             then cstrIntEq getInitFlagTrue (ValExpr.cstrVar flag)
+                             else cstrIntEq getInitFlagFalse (ValExpr.cstrVar flag)
+    let newGuard = ValExpr.cstrAnd (Set.fromList (g : map getInitFlagEq initFlags))
     
     -- Combine everything:
     let newActOffer = addActOfferConjunct (foldl1 mergeActOffers newActOfferPerBExpr) newGuard
-    let newParamEqsWithoutInitFlags = Map.union (Map.unions newParamEqsPerBExpr) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
-    let newInitFlagValues = Map.fromSet (const cstrTrue) (Set.fromList (map (tInitVar . snd) dataPerBranch))
-    let newProcInst = createNewProcInst info newInitFlagValues newParamEqsWithoutInitFlags
+    let newParamEqsWithUnchangedInitFlags = Map.union (Map.unions newParamEqsPerBExpr) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
+    let newInitFlagValues = Map.fromSet (const (cstrInt getInitFlagTrue)) (Set.fromList (map (tInitVar . snd) dataPerBranch))
+    let newProcInst = createNewProcInst info newInitFlagValues newParamEqsWithUnchangedInitFlags
     
     let newActionPref = actionPref newActOffer newProcInst
     let hiddenChansPerBExpr = map (\(bd, _td) -> bHidChans bd) dataPerBranch
@@ -162,13 +180,14 @@ leaveBranchesUnsynchronized info threadData =
 
 createUnsyncedBranch :: Info -> (BranchData, ThreadData) -> Bool -> IOC.IOC TxsDefs.BExpr
 createUnsyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) (bd, td) isInitialized = do
-    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrBoolEq isInitialized (ValExpr.cstrVar (tInitVar td)), g])
+    let newEq = cstrIntEq (if isInitialized then getInitFlagTrue else getInitFlagFalse) (ValExpr.cstrVar (tInitVar td))
+    let newGuard = ValExpr.cstrAnd (Set.fromList [newEq, g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
     
     -- Re-use existing ParamEqs if possible (Map.union is left-biased):
-    let newParamEqsWithoutInitFlags = Map.union (bParamEqs bd) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
-    let newInitFlagValues = Map.singleton (tInitVar td) cstrTrue
-    let newProcInst = createNewProcInst info newInitFlagValues newParamEqsWithoutInitFlags
+    let newParamEqsWithUnchangedInitFlags = Map.union (bParamEqs bd) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlags ++ newVidDecls)))
+    let newInitFlagValues = Map.singleton (tInitVar td) (cstrInt getInitFlagTrue)
+    let newProcInst = createNewProcInst info newInitFlagValues newParamEqsWithUnchangedInitFlags
     
     let newActionPref = actionPref newActOffer newProcInst
     let applyInitEqs = if isInitialized then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
@@ -178,8 +197,8 @@ createUnsyncedBranch info@(_createProcInst, initFlags, newVidDecls, g) (bd, td) 
 
 -- Because LINT wants to reduce duplication so badly...:
 createNewProcInst :: Info -> Map.Map VarId.VarId TxsDefs.VExpr -> Map.Map VarId.VarId TxsDefs.VExpr -> TxsDefs.BExpr
-createNewProcInst (createProcInst, initFlags, newVidDecls, _g) newInitFlagValues newParamEqsWithoutInitFlags =
-    let newParamEqs = Map.union newInitFlagValues newParamEqsWithoutInitFlags in
+createNewProcInst (createProcInst, initFlags, newVidDecls, _g) newInitFlagValues newParamEqsWithUnchangedInitFlags =
+    let newParamEqs = Map.union newInitFlagValues newParamEqsWithUnchangedInitFlags in
       createProcInst (map (newParamEqs Map.!) (initFlags ++ newVidDecls))
 -- createNewProcInst
 

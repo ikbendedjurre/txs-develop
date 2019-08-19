@@ -62,26 +62,29 @@ getExitFlagPausedAndIdle = 3
 getExitFlagPausedAndInited :: Integer
 getExitFlagPausedAndInited = 4
 
+getExitFlagStop :: Integer
+getExitFlagStop = -1
+
 linearize :: TExprLinearizer
 linearize createProcInst g (TxsDefs.view -> Interrupt thread1 thread2) = do
     -- We require that the two thread processes are unique, as well as all variables that they declare!
     [thread1', thread2'] <- ensureDistinguishableThreads [thread1, thread2]
     Monad.mapM_ ensureFreshVarsInProcInst [thread1', thread2']
     
-    threadData1 <- getThreadData "initFlag" getIntSort thread1'
+    threadData1 <- getThreadData "exitFlag" getIntSort thread1'
     let (exitThreadData1, nonExitThreadData1) = partitionThreadData (Set.member chanIdExit) threadData1
     let exitBranchData1 = Set.toList (tBranchData exitThreadData1)
     let nonExitBranchData1 = Set.toList (tBranchData nonExitThreadData1)
     
-    threadData2 <- getThreadData "initFlag" getIntSort thread2'
+    threadData2 <- getThreadData "exitFlag" getIntSort thread2'
     let (exitThreadData2, nonExitThreadData2) = partitionThreadData (Set.member chanIdExit) threadData2
     let exitBranchData2 = Set.toList (tBranchData exitThreadData2)
     let nonExitBranchData2 = Set.toList (tBranchData nonExitThreadData2)
     
-    let initFlag1 = tInitVar threadData1
-    let initFlag2 = tInitVar threadData2
+    let exitFlag1 = tInitVar threadData1
+    let exitFlag2 = tInitVar threadData2
     let newVidDecls = map fst (tInitEqs threadData1) ++ map fst (tInitEqs threadData2)
-    let info = (createProcInst, initFlag1, initFlag2, newVidDecls, g)
+    let info = (createProcInst, exitFlag1, exitFlag2, newVidDecls, g)
     
     -- Uninitialized thread1 can take actions while thread2 is idle (and not cancelled, which implies that thread1 is already initialized).
     -- Initialized thread1 can take actions while thread2 is idle or cancelled.
@@ -119,57 +122,58 @@ linearize createProcInst g (TxsDefs.view -> Interrupt thread1 thread2) = do
                                                                , rhsInitedExitBranches1
                                                                , rhsInitedExitBranches2
                                                                ])
-                           , lrParams = initFlag1 : initFlag2 : newVidDecls
-                           , lrPredefInits = Map.fromList [(initFlag1, cstrFalse), (initFlag2, cstrInt getExitFlagIdle)]
+                           , lrParams = exitFlag1 : exitFlag2 : newVidDecls
+                           , lrPredefInits = Map.fromList [(exitFlag1, cstrInt getExitFlagIdle), (exitFlag2, cstrInt getExitFlagIdle)]
+                           , lrStopValues = Map.fromList [(exitFlag1, cstrInt getExitFlagStop), (exitFlag2, cstrInt getExitFlagStop)]
                            })
 linearize _ _ bexpr = error ("Behavioral expression not accounted for (\"" ++ TxsShow.fshow bexpr ++ "\")!")
 
 createLhsNonExitBranch :: Info -> Integer -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
-createLhsNonExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, g) initFlagValue1 initFlagValue2 td bd = do
-    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
+createLhsNonExitBranch info@(_createProcInst, exitFlag1, exitFlag2, _newVidDecls, g) exitFlagValue1 exitFlagValue2 td bd = do
+    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq exitFlagValue1 (ValExpr.cstrVar exitFlag1), cstrIntEq exitFlagValue2 (ValExpr.cstrVar exitFlag2), g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
-    let newProcInst = createNewProcInst info getExitFlagInited initFlagValue2 bd
-    createBranch newActOffer newProcInst initFlagValue1 td bd
+    let newProcInst = createNewProcInst info getExitFlagInited exitFlagValue2 bd
+    createBranch newActOffer newProcInst exitFlagValue1 td bd
 -- createLhsNonExitBranch
 
 createLhsExitBranch :: Info -> Integer -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
-createLhsExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, g) initFlagValue1 initFlagValue2 td bd = do
-    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
+createLhsExitBranch info@(_createProcInst, exitFlag1, exitFlag2, _newVidDecls, g) exitFlagValue1 exitFlagValue2 td bd = do
+    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq exitFlagValue1 (ValExpr.cstrVar exitFlag1), cstrIntEq exitFlagValue2 (ValExpr.cstrVar exitFlag2), g])
     let newActOffer = removeChanFromActOffer (addActOfferConjunct (bActOffer bd) newGuard) chanIdExit
     let newProcInst = createNewProcInst info getExitFlagInited getExitFlagCancelled bd
-    createBranch newActOffer newProcInst initFlagValue1 td bd
+    createBranch newActOffer newProcInst exitFlagValue1 td bd
 -- createLhsExitBranch
 
 createRhsNonExitBranch :: Info -> Integer -> Integer -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
-createRhsNonExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, g) initFlagValue1 nextInitFlagValue1 initFlagValue2 td bd = do
-    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
+createRhsNonExitBranch info@(_createProcInst, exitFlag1, exitFlag2, _newVidDecls, g) exitFlagValue1 nextExitFlagValue1 exitFlagValue2 td bd = do
+    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq exitFlagValue1 (ValExpr.cstrVar exitFlag1), cstrIntEq exitFlagValue2 (ValExpr.cstrVar exitFlag2), g])
     let newActOffer = addActOfferConjunct (bActOffer bd) newGuard
-    let newProcInst = createNewProcInst info nextInitFlagValue1 getExitFlagInited bd
-    createBranch newActOffer newProcInst initFlagValue2 td bd
+    let newProcInst = createNewProcInst info nextExitFlagValue1 getExitFlagInited bd
+    createBranch newActOffer newProcInst exitFlagValue2 td bd
 -- createRhsNonExitBranch
 
 createRhsExitBranch :: Info -> Integer -> Integer -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
-createRhsExitBranch info@(_createProcInst, initFlag1, initFlag2, _newVidDecls, g) initFlagValue1 nextInitFlagValue1 initFlagValue2 td bd = do
-    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq initFlagValue1 (ValExpr.cstrVar initFlag1), cstrIntEq initFlagValue2 (ValExpr.cstrVar initFlag2), g])
+createRhsExitBranch info@(_createProcInst, exitFlag1, exitFlag2, _newVidDecls, g) exitFlagValue1 nextExitFlagValue1 exitFlagValue2 td bd = do
+    let newGuard = ValExpr.cstrAnd (Set.fromList [cstrIntEq exitFlagValue1 (ValExpr.cstrVar exitFlag1), cstrIntEq exitFlagValue2 (ValExpr.cstrVar exitFlag2), g])
     let newActOffer = removeChanFromActOffer (addActOfferConjunct (bActOffer bd) newGuard) chanIdExit
-    let newProcInst = createNewProcInst info nextInitFlagValue1 getExitFlagIdle bd
-    createBranch newActOffer newProcInst initFlagValue2 td bd
+    let newProcInst = createNewProcInst info nextExitFlagValue1 getExitFlagIdle bd
+    createBranch newActOffer newProcInst exitFlagValue2 td bd
 -- createRhsExitBranch
 
 -- Because LINT wants to reduce duplication so badly...:
 createNewProcInst :: Info -> Integer -> Integer -> BranchData -> TxsDefs.BExpr
-createNewProcInst (createProcInst, initFlag1, initFlag2, newVidDecls, _g) nextInitFlagValue1 nextInitFlagValue2 bd =
-    let newParamEqsWithoutInitFlags = Map.union (bParamEqs bd) (Map.fromSet ValExpr.cstrVar (Set.fromList (initFlag1 : initFlag2 : newVidDecls))) in
-    let newInitFlagValues = Map.fromList [(initFlag1, cstrInt nextInitFlagValue1), (initFlag2, cstrInt nextInitFlagValue2)] in
+createNewProcInst (createProcInst, exitFlag1, exitFlag2, newVidDecls, _g) nextExitFlagValue1 nextExitFlagValue2 bd =
+    let newParamEqsWithoutInitFlags = Map.union (bParamEqs bd) (Map.fromSet ValExpr.cstrVar (Set.fromList (exitFlag1 : exitFlag2 : newVidDecls))) in
+    let newInitFlagValues = Map.fromList [(exitFlag1, cstrInt nextExitFlagValue1), (exitFlag2, cstrInt nextExitFlagValue2)] in
     let newParamEqs = Map.union newInitFlagValues newParamEqsWithoutInitFlags in
-      createProcInst (map (newParamEqs Map.!) (initFlag1 : initFlag2 : newVidDecls))
+      createProcInst (map (newParamEqs Map.!) (exitFlag1 : exitFlag2 : newVidDecls))
 -- createNewProcInst
 
 -- Because LINT wants to reduce duplication so badly...:
 createBranch :: TxsDefs.ActOffer -> TxsDefs.BExpr -> Integer -> ThreadData -> BranchData -> IOC.IOC TxsDefs.BExpr
-createBranch newActOffer newProcInst initFlagValue td bd = do
+createBranch newActOffer newProcInst exitFlagValue td bd = do
     let newActionPref = actionPref newActOffer newProcInst
-    let applyInitEqs = if initFlagValue /= getExitFlagIdle then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
+    let applyInitEqs = if exitFlagValue /= getExitFlagIdle then id else Subst.subst (Map.fromList (tInitEqs td)) Map.empty
     return (applyHide (bHidChans bd) (applyInitEqs newActionPref))
 -- createBranch
 

@@ -40,27 +40,31 @@ type ProcInstSignature = (ProcId.ProcId, [ChanId.ChanId])
 
 -- Rewrites the given behavioral expression so that all of its processes have the same channel signature.
 -- Also updates process instantiations, including in the expression that is returned.
-flattenChannels :: [ChanId.ChanId] -> TxsDefs.BExpr -> IOC.IOC TxsDefs.BExpr
-flattenChannels allChanIds bexpr = do
-    let idChanMap = Map.fromList (zip allChanIds allChanIds)
+flattenChannels :: [ChanId.ChanId] -> TxsDefs.BExpr -> IOC.IOC (TxsDefs.BExpr, Set.Set ChanId.ChanId)
+flattenChannels modelChanIds bexpr = do
+    let idChanMap = Map.fromList (zip modelChanIds modelChanIds)
     sigs <- getSignatures idChanMap Set.empty bexpr
-    freshPidPerSig <- Monad.mapM cloneSig (Set.toList sigs)
+    let allChanIds = Set.toList (Set.fromList (concatMap snd sigs))
+    freshPidPerSig <- Monad.mapM (cloneSig allChanIds) (Set.toList sigs)
     let freshPidMap = Map.fromList freshPidPerSig
-    Monad.mapM_ (doProc freshPidMap) freshPidPerSig
-    replacePidsInBExpr allChanIds idChanMap freshPidMap bexpr
+    Monad.mapM_ (doProc allChanIds freshPidMap) freshPidPerSig
+    bexpr' <- replacePidsInBExpr allChanIds idChanMap freshPidMap bexpr
+    return (bexpr', Set.fromList allChanIds Set.\\ Set.fromList modelChanIds)
   where
-    cloneSig :: ProcInstSignature -> IOC.IOC (ProcInstSignature, TxsDefs.ProcId)
-    cloneSig (pid, cids) = do
+    cloneSig :: [ChanId.ChanId] -> ProcInstSignature -> IOC.IOC (ProcInstSignature, TxsDefs.ProcId)
+    cloneSig allChanIds (pid, cids) = do
         freshPid <- createFreshProcIdWithDifferentChans pid allChanIds
         return ((pid, cids), freshPid)
     -- cloneSig
     
-    doProc :: Map.Map ProcInstSignature TxsDefs.ProcId -> (ProcInstSignature, TxsDefs.ProcId) -> IOC.IOC ()
-    doProc freshPidMap ((pid, cids), freshPid) = do
+    doProc :: [ChanId.ChanId] -> Map.Map ProcInstSignature TxsDefs.ProcId -> (ProcInstSignature, TxsDefs.ProcId) -> IOC.IOC ()
+    doProc allChanIds freshPidMap ((pid, cids), freshPid) = do
         r <- getProcById pid
         case r of
           Just (ProcDef.ProcDef cidDecls vidDecls body) -> do
-              body' <- replacePidsInBExpr allChanIds (Map.fromList (zip cidDecls cids)) freshPidMap body
+              let cidDeclMap = Map.fromList (zip cidDecls cids)
+              let cidIdMap = Map.fromList (zip allChanIds allChanIds)
+              body' <- replacePidsInBExpr allChanIds (Map.union cidDeclMap cidIdMap) freshPidMap body
               registerProc freshPid (ProcDef.ProcDef allChanIds vidDecls body')
           Nothing -> return ()
     -- doProc
@@ -87,9 +91,13 @@ getSignatures chanMap soFar currentBExpr =
           Monad.foldM (getSignatures chanMap) soFar (Set.toList bexprs)
       (TxsDefs.view -> Parallel _cidSet bexprs) ->
           Monad.foldM (getSignatures chanMap) soFar bexprs
-      (TxsDefs.view -> Hide _cidSet bexpr) ->
-          -- Maybe use information that HIDE gives us...?
-             getSignatures chanMap soFar bexpr
+      (TxsDefs.view -> Hide cidSet bexpr) ->
+          do -- Add locally declared channels to the channel map.
+             -- (Using union works because union is left-biased.)
+             let cidList = Set.toList cidSet
+             let cidIdMap = Map.fromList (zip cidList cidList)
+             let chanMap' = Map.union chanMap cidIdMap
+             getSignatures chanMap' soFar bexpr
       (TxsDefs.view -> Enable bexpr1 _acceptOffers bexpr2) ->
           do soFar' <- getSignatures chanMap soFar bexpr1
              getSignatures chanMap soFar' bexpr2
@@ -128,8 +136,11 @@ replacePidsInBExpr allChanIds chanMap freshPidMap currentBExpr =
           do bexprs' <- Monad.mapM (replacePidsInBExpr allChanIds chanMap freshPidMap) bexprs
              return (parallel (doChanSetWithError (show currentBExpr) chanMap cidSet) bexprs')
       (TxsDefs.view -> Hide cidSet bexpr) ->
-          do bexpr' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr
-             return (hide (doChanSetWithError (show currentBExpr) chanMap cidSet) bexpr')
+          do let cidList = Set.toList cidSet
+             let cidIdMap = Map.fromList (zip cidList cidList)
+             let chanMap' = Map.union chanMap cidIdMap
+             bexpr' <- replacePidsInBExpr allChanIds chanMap' freshPidMap bexpr
+             return (hide (doChanSetWithError (show currentBExpr) chanMap' cidSet) bexpr')
       (TxsDefs.view -> Enable bexpr1 acceptOffers bexpr2) ->
           do bexpr1' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr1
              bexpr2' <- replacePidsInBExpr allChanIds chanMap freshPidMap bexpr2

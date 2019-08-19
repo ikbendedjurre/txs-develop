@@ -17,6 +17,7 @@ See LICENSE at root directory of this repository.
 {-# LANGUAGE ViewPatterns        #-}
 
 module ChanSearch (
+getChansInModel,
 getChansInBExpr
 ) where
 
@@ -30,6 +31,9 @@ import qualified ProcDef
 import qualified ChanId
 import BehExprDefs
 import ProcIdFactory
+
+getChansInModel :: [Set.Set ChanId.ChanId] -> [Set.Set ChanId.ChanId] -> [ChanId.ChanId]
+getChansInModel insyncs outsyncs = Set.toList (Set.union (Set.unions insyncs) (Set.unions outsyncs))
 
 -- Lists all channels that can be reached from the given behavioral expression.
 -- Works by depth-first-search.
